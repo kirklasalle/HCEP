@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HCEP.Kinect</RootNamespace>
+    <AssemblyName>HCEP.Kinect</AssemblyName>
+    <Description>Xbox 360 Kinect v1 native COM interop sensor abstraction.</Description>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HCEP.Core\HCEP.Core.csproj" />
+    <ProjectReference Include="..\HCEP.Telemetry\HCEP.Telemetry.csproj" />
+  </ItemGroup>
+</Project>

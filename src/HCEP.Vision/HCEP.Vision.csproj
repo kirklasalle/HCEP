@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HCEP.Vision</RootNamespace>
+    <AssemblyName>HCEP.Vision</AssemblyName>
+    <Description>Face tracking, gaze estimation, ArcFace recognition, and HCEP analysis.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HCEP.Core\HCEP.Core.csproj" />
+    <ProjectReference Include="..\HCEP.Spatial\HCEP.Spatial.csproj" />
+    <ProjectReference Include="..\HCEP.Telemetry\HCEP.Telemetry.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.20.1" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.7" />
+  </ItemGroup>
+</Project>

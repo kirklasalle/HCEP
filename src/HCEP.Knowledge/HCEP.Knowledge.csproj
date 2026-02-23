@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HCEP.Knowledge</RootNamespace>
+    <AssemblyName>HCEP.Knowledge</AssemblyName>
+    <Description>UKS-backed knowledge graph with HCEP adapter layer for person KB, conversation history, and LLM grounding.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HCEP.Core\HCEP.Core.csproj" />
+    <ProjectReference Include="..\HCEP.Telemetry\HCEP.Telemetry.csproj" />
+  </ItemGroup>
+  <!-- UKS library (BrainSim III) MIT licensed - TODO: Add UKS.dll or source project once cloned -->
+</Project>

@@ -1,0 +1,238 @@
+// ──────────────────────────────────────────────────────────────
+// HCEP — Human Communication Eye Protocol
+// Copyright © 2026 Kirk LaSalle. All rights reserved.
+// ──────────────────────────────────────────────────────────────
+
+using System.Numerics;
+using HCEP.Core.Enums;
+using HCEP.Core.Interfaces;
+using HCEP.Core.Models;
+
+namespace HCEP.Vision;
+
+/// <summary>
+/// HCEP 5-mode state machine analyzer.
+/// Classifies cognitive-emotional state from multi-modal input
+/// using the HCEP theory rule engine with temporal hysteresis.
+/// </summary>
+public sealed class HcepModeAnalyzer : IHcepAnalyzer
+{
+    // ── Temporal State ─────────────────────────────────────────
+    private readonly Queue<HcepReading> _history = new();
+    private const int HistoryDepth = 30; // ~1 second at 30 FPS
+
+    // ── Thresholds ─────────────────────────────────────────────
+    private const float GazeAversionAngleDeg = 15f;
+    private const float BrowLowerThreshold = -0.3f;
+    private const float SmileThreshold = 0.2f;
+    private const float ModeTransitionMinConfidence = 0.4f;
+    private const int ModeStabilityFrames = 5;
+
+    private HcepMode _currentMode = HcepMode.Unknown;
+    private int _modeStabilityCount;
+
+    /// <inheritdoc />
+    public HcepReading Analyze(
+        GazeEstimate gaze,
+        FaceFrame face,
+        SpeechResult? speech,
+        HcepReading? previousReading)
+    {
+        var timestamp = gaze.Timestamp;
+
+        // ── Feature Extraction ─────────────────────────────────
+        bool isOnFace = IsGazeOnFace(gaze.ClassifiedRegion);
+        bool isAverting = !isOnFace;
+        bool isSocialTriangle = IsSocialTrianglePattern(gaze.ClassifiedRegion);
+        float browLower = GetActionUnitSafe(face, ActionUnit.BrowLowerer);
+        float lipCornerDepress = GetActionUnitSafe(face, ActionUnit.LipCornerDepressor);
+        float lipStretch = GetActionUnitSafe(face, ActionUnit.LipStretcher);
+        bool isSpeaking = speech?.IsFinal == true && !string.IsNullOrEmpty(speech.Text);
+
+        // ── Cognitive State Classification ─────────────────────
+        var cognitive = ClassifyCognitive(isOnFace, isAverting, gaze, face, isSpeaking);
+
+        // ── Emotional Valence ──────────────────────────────────
+        var valence = ClassifyValence(face);
+
+        // ── HCEP Mode Classification (5-mode state machine) ───
+        var candidateMode = ClassifyMode(
+            isOnFace, isAverting, isSocialTriangle,
+            cognitive, valence, gaze, face);
+
+        float confidence = ComputeConfidence(gaze, face, candidateMode);
+
+        // ── Temporal Hysteresis ────────────────────────────────
+        var finalMode = ApplyHysteresis(candidateMode, confidence);
+
+        var reading = new HcepReading(
+            timestamp,
+            finalMode,
+            gaze.ClassifiedRegion,
+            cognitive,
+            valence,
+            confidence,
+            gaze.Origin,
+            gaze.HybridDirection,
+            face.HeadRotation,
+            face.TrackingId);
+
+        // Update history
+        _history.Enqueue(reading);
+        while (_history.Count > HistoryDepth)
+            _history.Dequeue();
+
+        return reading;
+    }
+
+    /// <inheritdoc />
+    public void Reset()
+    {
+        _history.Clear();
+        _currentMode = HcepMode.Unknown;
+        _modeStabilityCount = 0;
+    }
+
+    // ── Mode Classification ────────────────────────────────────
+
+    private static HcepMode ClassifyMode(
+        bool isOnFace, bool isAverting, bool isSocialTriangle,
+        CognitiveState cognitive, EmotionalValence valence,
+        GazeEstimate gaze, FaceFrame face)
+    {
+        // THINK_MODE: Gaze off-face, internal processing
+        if (isAverting && (cognitive == CognitiveState.Recalling ||
+                          cognitive == CognitiveState.Constructing ||
+                          cognitive == CognitiveState.Processing))
+            return HcepMode.Think;
+
+        // AFFECT_MODE: Social Triangle pattern + emotional engagement
+        if (isSocialTriangle && valence != EmotionalValence.Unknown)
+            return HcepMode.Affect;
+
+        // SPIRIT_MODE: Sustained mutual gaze, high confidence
+        if (isOnFace && gaze.Confidence > 0.8f &&
+            (gaze.ClassifiedRegion == GazeRegion.LeftEye ||
+             gaze.ClassifiedRegion == GazeRegion.RightEye))
+            return HcepMode.Spirit;
+
+        // HEART_MODE: Lower-face attention, empathic markers
+        if (isOnFace && (gaze.ClassifiedRegion == GazeRegion.Mouth ||
+                         gaze.ClassifiedRegion == GazeRegion.Chin) &&
+            valence == EmotionalValence.Positive)
+            return HcepMode.Heart;
+
+        // LOGIC_MODE: Structured gaze, analytical engagement
+        if (isOnFace && cognitive == CognitiveState.Engaged)
+            return HcepMode.Logic;
+
+        return HcepMode.Unknown;
+    }
+
+    private static CognitiveState ClassifyCognitive(
+        bool isOnFace, bool isAverting, GazeEstimate gaze,
+        FaceFrame face, bool isSpeaking)
+    {
+        if (!face.IsTracked) return CognitiveState.Unknown;
+
+        // Pre-speech pattern
+        if (isSpeaking)
+            return CognitiveState.PreSpeech;
+
+        // Defocused gaze → internal processing
+        if (gaze.ClassifiedRegion == GazeRegion.Defocused)
+            return CognitiveState.Constructing;
+
+        // Gaze aversion patterns
+        if (isAverting)
+        {
+            // Upper-left aversion (from observer) → recall
+            if (gaze.HybridDirection.X < -0.2f && gaze.HybridDirection.Y > 0.1f)
+                return CognitiveState.Recalling;
+
+            // Upper-right aversion → constructing
+            if (gaze.HybridDirection.X > 0.2f && gaze.HybridDirection.Y > 0.1f)
+                return CognitiveState.Constructing;
+
+            return CognitiveState.Processing;
+        }
+
+        // On-face 
+        if (isOnFace)
+        {
+            float browLower = GetActionUnitSafe(face, ActionUnit.BrowLowerer);
+            if (browLower < -0.2f) return CognitiveState.Confused;
+
+            return CognitiveState.Engaged;
+        }
+
+        return CognitiveState.Disengaged;
+    }
+
+    private static EmotionalValence ClassifyValence(FaceFrame face)
+    {
+        if (!face.IsTracked || face.ActionUnits.Length < 6)
+            return EmotionalValence.Unknown;
+
+        float lipStretch = face.ActionUnits[(int)ActionUnit.LipStretcher];
+        float lipCornerDepress = face.ActionUnits[(int)ActionUnit.LipCornerDepressor];
+        float browLower = face.ActionUnits[(int)ActionUnit.BrowLowerer];
+
+        // Simple valence: positive = smile, negative = frown
+        float positiveScore = lipStretch * 0.5f - lipCornerDepress * 0.5f;
+        float negativeScore = lipCornerDepress * 0.5f + browLower * 0.3f;
+
+        if (positiveScore > 0.15f) return EmotionalValence.Positive;
+        if (negativeScore > 0.15f) return EmotionalValence.Negative;
+        return EmotionalValence.Neutral;
+    }
+
+    // ── Helpers ────────────────────────────────────────────────
+
+    private HcepMode ApplyHysteresis(HcepMode candidate, float confidence)
+    {
+        if (candidate == _currentMode)
+        {
+            _modeStabilityCount++;
+            return _currentMode;
+        }
+
+        if (confidence >= ModeTransitionMinConfidence)
+            _modeStabilityCount++;
+        else
+            _modeStabilityCount = 0;
+
+        if (_modeStabilityCount >= ModeStabilityFrames)
+        {
+            _currentMode = candidate;
+            _modeStabilityCount = 0;
+        }
+
+        return _currentMode;
+    }
+
+    private static float ComputeConfidence(GazeEstimate gaze, FaceFrame face, HcepMode mode)
+    {
+        if (!face.IsTracked || mode == HcepMode.Unknown)
+            return 0f;
+
+        float gazeConf = gaze.Confidence;
+        float faceConf = face.IsTracked ? 0.8f : 0f;
+
+        return Math.Clamp((gazeConf + faceConf) * 0.5f, 0f, 1f);
+    }
+
+    private static bool IsGazeOnFace(GazeRegion region) =>
+        region is GazeRegion.LeftEye or GazeRegion.RightEye or GazeRegion.NasalBridge
+            or GazeRegion.Mouth or GazeRegion.Forehead or GazeRegion.Chin
+            or GazeRegion.FaceCenter;
+
+    private static bool IsSocialTrianglePattern(GazeRegion region) =>
+        region is GazeRegion.LeftEye or GazeRegion.RightEye or GazeRegion.Mouth;
+
+    private static float GetActionUnitSafe(FaceFrame face, ActionUnit au)
+    {
+        int idx = (int)au;
+        return idx < face.ActionUnits.Length ? face.ActionUnits[idx] : 0f;
+    }
+}

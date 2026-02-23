@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HCEP.Core</RootNamespace>
+    <AssemblyName>HCEP.Core</AssemblyName>
+    <Description>Core models, enums, interfaces, and contracts for the HCEP platform.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Threading.Channels" Version="9.0.0" />
+  </ItemGroup>
+</Project>

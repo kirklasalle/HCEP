@@ -1,0 +1,156 @@
+﻿<Window x:Class="HCEP.App.SensorViewWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="HCEP — Kinect Sensor Streams"
+        Height="450"
+        Width="1060"
+        Background="{StaticResource BackgroundBrush}"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- ── Menu Bar ───────────────────────────────────── -->
+        <Menu Grid.Row="0"
+              ToolTip="Sensor Streams window menu">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Close" Click="CloseWindow_Click"
+                          ToolTip="Close this Sensor Streams window"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="Show _RGB Stream"
+                          IsCheckable="True" IsChecked="{Binding ShowRgbStream}"
+                          ToolTip="Toggle visibility of the RGB color camera stream"/>
+                <MenuItem Header="Show _IR Stream"
+                          IsCheckable="True" IsChecked="{Binding ShowIrStream}"
+                          ToolTip="Toggle visibility of the infrared / depth intensity stream"/>
+                <MenuItem Header="Show _Depth Stream"
+                          IsCheckable="True" IsChecked="{Binding ShowDepthStream}"
+                          ToolTip="Toggle visibility of the colorized depth map stream"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- ── Header ─────────────────────────────────────── -->
+        <Border Grid.Row="1"
+                Background="{StaticResource SurfaceBrush}"
+                CornerRadius="6"
+                Padding="12,8"
+                Margin="8,4,8,8"
+                ToolTip="Kinect sensor streams header — shows all active data streams from the Kinect hardware">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="📷"
+                           FontSize="16"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+                <TextBlock Text="KINECT SENSOR STREAMS"
+                           FontSize="14"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource PrimaryBrush}"
+                           VerticalAlignment="Center"
+                           ToolTip="Real-time sensor data streams from the Kinect v1 (Xbox 360) hardware"/>
+                <TextBlock Text="Xbox 360 Kinect — RGB · IR · Depth"
+                           FontSize="12"
+                           Foreground="{StaticResource TextDimBrush}"
+                           VerticalAlignment="Center"
+                           Margin="16,0,0,0"
+                           ToolTip="Three streams: RGB color (640×480), Infrared intensity (640×480), Depth map (640×480)"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ── Three-panel: RGB | IR | Depth ──────────────── -->
+        <Grid Grid.Row="2" Margin="8,0,8,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="6"/>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="6"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- RGB -->
+            <Border Grid.Column="0"
+                    Background="#1E1E2E"
+                    CornerRadius="6"
+                    ClipToBounds="True"
+                    Visibility="{Binding RgbVisibility}"
+                    ToolTip="RGB color stream — 640×480 BGRA32 from the Kinect camera at 30 fps">
+                <Grid>
+                    <Image Source="{Binding RgbFrame}"
+                           Stretch="Uniform"
+                           RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                    <Border Background="#88000000"
+                            CornerRadius="4"
+                            Padding="6,3"
+                            VerticalAlignment="Top"
+                            HorizontalAlignment="Left"
+                            Margin="8,6">
+                        <TextBlock Text="{Binding RgbLabel}"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   ToolTip="RGB stream resolution label"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- IR -->
+            <Border Grid.Column="2"
+                    Background="#1E1E2E"
+                    CornerRadius="6"
+                    ClipToBounds="True"
+                    Visibility="{Binding IrVisibility}"
+                    ToolTip="Infrared intensity stream — grayscale visualization derived from depth sensor data">
+                <Grid>
+                    <Image Source="{Binding IrFrame}"
+                           Stretch="Uniform"
+                           RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                    <Border Background="#88000000"
+                            CornerRadius="4"
+                            Padding="6,3"
+                            VerticalAlignment="Top"
+                            HorizontalAlignment="Left"
+                            Margin="8,6">
+                        <TextBlock Text="{Binding IrLabel}"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource WarningBrush}"
+                                   ToolTip="IR stream resolution label"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Depth -->
+            <Border Grid.Column="4"
+                    Background="#1E1E2E"
+                    CornerRadius="6"
+                    ClipToBounds="True"
+                    Visibility="{Binding DepthVisibility}"
+                    ToolTip="Depth map stream — colorized distance data (red=near, blue=far, 800-4000mm range)">
+                <Grid>
+                    <Image Source="{Binding DepthFrame}"
+                           Stretch="Uniform"
+                           RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                    <Border Background="#88000000"
+                            CornerRadius="4"
+                            Padding="6,3"
+                            VerticalAlignment="Top"
+                            HorizontalAlignment="Left"
+                            Margin="8,6">
+                        <TextBlock Text="{Binding DepthLabel}"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource SuccessBrush}"
+                                   ToolTip="Depth stream resolution label"/>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

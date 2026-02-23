@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>HCEP</RootNamespace>
+    <Company>Kirk LaSalle</Company>
+    <Product>HCEP — Human Communication Eye Protocol</Product>
+    <Copyright>Copyright © 2026 Kirk LaSalle. All rights reserved.</Copyright>
+    <Version>0.1.0</Version>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+</Project>

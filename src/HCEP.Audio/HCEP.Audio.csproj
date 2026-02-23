@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HCEP.Audio</RootNamespace>
+    <AssemblyName>HCEP.Audio</AssemblyName>
+    <Description>Audio capture, beam-formed source localization, and Whisper.net speech-to-text.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HCEP.Core\HCEP.Core.csproj" />
+    <ProjectReference Include="..\HCEP.Telemetry\HCEP.Telemetry.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Whisper.net" Version="1.8.0" />
+    <PackageReference Include="Whisper.net.Runtime" Version="1.8.0" />
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+</Project>

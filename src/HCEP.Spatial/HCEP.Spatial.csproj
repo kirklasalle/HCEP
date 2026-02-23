@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HCEP.Spatial</RootNamespace>
+    <AssemblyName>HCEP.Spatial</AssemblyName>
+    <Description>3D mathematics: SolvePnP, gaze vectors, ray-plane intersection, coordinate mapping.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HCEP.Core\HCEP.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,656 @@
+﻿<Window x:Class="HCEP.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:HCEP.App"
+        mc:Ignorable="d"
+        Title="HCEP — Human Communication Eye Protocol"
+        Height="900"
+        Width="1440"
+        Background="{StaticResource BackgroundBrush}"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Menu Bar -->
+        <Menu Grid.Row="0"
+              ToolTip="Main application menu">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Exit"
+                          Command="{Binding ExitApplicationCommand}"
+                          ToolTip="Close the HCEP application and all child windows"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="_Sensor Streams"
+                          Command="{Binding OpenSensorViewCommand}"
+                          ToolTip="Open the Kinect Sensor Streams window showing RGB, IR, and Depth side-by-side"/>
+                <MenuItem Header="_Kinect Video"
+                          Command="{Binding OpenKinectVideoCommand}"
+                          ToolTip="Open the dedicated Kinect RGB video feed window"/>
+            </MenuItem>
+            <MenuItem Header="_Kinect">
+                <MenuItem Header="Tilt _Up (+2°)"
+                          Command="{Binding ElevationUpCommand}"
+                          ToolTip="Tilt the Kinect sensor motor up by 2 degrees (range: -27° to +27°)"/>
+                <MenuItem Header="Tilt _Down (-2°)"
+                          Command="{Binding ElevationDownCommand}"
+                          ToolTip="Tilt the Kinect sensor motor down by 2 degrees (range: -27° to +27°)"/>
+                <Separator Style="{StaticResource MenuSeparatorStyle}"/>
+                <MenuItem Header="Skeleton Tracking"
+                          IsCheckable="True"
+                          IsChecked="{Binding SkeletonTrackingEnabled}"
+                          ToolTip="Enable or disable skeleton body tracking from the depth sensor"/>
+                <MenuItem Header="Face Tracking"
+                          IsCheckable="True"
+                          IsChecked="{Binding FaceTrackingEnabled}"
+                          ToolTip="Enable or disable real-time face tracking via FaceTrackLib.dll"/>
+                <Separator Style="{StaticResource MenuSeparatorStyle}"/>
+                <MenuItem Header="Color Stream"
+                          IsCheckable="True"
+                          IsChecked="{Binding ColorStreamEnabled}"
+                          ToolTip="Enable or disable the RGB color video stream from the Kinect camera"/>
+                <MenuItem Header="Depth Stream"
+                          IsCheckable="True"
+                          IsChecked="{Binding DepthStreamEnabled}"
+                          ToolTip="Enable or disable the depth + IR streams from the Kinect sensor"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_About HCEP"
+                          ToolTip="Information about HCEP — Human Communication Eye Protocol"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Header -->
+        <Border Grid.Row="1"
+                Background="{StaticResource SurfaceBrush}"
+                CornerRadius="8"
+                Padding="16,10"
+                Margin="12,4,12,8"
+                ToolTip="HCEP application header — shows brand, status, and window launchers">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="◉ HCEP"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource PrimaryBrush}"
+                           VerticalAlignment="Center"
+                           ToolTip="Human Communication Eye Protocol — real-time gaze and cognitive state analysis"/>
+
+                <TextBlock Grid.Column="1"
+                           Text="Human Communication Eye Protocol"
+                           FontSize="13"
+                           Foreground="{StaticResource TextDimBrush}"
+                           VerticalAlignment="Center"
+                           Margin="12,0,0,0"
+                           ToolTip="Full application title"/>
+
+                <!-- Window Launch Buttons -->
+                <Button Grid.Column="2"
+                        Content="◎ Sensor Streams"
+                        Command="{Binding OpenSensorViewCommand}"
+                        Background="{StaticResource SurfaceBrush}"
+                        Foreground="{StaticResource AccentBrush}"
+                        BorderBrush="{StaticResource AccentBrush}"
+                        BorderThickness="1"
+                        Padding="12,4"
+                        Margin="0,0,8,0"
+                        FontSize="11"
+                        Cursor="Hand"
+                        VerticalAlignment="Center"
+                        ToolTip="Open the Kinect Sensor Streams window showing RGB, IR, and Depth views side-by-side"/>
+                <Button Grid.Column="3"
+                        Content="▶ Kinect Video"
+                        Command="{Binding OpenKinectVideoCommand}"
+                        Background="{StaticResource SurfaceBrush}"
+                        Foreground="{StaticResource PrimaryBrush}"
+                        BorderBrush="{StaticResource PrimaryBrush}"
+                        BorderThickness="1"
+                        Padding="12,4"
+                        Margin="0,0,12,0"
+                        FontSize="11"
+                        Cursor="Hand"
+                        VerticalAlignment="Center"
+                        ToolTip="Open the dedicated Kinect RGB video feed window with FPS counter"/>
+
+                <StackPanel Grid.Column="4"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Margin="0,0,12,0"
+                            ToolTip="Toggle full body skeleton tracking on/off — when off, only upper body is drawn. When on, legs are drawn if standing.">
+                    <ToggleButton IsChecked="{Binding ShowFullSkeleton}"
+                                  Padding="8,3"
+                                  FontSize="10"
+                                  Cursor="Hand"
+                                  Background="{StaticResource SurfaceBrush}"
+                                  Foreground="{StaticResource AccentBrush}"
+                                  BorderBrush="{StaticResource AccentBrush}"
+                                  BorderThickness="1">
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton">
+                                <Setter Property="Content"
+                                        Value="☐ Full Body"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsChecked"
+                                             Value="True">
+                                        <Setter Property="Content"
+                                                Value="☑ Full Body"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ToggleButton.Style>
+                    </ToggleButton>
+                </StackPanel>
+
+                <StackPanel Grid.Column="5"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            ToolTip="Kinect sensor connection status indicator">
+                    <Ellipse Width="10"
+                             Height="10"
+                             Margin="0,0,6,0"
+                             Fill="{Binding SensorStatusBrush}"
+                             ToolTip="Green = connected and streaming, Red = disconnected or error"/>
+                    <TextBlock Text="{Binding SensorStatus}"
+                               FontSize="12"
+                               Foreground="{StaticResource TextDimBrush}"
+                               ToolTip="Current Kinect sensor connection state"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content (3-column: Video | Sensor+State | Metrics+Chat) -->
+        <Grid Grid.Row="2"
+              Margin="12,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"
+                                  MinWidth="240"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="1.4*"
+                                  MinWidth="340"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="0.7*"
+                                  MinWidth="220"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: Video Feed (full height) -->
+            <Border Grid.Column="0"
+                    Background="#1E1E2E"
+                    CornerRadius="8"
+                    ClipToBounds="True"
+                    ToolTip="Live RGB video feed from the Kinect v1 camera sensor — 640×480 @ 30fps with skeleton, face box, and wireframe overlays">
+                <Grid>
+                    <Image Source="{Binding VideoFrame}"
+                           Stretch="Uniform"
+                           RenderOptions.BitmapScalingMode="NearestNeighbor"/>
+                    <local:VideoOverlayControl
+                        Snapshot="{Binding LatestSnapshot}"
+                        ShowFullSkeleton="{Binding ShowFullSkeleton}"
+                        IsHitTestVisible="False"/>
+                    <TextBlock Text="SENSOR FEED"
+                               FontSize="10"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource TextDimBrush}"
+                               Margin="10,8"
+                               VerticalAlignment="Top"
+                               HorizontalAlignment="Left"/>
+                </Grid>
+            </Border>
+
+            <!-- GridSplitter: Video | Center -->
+            <GridSplitter Grid.Column="1"
+                          Width="6"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Stretch"
+                          Background="#30FFFFFF"
+                          Cursor="SizeWE"
+                          ShowsPreview="True">
+                <GridSplitter.Template>
+                    <ControlTemplate TargetType="GridSplitter">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="2">
+                            <StackPanel VerticalAlignment="Center"
+                                        HorizontalAlignment="Center">
+                                <Ellipse Width="3"
+                                         Height="3"
+                                         Fill="#60FFFFFF"
+                                         Margin="0,1.5"/>
+                                <Ellipse Width="3"
+                                         Height="3"
+                                         Fill="#60FFFFFF"
+                                         Margin="0,1.5"/>
+                                <Ellipse Width="3"
+                                         Height="3"
+                                         Fill="#60FFFFFF"
+                                         Margin="0,1.5"/>
+                            </StackPanel>
+                        </Border>
+                    </ControlTemplate>
+                </GridSplitter.Template>
+            </GridSplitter>
+
+            <!-- Center: HCEP State + Sensor View -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"
+                                   MinHeight="120"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="1*"
+                                   MinHeight="80"/>
+                </Grid.RowDefinitions>
+
+                <!-- Compact Mode Display -->
+                <Border Grid.Row="0"
+                        Background="#1A7C3AED"
+                        CornerRadius="6"
+                        Padding="12,8"
+                        Margin="0,0,0,8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                            <TextBlock Text="HCEP MODE"
+                                       FontSize="10"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextDimBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,12,0"/>
+                            <TextBlock Text="{Binding CurrentMode}"
+                                       FontSize="24"
+                                       FontWeight="Bold"
+                                       Foreground="{StaticResource PrimaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ProgressBar Grid.Column="1"
+                                     Value="{Binding Confidence}"
+                                     Maximum="1"
+                                     Height="4"
+                                     Foreground="{StaticResource AccentBrush}"
+                                     Background="#333"
+                                     Margin="16,0"
+                                     VerticalAlignment="Center"/>
+                        <TextBlock Grid.Column="2"
+                                   FontSize="11"
+                                   Foreground="{StaticResource TextDimBrush}"
+                                   VerticalAlignment="Center">
+                            <Run Text="{Binding ConfidencePercent, StringFormat={}{0:F0}%}"/>
+                        </TextBlock>
+                    </Grid>
+                </Border>
+
+                <!-- State Grid -->
+                <UniformGrid Grid.Row="1"
+                             Columns="3"
+                             Margin="0,0,0,8">
+                    <!-- Gaze Region -->
+                    <Border Background="#15FFFFFF"
+                            CornerRadius="4"
+                            Padding="10"
+                            Margin="0,0,4,0"
+                            ToolTip="Current gaze region — where the tracked person is looking (e.g., Screen, Face, Away)">
+                        <StackPanel>
+                            <TextBlock Text="GAZE"
+                                       FontSize="10"
+                                       Foreground="{StaticResource TextDimBrush}"/>
+                            <TextBlock Text="{Binding GazeRegion}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextBrush}"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <!-- Cognitive State -->
+                    <Border Background="#15FFFFFF"
+                            CornerRadius="4"
+                            Padding="10"
+                            Margin="2,0,2,0"
+                            ToolTip="Detected cognitive state — inferred from eye movement patterns (e.g., Focused, Scanning, Thinking)">
+                        <StackPanel>
+                            <TextBlock Text="COGNITIVE"
+                                       FontSize="10"
+                                       Foreground="{StaticResource TextDimBrush}"/>
+                            <TextBlock Text="{Binding CognitiveState}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextBrush}"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Border>
+                    <!-- Valence -->
+                    <Border Background="#15FFFFFF"
+                            CornerRadius="4"
+                            Padding="10"
+                            Margin="4,0,0,0"
+                            ToolTip="Emotional valence — positive/negative/neutral emotional tone detected from facial action units">
+                        <StackPanel>
+                            <TextBlock Text="VALENCE"
+                                       FontSize="10"
+                                       Foreground="{StaticResource TextDimBrush}"/>
+                            <TextBlock Text="{Binding Valence}"
+                                       FontSize="15"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource TextBrush}"
+                                       Margin="0,2,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <!-- Gaze / Sensor Visualization -->
+                <Border Grid.Row="2"
+                        ClipToBounds="True"
+                        Background="Transparent">
+                    <local:GazeVisualizationControl
+                        Snapshot="{Binding LatestSnapshot}"
+                        ToolTip="Real-time gaze direction visualization — shows where the tracked person is looking on screen"/>
+                </Border>
+                <!-- GridSplitter: Gaze | Speech -->
+                <GridSplitter Grid.Row="3"
+                              Height="6"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Center"
+                              Background="#30FFFFFF"
+                              Cursor="SizeNS"
+                              ResizeDirection="Rows"
+                              ShowsPreview="True">
+                    <GridSplitter.Template>
+                        <ControlTemplate TargetType="GridSplitter">
+                            <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="2">
+                                <StackPanel Orientation="Horizontal"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Center">
+                                    <Ellipse Width="3"
+                                            Height="3"
+                                            Fill="#60FFFFFF"
+                                            Margin="1.5,0"/>
+                                    <Ellipse Width="3"
+                                            Height="3"
+                                            Fill="#60FFFFFF"
+                                            Margin="1.5,0"/>
+                                    <Ellipse Width="3"
+                                            Height="3"
+                                            Fill="#60FFFFFF"
+                                            Margin="1.5,0"/>
+                                </StackPanel>
+                            </Border>
+                        </ControlTemplate>
+                    </GridSplitter.Template>
+                </GridSplitter>
+
+                <!-- Speech Log -->
+                <Border Grid.Row="4"
+                        Background="{StaticResource SurfaceBrush}"
+                        CornerRadius="8"
+                        Padding="10"
+                        ToolTip="Real-time speech recognition log — shows transcribed speech from the Kinect microphone array">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Text="SPEECH LOG"
+                                   FontSize="10"
+                                   Foreground="{StaticResource TextDimBrush}"
+                                   Margin="0,0,0,6"/>
+                        <ListBox Grid.Row="1"
+                                 ItemsSource="{Binding SpeechLog}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Foreground="{StaticResource TextBrush}"
+                                 FontSize="12"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- GridSplitter: Center | Right -->
+            <GridSplitter Grid.Column="3"
+                          Width="6"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Stretch"
+                          Background="#30FFFFFF"
+                          Cursor="SizeWE"
+                          ShowsPreview="True">
+                <GridSplitter.Template>
+                    <ControlTemplate TargetType="GridSplitter">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="2">
+                            <StackPanel VerticalAlignment="Center"
+                                        HorizontalAlignment="Center">
+                                <Ellipse Width="3"
+                                         Height="3"
+                                         Fill="#60FFFFFF"
+                                         Margin="0,1.5"/>
+                                <Ellipse Width="3"
+                                         Height="3"
+                                         Fill="#60FFFFFF"
+                                         Margin="0,1.5"/>
+                                <Ellipse Width="3"
+                                         Height="3"
+                                         Fill="#60FFFFFF"
+                                         Margin="0,1.5"/>
+                            </StackPanel>
+                        </Border>
+                    </ControlTemplate>
+                </GridSplitter.Template>
+            </GridSplitter>
+
+            <!-- Right: Metrics & LLM Panel -->
+            <Grid Grid.Column="4">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"
+                                   MinHeight="100"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Metrics -->
+                <Border Grid.Row="0"
+                        Background="{StaticResource SurfaceBrush}"
+                        CornerRadius="8"
+                        Padding="16"
+                        Margin="0,0,0,8"
+                        ToolTip="Real-time pipeline performance metrics — FPS, vision latency, tracked persons, audio beam angle">
+                    <StackPanel>
+                        <TextBlock Text="PIPELINE METRICS"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextDimBrush}"
+                                   Margin="0,0,0,8"/>
+
+                        <Grid Margin="0,2"
+                              ToolTip="Frames per second — HCEP snapshot processing throughput">
+                            <TextBlock Text="FPS"
+                                       Foreground="{StaticResource TextDimBrush}"
+                                       FontSize="11"/>
+                            <TextBlock Text="{Binding Fps, StringFormat=F1}"
+                                       HorizontalAlignment="Right"
+                                       Foreground="{StaticResource AccentBrush}"
+                                       FontSize="11"
+                                       FontWeight="Bold"/>
+                        </Grid>
+                        <Grid Margin="0,2"
+                              ToolTip="Vision pipeline latency in milliseconds per frame">
+                            <TextBlock Text="Vision (ms)"
+                                       Foreground="{StaticResource TextDimBrush}"
+                                       FontSize="11"/>
+                            <TextBlock Text="{Binding VisionLatencyMs, StringFormat=F1}"
+                                       HorizontalAlignment="Right"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontSize="11"/>
+                        </Grid>
+                        <Grid Margin="0,2"
+                              ToolTip="Number of persons currently tracked by skeleton tracking">
+                            <TextBlock Text="Persons"
+                                       Foreground="{StaticResource TextDimBrush}"
+                                       FontSize="11"/>
+                            <TextBlock Text="{Binding TrackedPersons}"
+                                       HorizontalAlignment="Right"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontSize="11"/>
+                        </Grid>
+                        <Grid Margin="0,2"
+                              ToolTip="Kinect microphone array beam angle — direction of primary audio source">
+                            <TextBlock Text="Beam Angle"
+                                       Foreground="{StaticResource TextDimBrush}"
+                                       FontSize="11"/>
+                            <TextBlock Text="{Binding BeamAngle, StringFormat={}{0:F0}°}"
+                                       HorizontalAlignment="Right"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontSize="11"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- GridSplitter: Metrics | LLM -->
+                <GridSplitter Grid.Row="1"
+                              Height="6"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Center"
+                              Background="#30FFFFFF"
+                              Cursor="SizeNS"
+                              ResizeDirection="Rows"
+                              ShowsPreview="True">
+                    <GridSplitter.Template>
+                        <ControlTemplate TargetType="GridSplitter">
+                            <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="2">
+                                <StackPanel Orientation="Horizontal"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Center">
+                                    <Ellipse Width="3"
+                                            Height="3"
+                                            Fill="#60FFFFFF"
+                                            Margin="1.5,0"/>
+                                    <Ellipse Width="3"
+                                            Height="3"
+                                            Fill="#60FFFFFF"
+                                            Margin="1.5,0"/>
+                                    <Ellipse Width="3"
+                                            Height="3"
+                                            Fill="#60FFFFFF"
+                                            Margin="1.5,0"/>
+                                </StackPanel>
+                            </Border>
+                        </ControlTemplate>
+                    </GridSplitter.Template>
+                </GridSplitter>
+
+                <!-- LLM Chat -->
+                <Border Grid.Row="2"
+                        Background="{StaticResource SurfaceBrush}"
+                        CornerRadius="8"
+                        Padding="16"
+                        ToolTip="LLM Assistant — chat with the AI using HCEP context from the current session">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Text="LLM ASSISTANT"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   Foreground="{StaticResource TextDimBrush}"
+                                   Margin="0,0,0,8"/>
+
+                        <ListBox Grid.Row="1"
+                                 ItemsSource="{Binding ChatLog}"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Foreground="{StaticResource TextBrush}"
+                                 FontSize="12"
+                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+
+                        <Grid Grid.Row="2"
+                              Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding ChatInput, UpdateSourceTrigger=PropertyChanged}"
+                                     Background="#20FFFFFF"
+                                     Foreground="{StaticResource TextBrush}"
+                                     BorderThickness="0"
+                                     Padding="8,6"
+                                     FontSize="12"
+                                     VerticalContentAlignment="Center"
+                                     ToolTip="Type a message to send to the LLM assistant — press Enter or click Send"/>
+                            <Button Grid.Column="1"
+                                    Content="Send"
+                                    Margin="6,0,0,0"
+                                    Command="{Binding SendCommand}"
+                                    Background="{StaticResource PrimaryBrush}"
+                                    Foreground="White"
+                                    ToolTip="Send the typed message to the LLM assistant with current HCEP context"
+                                    BorderThickness="0"
+                                    Padding="12,6"
+                                    FontSize="12"/>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Status Bar -->
+        <Border Grid.Row="3"
+                Background="{StaticResource SurfaceBrush}"
+                CornerRadius="8"
+                Padding="12,6"
+                Margin="12,8,12,4"
+                ToolTip="Pipeline status bar — shows current status and copyright">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="{Binding StatusMessage}"
+                           FontSize="11"
+                           Foreground="{StaticResource TextDimBrush}"
+                           ToolTip="Current pipeline status message"/>
+                <TextBlock Grid.Column="1"
+                           FontSize="11"
+                           Foreground="{StaticResource TextDimBrush}"
+                           Margin="16,0,0,0"
+                           ToolTip="Kinect sensor tilt angle — use Kinect menu to adjust">
+                    <Run Text="Tilt: "/>
+                    <Run Text="{Binding ElevationAngle, Mode=OneWay, StringFormat={}{0}°}"/>
+                </TextBlock>
+                <TextBlock Grid.Column="3"
+                           FontSize="11"
+                           Foreground="{StaticResource TextDimBrush}"
+                           ToolTip="Copyright notice">
+                    <Run Text="© 2026 Kirk LaSalle"/>
+                </TextBlock>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

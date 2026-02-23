@@ -1,0 +1,130 @@
+﻿<Window x:Class="HCEP.App.KinectVideoWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="HCEP — Kinect RGB Video"
+        Height="580"
+        Width="720"
+        Background="#0A0A14"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ── Menu Bar ───────────────────────────────────── -->
+        <Menu Grid.Row="0"
+              ToolTip="Kinect Video window menu">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Close" Click="CloseWindow_Click"
+                          ToolTip="Close this Kinect Video window"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="_Fit to Window"
+                          IsCheckable="True"
+                          IsChecked="{Binding FitToWindow}"
+                          ToolTip="Scale the video to fit the window while maintaining aspect ratio (default)"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- ── Header ─────────────────────────────────────── -->
+        <Border Grid.Row="1"
+                Background="#181828"
+                Padding="14,8"
+                ToolTip="Kinect RGB video stream header — shows connection status, source, and FPS">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0"
+                        Orientation="Horizontal">
+                    <Ellipse Width="12"
+                            Height="12"
+                             Fill="{Binding StatusColor}"
+                             Margin="0,0,8,0"
+                             VerticalAlignment="Center"
+                             ToolTip="Video stream status — Green = receiving frames, Red = no signal"/>
+                    <TextBlock Text="KINECT RGB VIDEO"
+                               FontSize="15"
+                               FontWeight="Bold"
+                               Foreground="#7C3AED"
+                               VerticalAlignment="Center"
+                               ToolTip="Real-time RGB video feed from the Kinect v1 camera"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="1"
+                           Text="{Binding SourceLabel}"
+                           FontSize="11"
+                           Foreground="#94A3B8"
+                           VerticalAlignment="Center"
+                           Margin="14,0,0,0"
+                           ToolTip="Video source description — shows whether the feed is live from the Kinect sensor"/>
+
+                <TextBlock Grid.Column="2"
+                           Text="{Binding FpsLabel}"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Foreground="#06B6D4"
+                           VerticalAlignment="Center"
+                           ToolTip="Frames per second of the RGB video stream — Kinect v1 max is 30 fps"/>
+            </Grid>
+        </Border>
+
+        <!-- ── Video Feed ─────────────────────────────────── -->
+        <Border Grid.Row="2"
+                Background="#0A0A14"
+                ClipToBounds="True"
+                ToolTip="Kinect RGB camera video feed — 640×480 BGRA32 format">
+            <Grid>
+                <Image x:Name="VideoImage"
+                       Source="{Binding VideoFrame}"
+                       Stretch="{Binding VideoStretch}"
+                       RenderOptions.BitmapScalingMode="Fant"/>
+
+                <!-- "No signal" overlay when no frames received -->
+                <TextBlock Text="{Binding OverlayText}"
+                           FontSize="16"
+                           FontWeight="Light"
+                           Foreground="#50FFFFFF"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Visibility="{Binding OverlayVisibility}"/>
+            </Grid>
+        </Border>
+
+        <!-- ── Footer ──────────────────────────────────────── -->
+        <Border Grid.Row="3"
+                Background="#181828"
+                Padding="14,6"
+                ToolTip="Video stream information — resolution and device name">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0"
+                           Text="{Binding ResolutionLabel}"
+                           FontSize="11"
+                           Foreground="#64748B"
+                           VerticalAlignment="Center"
+                           ToolTip="Current video resolution and pixel format"/>
+                <TextBlock Grid.Column="1"
+                           Text="Xbox 360 Kinect"
+                           FontSize="11"
+                           Foreground="#64748B"
+                           VerticalAlignment="Center"
+                           ToolTip="Kinect v1 (Xbox 360) sensor hardware"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
