@@ -1,8 +1,6 @@
 <UserControl x:Class="HCEP.App.AvatarCoreControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             Width="280"
-        Height="280"
              ToolTip="HCEP True Gaze Avatar — 2D Happy Face with live gaze-driven pupils">
 
     <!--
@@ -15,6 +13,7 @@
           Smile arc           : M 78,172  A 62,42 0 0 1 202,172
     -->
 
+    <Viewbox Stretch="Uniform">
     <Canvas x:Name="RootCanvas"
             Width="280"
             Height="280"
@@ -38,7 +37,9 @@
                 Canvas.Top="90"
                  Width="44"
                 Height="44"
-                 Fill="#FF1A1A1A"
+                 Fill="#FFFFFFFF"
+                 Stroke="#FF1A1A1A"
+                 StrokeThickness="2"
                  ToolTip="Left eye socket — the fixed bony landmark used for screen coordinate lookup"/>
 
         <!-- Left Pupil — centred inside socket; animated by TranslateTransform -->
@@ -62,7 +63,9 @@
                 Canvas.Top="90"
                  Width="44"
                 Height="44"
-                 Fill="#FF1A1A1A"
+                 Fill="#FFFFFFFF"
+                 Stroke="#FF1A1A1A"
+                 StrokeThickness="2"
                  ToolTip="Right eye socket — the fixed bony landmark used for screen coordinate lookup"/>
 
         <!-- Right Pupil -->
@@ -90,7 +93,8 @@
               StrokeStartLineCap="Round"
               StrokeEndLineCap="Round"
               ToolTip="Smile — drawn as a WPF ArcSegment, no external assets required"
-              Data="M 78,172 A 62,42 0 0 1 202,172"/>
+              Data="M 78,172 A 62,42 0 0 0 202,172"/>
 
     </Canvas>
+    </Viewbox>
 </UserControl>
