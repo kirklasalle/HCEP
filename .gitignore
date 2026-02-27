@@ -40,7 +40,8 @@ logs/
 *.log
 
 # ── Model files (too large for git) ───────────────
-models/
+# Target only the app's binary model asset folder, not C# Models/ namespaces.
+src/HCEP.App/models/
 *.onnx
 *.bin
 !Directory.Build.props
