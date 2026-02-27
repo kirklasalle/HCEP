@@ -39,6 +39,8 @@ public partial class AvatarWindow : Window
     private readonly HCEPPipelineOrchestrator _orchestrator;
     private bool _is3DMode;
     private IAvatarComponent _activeAvatar = null!;  // set in Window_Loaded
+    private float _screenWidthPx;
+    private float _screenHeightPx;
 
     public AvatarWindow(HCEPPipelineOrchestrator orchestrator)
     {
@@ -70,19 +72,9 @@ public partial class AvatarWindow : Window
         float screenWidthPx = (float)(SystemParameters.PrimaryScreenWidth * dpiScaleX);
         float screenHeightPx = (float)(SystemParameters.PrimaryScreenHeight * dpiScaleY);
 
-        // ── Register eye-position provider with orchestrator ──
-        // This delegate is called from the background pipeline thread at ~10 Hz.
-        // It reads value-type Point properties from the Avatar, which is safe.
-        _orchestrator.SetAvatarEyeProvider(
-            provider: () =>
-            {
-                var l = Avatar.LeftEyeScreenPos;
-                var r = Avatar.RightEyeScreenPos;
-                return (new Vector2((float)l.X, (float)l.Y),
-                        new Vector2((float)r.X, (float)r.Y));
-            },
-            screenWidthPhysicalPx: screenWidthPx,
-            screenHeightPhysicalPx: screenHeightPx);
+        _screenWidthPx = screenWidthPx;
+        _screenHeightPx = screenHeightPx;
+        RegisterEyeProvider();
 
         // ── Subscribe to computed gaze events ─────────────────
         _orchestrator.GazeVectorReady += OnGazeVectorReady;
@@ -116,11 +108,30 @@ public partial class AvatarWindow : Window
     private void ApplyMode(bool use3D)
     {
         _is3DMode = use3D;
-        Avatar.Visibility = use3D ? Visibility.Collapsed : Visibility.Visible;
-        Avatar3D.Visibility = use3D ? Visibility.Visible : Visibility.Collapsed;
+        Avatar.Visibility  = use3D ? Visibility.Collapsed : Visibility.Visible;
+        Avatar3D.Visibility = use3D ? Visibility.Visible  : Visibility.Collapsed;
         _activeAvatar = use3D ? (IAvatarComponent)Avatar3D : Avatar;
         Title = use3D ? "HCEP — True Gaze Avatar (3D Wireframe)"
                        : "HCEP — True Gaze Avatar";
+        // Re-register provider so GazeVectorEngine reads the active control's eye positions.
+        if (_screenWidthPx > 0) RegisterEyeProvider();
+    }
+
+    /// <summary>
+    /// Registers the eye-socket screen-position provider with the orchestrator.
+    /// The delegate evaluates <c>_is3DMode</c> at call time so it automatically
+    /// returns positions from whichever avatar control is currently active.
+    /// </summary>
+    private void RegisterEyeProvider()
+    {
+        _orchestrator.SetAvatarEyeProvider(
+            provider: () => _is3DMode
+                ? (new Vector2((float)Avatar3D.LeftEyeScreenPos.X,  (float)Avatar3D.LeftEyeScreenPos.Y),
+                   new Vector2((float)Avatar3D.RightEyeScreenPos.X, (float)Avatar3D.RightEyeScreenPos.Y))
+                : (new Vector2((float)Avatar.LeftEyeScreenPos.X,  (float)Avatar.LeftEyeScreenPos.Y),
+                   new Vector2((float)Avatar.RightEyeScreenPos.X, (float)Avatar.RightEyeScreenPos.Y)),
+            screenWidthPhysicalPx:  _screenWidthPx,
+            screenHeightPhysicalPx: _screenHeightPx);
     }
 
     // ── Mesh data callback (from SnapshotReady, background thread) ─
@@ -139,6 +150,11 @@ public partial class AvatarWindow : Window
                 TrackingModeText.Foreground = System.Windows.Media.Brushes.Gray;
             });
         }
+
+        // Always push feature points — Avatar3D needs them for eye socket gaze tracking
+        // regardless of whether the full mesh or edge-chain fallback is active.
+        if (face is { IsTracked: true, FeaturePoints2D.Length: > 0 })
+            Avatar3D.UpdateEyeData(face.FeaturePoints2D);
 
         // 3D wireframe: push live mesh or feature-point fallback
         if (!_is3DMode) return;

@@ -63,21 +63,45 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 
     static Avatar3DControl()
     {
-        _wirePen = new Pen(new SolidColorBrush(Color.FromArgb(200, 0, 220, 190)), 0.6);
+        _wirePen = new Pen(new SolidColorBrush(Color.FromArgb(220, 0, 220, 190)), 1.2);
         _wirePen.Freeze();
     }
 
     // ── Live mesh state ──────────────────────────────────────────
     private Vector2[]? _vertices;
     private (int A, int B, int C)[]? _triangles;
+    private Vector2[]? _featurePoints;   // 87 SDK landmarks — always updated alongside mesh
 
     // Bounding box of the source mesh in pixel space
     private float _meshLeft, _meshTop, _meshWidth = 640, _meshHeight = 480;
 
-    // ── Gaze state for head-turn simulation ──────────────────────
+    // ── Gaze state ──────────────────────────────────────────────────────
     private float _gazePitch;
     private float _gazeYaw;
+    private float _gazeDistM = 1.5f;
 
+    // ── Cached eye socket screen positions (for GazeVectorEngine eye provider) ──
+    private Point _leftEyeLocalPt;    // updated each OnRender frame
+    private Point _rightEyeLocalPt;
+    public Point LeftEyeScreenPos { get; private set; }
+    public Point RightEyeScreenPos { get; private set; }
+    // ── Construction ─────────────────────────────────────────────────────
+    public Avatar3DControl()
+    {
+        // Re-resolve screen coords whenever layout changes — same pattern as AvatarCoreControl.
+        LayoutUpdated += (_, _) => UpdateEyeScreenCoordinates();
+    }
+
+    private void UpdateEyeScreenCoordinates()
+    {
+        if (PresentationSource.FromVisual(this) is null) return;
+        try
+        {
+            LeftEyeScreenPos = PointToScreen(_leftEyeLocalPt);
+            RightEyeScreenPos = PointToScreen(_rightEyeLocalPt);
+        }
+        catch (InvalidOperationException) { }
+    }
     // ── Public API ───────────────────────────────────────────────
 
     /// <summary>
@@ -106,18 +130,27 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     }
 
     /// <summary>
-    /// Updates the gaze angles (radians) used to simulate head-turn.
-    /// Call in sync with <c>AvatarCoreControl.SetGaze</c> from <c>OnGazeVectorReady</c>.
+    /// Stores the latest 87-point feature-point array for eye socket centre
+    /// computation. Called every frame from <c>AvatarWindow.OnSnapshotReady</c>
+    /// whenever the face is tracked, independent of whether full mesh is active.
+    /// Thread-safe: reference assignment is atomic on all .NET platforms.
     /// </summary>
-    public void SetGaze(float pitchRad, float yawRad)
+    public void UpdateEyeData(Vector2[] featurePoints) => _featurePoints = featurePoints;
+
+    /// <summary>
+    /// Updates the gaze angles (radians) and user distance.
+    /// Drives pupil position within the live eye sockets.
+    /// </summary>
+    public void SetGaze(float pitchRad, float yawRad, float distanceM = 1.5f)
     {
         _gazePitch = pitchRad;
         _gazeYaw = yawRad;
+        _gazeDistM = distanceM;
         InvalidateVisual();
     }
 
     // IAvatarComponent
-    void IAvatarComponent.SetGaze(float p, float y, float d) => SetGaze(p, y);
+    void IAvatarComponent.SetGaze(float p, float y, float d) => SetGaze(p, y, d);
     void IAvatarComponent.ResetGaze()
     {
         _vertices = null;
@@ -209,13 +242,83 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 }
             }
 
-            // Pupil dots on top of edge lines
-            var pupilBrush = new SolidColorBrush(Color.FromArgb(230, 0, 220, 190));
-            pupilBrush.Freeze();
-            foreach (int pi in new[] { 69, 73 })
+            // Pupils drawn in the unified gaze block below.
+        }
+
+        // ── Gaze-driven pupils in eye sockets ────────────────────────────────
+        // Uses FeaturePoints2D indices to locate the eye socket centres + radii,
+        // regardless of whether the full mesh or edge-chain fallback is active.
+        // Right eye loop: fp indices [9,10,11,12,13,14]
+        // Left  eye loop: fp indices [30,31,32,33,34,35]
+        if (_featurePoints is { Length: > 35 })
+        {
+            // MapFP: applies the SAME fit-to-bounds transform as Map but to feature-point indices.
+            // Both FaceMeshVertices2D and FeaturePoints2D are in the same 640×480 projected space.
+            Point MapFP(int idx)
             {
-                if (pi >= _vertices.Length || _vertices[pi] == Vector2.Zero) continue;
-                dc.DrawEllipse(pupilBrush, null, Map(pi), 3.5, 3.5);
+                if (idx >= _featurePoints.Length || _featurePoints[idx] == Vector2.Zero)
+                    return new Point(double.NaN, double.NaN);
+                Vector2 v = _featurePoints[idx];
+                double fx = v.X * scale + offX;
+                double fy = v.Y * scale + offY + pitchShift;
+                fx = meshCentreX + (fx - meshCentreX) * yawCompress;
+                return new Point(fx, fy);
+            }
+
+            // Compute centroid + half-width of an eye socket from a set of fp indices.
+            static (double cx, double cy, double r) EyeSocket(
+                Func<int, Point> mapFP, int[] idx)
+            {
+                double sx = 0, sy = 0;
+                double minX = double.MaxValue, maxX = double.MinValue;
+                int n = 0;
+                foreach (int i in idx)
+                {
+                    var p = mapFP(i);
+                    if (double.IsNaN(p.X)) continue;
+                    sx += p.X; sy += p.Y; n++;
+                    if (p.X < minX) minX = p.X;
+                    if (p.X > maxX) maxX = p.X;
+                }
+                if (n == 0) return (double.NaN, double.NaN, 0);
+                // Radius = half the horizontal eye span, so pupil fits inside.
+                return (sx / n, sy / n, (maxX - minX) * 0.42);
+            }
+
+            int[] rIdx = [9, 10, 11, 12, 13, 14];
+            int[] lIdx = [30, 31, 32, 33, 34, 35];
+            var (rcx, rcy, rr) = EyeSocket(MapFP, rIdx);
+            var (lcx, lcy, lr) = EyeSocket(MapFP, lIdx);
+
+            if (!double.IsNaN(rcx) && !double.IsNaN(lcx) && rr > 1 && lr > 1)
+            {
+                // Gaze math mirrors AvatarCoreControl.SetGaze:
+                // Pitch > 0 = looking UP → pupils translate −Y
+                // Yaw   > 0 = looking RIGHT → pupils translate +X
+                const double MaxAngle = Math.PI / 4.0;
+                double normYaw = Math.Clamp(_gazeYaw, -MaxAngle, MaxAngle) / MaxAngle;
+                double normPitch = Math.Clamp(_gazePitch, -MaxAngle, MaxAngle) / MaxAngle;
+                // Binocular convergence: pupils angle inward as user leans in.
+                double conv = rr * 0.25 * Math.Clamp((1.2 - _gazeDistM) / 1.2, 0.0, 1.0);
+                double travel = 0.42;  // fraction of socket radius for full-angle travel
+
+                // Right pupil: convergence pulls LEFT (toward nose)
+                double rpx = rcx + normYaw * rr * travel - conv;
+                double rpy = rcy - normPitch * rr * travel;
+                // Left  pupil: convergence pulls RIGHT (toward nose)
+                double lpx = lcx + normYaw * lr * travel + conv;
+                double lpy = lcy - normPitch * lr * travel;
+
+                double pr = Math.Min(rr, lr) * 0.30;  // pupil radius relative to socket
+
+                var pupilBrush = new SolidColorBrush(Color.FromArgb(255, 0, 220, 190));
+                pupilBrush.Freeze();
+                dc.DrawEllipse(pupilBrush, null, new Point(rpx, rpy), pr, pr);
+                dc.DrawEllipse(pupilBrush, null, new Point(lpx, lpy), pr, pr);
+
+                // Cache local-space socket centres for LayoutUpdated → screen coord tracking.
+                _rightEyeLocalPt = new Point(rcx, rcy);
+                _leftEyeLocalPt = new Point(lcx, lcy);
             }
         }
     }
