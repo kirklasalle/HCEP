@@ -148,6 +148,7 @@ public partial class AvatarWindow : Window
             {
                 TrackingModeText.Text = snapshot.PrimaryPerson is null ? "SEARCHING" : "NO FACE";
                 TrackingModeText.Foreground = System.Windows.Media.Brushes.Gray;
+                MeshStatusText.Text = "—";
             });
         }
 
@@ -169,13 +170,23 @@ public partial class AvatarWindow : Window
         {
             var verts = face.FaceMeshVertices2D;
             var tris = face.FaceMeshTriangles;
-            Dispatcher.BeginInvoke(() => Avatar3D.SetMesh(verts, tris));
+            Dispatcher.BeginInvoke(() =>
+            {
+                Avatar3D.SetMesh(verts, tris);
+                MeshStatusText.Text = $"{Avatar3D.MeshVertexCount}V";
+                MeshStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
+            });
         }
         else if (face.FeaturePoints2D is { Length: > 0 })
         {
-            // Full mesh not yet available — show 87-point landmark dot-cloud as fallback
+            // Full mesh not yet available — show 87-point landmark fallback
             var pts = face.FeaturePoints2D;
-            Dispatcher.BeginInvoke(() => Avatar3D.SetFeaturePoints(pts));
+            Dispatcher.BeginInvoke(() =>
+            {
+                Avatar3D.SetFeaturePoints(pts);
+                MeshStatusText.Text = "FP";
+                MeshStatusText.Foreground = System.Windows.Media.Brushes.Orange;
+            });
         }
     }
 

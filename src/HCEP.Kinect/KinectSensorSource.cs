@@ -1334,8 +1334,8 @@ public sealed class KinectSensorSource : ISensorSource
                                 }
                                 else
                                 {
-                                    _logger.LogDebug(
-                                        "GetProjectedShape hr={Hr:X8} suLen={SuLen} suModel={SuModel} auCount={AuCount}",
+                                    _logger.LogWarning(
+                                        "GetProjectedShape FAILED hr=0x{Hr:X8} suLen={SuLen} suModel={SuModel} auCount={AuCount} — using FP fallback",
                                         unchecked((uint)hr), suCoefs.Length, suModelCount, auCountMesh);
                                 }
                             }
@@ -1355,7 +1355,7 @@ public sealed class KinectSensorSource : ISensorSource
             {
                 // Mesh extraction failure is non-fatal — we still emit the face frame
                 // with feature points and fall back to edge chain rendering
-                _logger.LogDebug(ex, "Face mesh extraction failed — using feature points only");
+                _logger.LogWarning(ex, "Face mesh extraction threw — using FP fallback");
             }
 
             // 3D Feature Points (approximate from 2D + depth)

@@ -43,6 +43,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
@@ -111,8 +112,25 @@
                                HorizontalAlignment="Center"/>
                 </StackPanel>
 
+                <!-- Mesh status (vertex count or FP fallback) -->
+                <StackPanel Grid.Column="4"
+                            Orientation="Vertical"
+                            ToolTip="MESH: real Candide-3 triangle count, or FP=87-point fallback">
+                    <TextBlock Text="MESH"
+                               Foreground="#44FFFFFF"
+                               FontFamily="Segoe UI"
+                               FontSize="9"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="MeshStatusText"
+                               Text="—"
+                               Foreground="#FFFF9940"
+                               FontFamily="Segoe Mono,Consolas"
+                               FontSize="11"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+
                 <!-- Avatar mode selector (2D / 3D) -->
-                <ComboBox Grid.Column="4"
+                <ComboBox Grid.Column="5"
                           x:Name="AvatarModeCombo"
                           SelectionChanged="AvatarMode_SelectionChanged"
                           Margin="6,2,2,2"

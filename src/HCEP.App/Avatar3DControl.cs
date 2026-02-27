@@ -97,13 +97,15 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     private float _gazeDistM = 1.5f;
 
     // ── Head pose (from Kinect FaceFrame.HeadRotation) ──────────────────
-    // Degrees from Get3DPose(): X=pitch, Y=yaw, Z=roll.
-    // Used for eye-relative pupil computation:
-    //   eyeRelativeYaw = gazeYaw − headYawRad
-    // This implements "eye-first" tracking: pupils cover the gaze angle that
-    // the head has NOT yet rotated to, capped at the socket travel limit.
+    // Stored but used only for future advanced eye-saccade gating.
+    // NOT subtracted from gaze — GazeVectorReady pitch/yaw are computed
+    // geometrically (avatar→user angle), independent of head-pose space.
     private float _headYawRad;
     private float _headPitchRad;
+
+    // ── Mesh status (surfaced to AvatarWindow HUD) ───────────────────────
+    public int MeshVertexCount { get; private set; }
+    public int MeshTriangleCount { get; private set; }
 
     // ── Cached eye socket screen positions (for GazeVectorEngine eye provider) ──
     private Point _leftEyeLocalPt;    // updated each OnRender frame
@@ -137,6 +139,8 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     {
         _vertices = vertices;
         _triangles = triangles.Select(t => (t.First, t.Second, t.Third)).ToArray();
+        MeshVertexCount = vertices.Length;
+        MeshTriangleCount = triangles.Length;
         ComputeBounds();
         InvalidateVisual();
     }
@@ -149,7 +153,9 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     public void SetFeaturePoints(Vector2[] points)
     {
         _vertices = points;
-        _triangles = null;   // null = dot-cloud mode
+        _triangles = null;   // null = edge-chain fallback mode
+        MeshVertexCount = 0;
+        MeshTriangleCount = 0;
         ComputeBounds();
         InvalidateVisual();
     }
@@ -299,30 +305,26 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         // Right eye loop: fp indices [9,10,11,12,13,14]
         // Left  eye loop: fp indices [30,31,32,33,34,35]
         //
-        // Eye-first tracking design
-        // ─────────────────────────
-        // In full-mesh mode the head pose is already baked into the projected
-        // feature-point positions, so the pupil offset should reflect only the
-        // EYE-relative component of the gaze:
+        // Pupil positioning
+        // ─────────────────
+        // GazeVectorReady pitch/yaw are geometrically computed angles from the
+        // avatar eye socket toward the user's eye position (camera-space geometry).
+        // FaceFrame.HeadRotation is the user's head orientation from Kinect.
+        // These are in DIFFERENT frames — subtraction would be meaningless.
         //
-        //   eyeRelativeYaw   = gazeYaw   − headYawRad
-        //   eyeRelativePitch = gazePitch − headPitchRad
+        // In full-mesh mode the projected feature-point positions already reflect
+        // the user's head orientation (GetProjectedShape bakes in head pose).
+        // The pupils are offset WITHIN those live socket positions using the
+        // raw geometric gaze angles — no head-pose subtraction.
         //
-        // This means:
-        //   • While the user's eyes alone track a target, the pupils move
-        //     within the sockets (head mesh stays centred).
-        //   • When the head also turns (Kinect tracks it, mesh rotates),
-        //     the pupil offset shrinks back toward zero — the head "takes over"
-        //     the angular range the eyes were covering.
-        //   • If gaze exceeds socket limit AND head hasn't turned enough,
-        //     pupils sit at the socket edge until the head catches up.
-        //
-        // In fallback mode we use the raw gaze angle (no head pose available).
+        // MaxGazeAngle = 20° covers the practical gaze range before Kinect
+        // tracking fidelity degrades.  Using 20° (vs 45°) means an 8° gaze
+        // registers as 40% of full travel — visually clear.
         if (_featurePoints is { Length: > 35 })
         {
             // MapFP: applies fit-to-bounds transform to a feature-point index.
             // Both FaceMeshVertices2D and FeaturePoints2D live in the same 640×480
-            // projected space, so we use the same `fitScale`/`offX`/`offY` offsets.
+            // projected space, so we use the same fitScale/offX/offY offsets.
             Point MapFP(int idx)
             {
                 if (idx >= _featurePoints.Length || _featurePoints[idx] == Vector2.Zero)
@@ -335,12 +337,14 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 return new Point(fx, fy);
             }
 
-            // Compute centroid + half-width of an eye socket from a set of feature-point indices.
-            static (double cx, double cy, double r) EyeSocket(
+            // Compute centroid and HALF-SPAN (true half-extent) of an eye socket.
+            // Returns (cx, cy, halfW, halfH) — halfW drives X travel, halfH drives Y travel.
+            static (double cx, double cy, double halfW, double halfH) EyeSocket(
                 Func<int, Point> mapFP, int[] idx)
             {
                 double sx = 0, sy = 0;
                 double minX = double.MaxValue, maxX = double.MinValue;
+                double minY = double.MaxValue, maxY = double.MinValue;
                 int n = 0;
                 foreach (int i in idx)
                 {
@@ -349,45 +353,49 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                     sx += p.X; sy += p.Y; n++;
                     if (p.X < minX) minX = p.X;
                     if (p.X > maxX) maxX = p.X;
+                    if (p.Y < minY) minY = p.Y;
+                    if (p.Y > maxY) maxY = p.Y;
                 }
-                if (n == 0) return (double.NaN, double.NaN, 0);
-                return (sx / n, sy / n, (maxX - minX) * 0.42);
+                if (n == 0) return (double.NaN, double.NaN, 0, 0);
+                return (sx / n, sy / n,
+                    (maxX - minX) / 2.0,
+                    Math.Max((maxY - minY) / 2.0, (maxX - minX) / 4.0)); // min vert extent
             }
 
             int[] rIdx = [9, 10, 11, 12, 13, 14];
             int[] lIdx = [30, 31, 32, 33, 34, 35];
-            var (rcx, rcy, rr) = EyeSocket(MapFP, rIdx);
-            var (lcx, lcy, lr) = EyeSocket(MapFP, lIdx);
+            var (rcx, rcy, rHW, rHH) = EyeSocket(MapFP, rIdx);
+            var (lcx, lcy, lHW, lHH) = EyeSocket(MapFP, lIdx);
 
-            if (!double.IsNaN(rcx) && !double.IsNaN(lcx) && rr > 1 && lr > 1)
+            if (!double.IsNaN(rcx) && !double.IsNaN(lcx) && rHW > 1 && lHW > 1)
             {
-                // ── Eye-relative gaze angles ──────────────────────────────
-                // Full-mesh: subtract head rotation so pupils move only the
-                //   residual angle the eyes must cover.
-                // Fallback : use raw gaze (head pose not reliably tracked).
-                const double MaxAngle = Math.PI / 4.0;
-                double effectiveYaw = hasMesh
-                    ? Math.Clamp(_gazeYaw - _headYawRad, -MaxAngle, MaxAngle)
-                    : Math.Clamp(_gazeYaw, -MaxAngle, MaxAngle);
-                double effectivePitch = hasMesh
-                    ? Math.Clamp(_gazePitch - _headPitchRad, -MaxAngle, MaxAngle)
-                    : Math.Clamp(_gazePitch, -MaxAngle, MaxAngle);
+                // ── Normalised gaze angles ────────────────────────────────
+                // MaxGazeAngle = 20° — practical Kinect tracking limit.
+                // No head-pose subtraction: gaze and head-pose live in
+                // different reference frames (geometry vs. camera-space rotation).
+                const double MaxGazeAngle = Math.PI / 9.0; // 20°
+                double normYaw   = Math.Clamp(_gazeYaw,   -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
+                double normPitch = Math.Clamp(_gazePitch, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
 
-                double normYaw = effectiveYaw / MaxAngle;
-                double normPitch = effectivePitch / MaxAngle;
+                // Travel = fraction of socket half-span pupils move for full-angle gaze.
+                // 0.65 keeps the dot clearly inside the socket at extremes.
+                const double Travel = 0.65;
+                double rTX = rHW * Travel, rTY = rHH * Travel;
+                double lTX = lHW * Travel, lTY = lHH * Travel;
 
-                // Binocular convergence: pupils angle inward as user leans in.
-                double conv = rr * 0.25 * Math.Clamp((1.2 - _gazeDistM) / 1.2, 0.0, 1.0);
-                double travel = 0.42;  // fraction of socket radius for full-angle travel
+                // Binocular convergence: pupils angle inward as user leans closer.
+                double conv = rHW * 0.30 * Math.Clamp((1.2 - _gazeDistM) / 1.2, 0.0, 1.0);
 
-                // Right pupil: convergence pulls LEFT (toward nose)
-                double rpx = rcx + normYaw * rr * travel - conv;
-                double rpy = rcy - normPitch * rr * travel;
-                // Left  pupil: convergence pulls RIGHT (toward nose)
-                double lpx = lcx + normYaw * lr * travel + conv;
-                double lpy = lcy - normPitch * lr * travel;
+                // Right pupil: yaw+ = look right → +X; pitch+ = look up → −Y.
+                // Convergence pulls right pupil LEFT (toward nose = −X).
+                double rpx = rcx + normYaw * rTX - conv;
+                double rpy = rcy - normPitch * rTY;
+                // Left pupil: convergence pulls left pupil RIGHT (toward nose = +X).
+                double lpx = lcx + normYaw * lTX + conv;
+                double lpy = lcy - normPitch * lTY;
 
-                double pr = Math.Min(rr, lr) * 0.30;  // pupil radius relative to socket
+                // Pupil visual radius: ~28% of socket half-width, minimum 4px.
+                double pr = Math.Max(Math.Min(rHW, lHW) * 0.28, 4.0);
 
                 var pupilBrush = new SolidColorBrush(Color.FromArgb(255, 0, 220, 190));
                 pupilBrush.Freeze();
@@ -396,7 +404,7 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 
                 // Cache local-space socket centres for LayoutUpdated → screen coord tracking.
                 _rightEyeLocalPt = new Point(rcx, rcy);
-                _leftEyeLocalPt = new Point(lcx, lcy);
+                _leftEyeLocalPt  = new Point(lcx, lcy);
             }
         }
     }
