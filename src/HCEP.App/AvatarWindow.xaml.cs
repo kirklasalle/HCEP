@@ -91,18 +91,18 @@ public partial class AvatarWindow : Window
         {
             Avatar.SetGaze(pitch, yaw, distanceM);
 
-            PitchText.Text    = $"{pitch * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
-            YawText.Text      = $"{yaw   * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
+            PitchText.Text = $"{pitch * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
+            YawText.Text = $"{yaw * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
             DistanceText.Text = $"{distanceM:F2} m";
 
             if (isPrecision)
             {
-                TrackingModeText.Text       = "PRECISION";
+                TrackingModeText.Text = "PRECISION";
                 TrackingModeText.Foreground = System.Windows.Media.Brushes.LightGreen;
             }
             else
             {
-                TrackingModeText.Text       = "FALLBACK";
+                TrackingModeText.Text = "FALLBACK";
                 TrackingModeText.Foreground = System.Windows.Media.Brushes.Orange;
             }
         });

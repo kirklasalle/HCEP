@@ -39,7 +39,8 @@
                 </Grid.ColumnDefinitions>
 
                 <!-- TrackingMode -->
-                <StackPanel Grid.Column="0" Orientation="Vertical">
+                <StackPanel Grid.Column="0"
+                        Orientation="Vertical">
                     <TextBlock Text="MODE"
                                Foreground="#44FFFFFF"
                                FontFamily="Segoe UI"
@@ -55,7 +56,8 @@
                 </StackPanel>
 
                 <!-- Distance -->
-                <StackPanel Grid.Column="1" Orientation="Vertical">
+                <StackPanel Grid.Column="1"
+                        Orientation="Vertical">
                     <TextBlock Text="DIST"
                                Foreground="#44FFFFFF"
                                FontFamily="Segoe UI"
@@ -70,7 +72,8 @@
                 </StackPanel>
 
                 <!-- Pitch -->
-                <StackPanel Grid.Column="2" Orientation="Vertical">
+                <StackPanel Grid.Column="2"
+                        Orientation="Vertical">
                     <TextBlock Text="PITCH"
                                Foreground="#44FFFFFF"
                                FontFamily="Segoe UI"
@@ -85,7 +88,8 @@
                 </StackPanel>
 
                 <!-- Yaw -->
-                <StackPanel Grid.Column="3" Orientation="Vertical">
+                <StackPanel Grid.Column="3"
+                        Orientation="Vertical">
                     <TextBlock Text="YAW"
                                Foreground="#44FFFFFF"
                                FontFamily="Segoe UI"

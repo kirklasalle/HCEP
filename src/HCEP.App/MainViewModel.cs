@@ -137,8 +137,8 @@ public partial class MainViewModel : ObservableObject
         {
             AvatarTrackingMode = isPrecision ? "Precision" : "Fallback";
             AvatarUserDistance = $"{distanceM:F2} m";
-            AvatarGazePitch    = $"{pitch * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
-            AvatarGazeYaw      = $"{yaw   * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
+            AvatarGazePitch = $"{pitch * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
+            AvatarGazeYaw = $"{yaw * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
         });
     }
 
