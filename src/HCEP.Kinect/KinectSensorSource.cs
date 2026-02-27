@@ -71,6 +71,13 @@ public sealed class KinectSensorSource : ISensorSource
     private (int First, int Second, int Third)[]? _cachedTriangles;
     private uint _meshVertexCount;
     private FT_CAMERA_CONFIG _videoConfig;
+    // Shape-unit coefficient cache — mirrors C++ FTHelper approach:
+    // GetShapeUnits returns a pointer to an SDK-internal float array; we copy it
+    // into a managed cache so we can pin it for GetProjectedShape every frame.
+    // Before the SU computation converges we pass a zero-filled array which
+    // produces the neutral Candide-3 mesh shape (identical to C++ behaviour).
+    private float[]? _suCoefsCache;
+    private uint _suModelCount;      // IFTModel.GetSUCount() — fixed at model load
 
     public KinectSensorSource(ILogger<KinectSensorSource> logger)
     {
@@ -1225,7 +1232,12 @@ public sealed class KinectSensorSource : ISensorSource
                         _faceModel = (IFTModel)Marshal.GetObjectForIUnknown(pModel);
                         Marshal.Release(pModel); // GetObjectForIUnknown AddRefs, release ours
                         _meshVertexCount = _faceModel.GetVertexCount();
-                        _logger.LogInformation("Face model loaded: {VertexCount} vertices", _meshVertexCount);
+                        // Store model-level SU count (mirrors C++ pModel->GetSUCount()).
+                        // This is the canonical count to pass to GetProjectedShape —
+                        // NOT the runtime value from IFTFaceTracker.GetShapeUnits.
+                        _suModelCount = _faceModel.GetSUCount();
+                        _suCoefsCache = null;   // will be populated on first converged frame
+                        _logger.LogInformation("Face model loaded: {VertexCount} vertices, {SuCount} SUs", _meshVertexCount, _suModelCount);
 
                         // Get triangle topology (static — only need once, like SDK sample)
                         hr = _faceModel.GetTriangles(out IntPtr triPtr, out uint triCount);
@@ -1245,23 +1257,54 @@ public sealed class KinectSensorSource : ISensorSource
                     }
                 }
 
-                // Get projected shape vertices (each frame — like SDK's GetProjected3DShape)
+                // Get projected shape vertices (each frame — mirrors C++ FTHelper::SubmitFraceTrackingResult)
+                // ── C++ pattern ──────────────────────────────────────────────────────────────────
+                // FLOAT* pSU = NULL; UINT numSU; BOOL suConverged;
+                // m_pFaceTracker->GetShapeUnits(NULL, &pSU, &numSU, &suConverged);
+                // VisualizeFaceModel(img, ftModel, &cameraConfig, pSU, 1.0, offset, pResult, color);
+                //   → GetProjectedShape(config, zoom, offset, pSU, pModel->GetSUCount(), pAUs, auCount, ...)
+                //
+                // Key differences from our previous approach:
+                //   1. pModel->GetSUCount() is the suCount parameter — NOT the runtime numSU.
+                //   2. pSU may be NULL before convergence; model handles zeros as neutral shape.
+                //   3. C++ does NOT gate on numSU > 0.
+                // ────────────────────────────────────────────────────────────────────────────────
                 if (_faceModel != null && _meshVertexCount > 0 && meshTriangles != null)
                 {
-                    // Get SU coefficients from the tracker
+                    // Step 1: Retrieve SU coefficients from tracker and cache them.
                     uint suCount = 0;
-                    hr = _faceTracker!.GetShapeUnits(out float headScale, out IntPtr suPtr, ref suCount, out bool converged);
+                    hr = _faceTracker!.GetShapeUnits(out float _, out IntPtr suPtr, ref suCount, out bool converged);
                     if (hr >= 0 && suPtr != IntPtr.Zero && suCount > 0)
                     {
-                        // Re-read AU pointer (needed for GetProjectedShape)
-                        hr = _faceResult.GetAUCoefficients(out IntPtr auPtrMesh, out uint auCountMesh);
-                        if (hr >= 0 && auPtrMesh != IntPtr.Zero && auCountMesh > 0)
-                        {
-                            var rotVec = new FT_VECTOR3D { x = rotation[0], y = rotation[1], z = rotation[2] };
-                            var transVec = new FT_VECTOR3D { x = translation[0], y = translation[1], z = translation[2] };
-                            var viewOffset = new FT_POINT { X = 0, Y = 0 };
+                        // Copy SDK-internal SU buffer into our managed cache.
+                        // We pin the managed array for GetProjectedShape below.
+                        if (_suCoefsCache == null || _suCoefsCache.Length != (int)suCount)
+                            _suCoefsCache = new float[suCount];
+                        Marshal.Copy(suPtr, _suCoefsCache, 0, (int)suCount);
+                        if (!converged)
+                            _logger.LogDebug("SU coefs received ({Count}) but not yet converged", suCount);
+                    }
 
-                            // Allocate output buffer for projected vertices (FT_VECTOR2D = 8 bytes each)
+                    // Step 2: Build the SU coef array to pass — zeros = neutral default.
+                    // _suModelCount matches what the SDK model expects (Candide-3 = ~11 SUs).
+                    int suModelCount = (int)(_suModelCount > 0 ? _suModelCount : 11u);
+                    float[] suCoefs = _suCoefsCache ?? new float[suModelCount];
+
+                    // Step 3: Re-read AU coefficients for this frame.
+                    hr = _faceResult.GetAUCoefficients(out IntPtr auPtrMesh, out uint auCountMesh);
+                    if (hr >= 0 && auPtrMesh != IntPtr.Zero)
+                    {
+                        var rotVec = new FT_VECTOR3D { x = rotation[0], y = rotation[1], z = rotation[2] };
+                        var transVec = new FT_VECTOR3D { x = translation[0], y = translation[1], z = translation[2] };
+                        var viewOffset = new FT_POINT { X = 0, Y = 0 };
+
+                        // Step 4: Pin managed SU coef array so the GC doesn't move it during the COM call.
+                        var gcHandle = GCHandle.Alloc(suCoefs, GCHandleType.Pinned);
+                        try
+                        {
+                            IntPtr pinnedSuPtr = gcHandle.AddrOfPinnedObject();
+
+                            // Step 5: Allocate output buffer for projected vertices (FT_VECTOR2D = 8 bytes each).
                             int bufSize = (int)_meshVertexCount * 8;
                             IntPtr vertBuf = Marshal.AllocHGlobal(bufSize);
                             try
@@ -1270,7 +1313,7 @@ public sealed class KinectSensorSource : ISensorSource
                                     ref _videoConfig,
                                     1.0f,
                                     viewOffset,
-                                    suPtr, suCount,
+                                    pinnedSuPtr, (uint)suCoefs.Length,
                                     auPtrMesh, auCountMesh,
                                     scale,
                                     ref rotVec,
@@ -1289,11 +1332,21 @@ public sealed class KinectSensorSource : ISensorSource
                                         meshVertices[i] = new Vector2(vx, vy);
                                     }
                                 }
+                                else
+                                {
+                                    _logger.LogDebug(
+                                        "GetProjectedShape hr={Hr:X8} suLen={SuLen} suModel={SuModel} auCount={AuCount}",
+                                        unchecked((uint)hr), suCoefs.Length, suModelCount, auCountMesh);
+                                }
                             }
                             finally
                             {
                                 Marshal.FreeHGlobal(vertBuf);
                             }
+                        }
+                        finally
+                        {
+                            gcHandle.Free();
                         }
                     }
                 }

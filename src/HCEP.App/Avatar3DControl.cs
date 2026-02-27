@@ -35,26 +35,42 @@ file static class FaceEdgeChains
 
 /// <summary>
 /// 3D Wireframe Avatar — renders the Kinect FaceTrackLib Candide-3 mesh
-/// (typically ~121 vertices, ~218 triangles) using WPF DrawingContext.
+/// (~121 vertices, ~218 triangles) using WPF DrawingContext.
 ///
-/// ── Coordinate Pipeline ───────────────────────────────────────
-/// Input  : <c>FaceFrame.FaceMeshVertices2D</c> — pixel coordinates in the
-///          640×480 depth/color camera image returned by KinectSensorSource.
-/// Render : Vertices are fit into the control's bounds (with 8% padding),
-///          maintaining aspect ratio. No matrix inversion needed.
+/// ── Rendering Modes ───────────────────────────────────────────
+/// <b>Full-mesh mode</b> (preferred): <c>GetProjectedShape</c> succeeded.
+///   Mesh vertices are already projected with the user's head pose baked in
+///   (pitch / yaw / roll from Kinect <c>Get3DPose</c>).  No additional
+///   head-rotation transform is applied — the tracking data is authoritative.
 ///
-/// ── Head-Turn Simulation (True Gaze) ─────────────────────────
-/// <c>SetGaze(pitch, yaw)</c> applies two perceptual transforms per frame:
-///   • Yaw  → X-axis compression around the mesh centre (cos projection).
-///             Simulates the face turning left/right to maintain eye contact.
-///   • Pitch → Vertical shift (sin scale of control height).
-///             Simulates the head tilting up/down toward the user.
+/// <b>Fallback mode</b>: <c>GetProjectedShape</c> not yet available.
+///   Renders 87-point feature-point edge chains with a naive cos-compress
+///   (yaw) and vertical shift (pitch) to approximate the head orientation.
 ///
-/// ── Rendering ─────────────────────────────────────────────────
-/// • Wire stroke: semi-transparent cyan (#C800DCBE, 0.6 px).
-/// • Wire edges are deduplicated per triangle share — drawing each
-///   half-edge from the triangle list is sufficient for a visual MVP.
-/// • Transparent background allows the dark <c>AvatarWindow</c> to show through.
+/// ── Eye-First Tracking ────────────────────────────────────────
+/// <c>SetGaze(pitch, yaw)</c> drives the pupils within the live eye sockets.
+/// In full-mesh mode the pupil offset is computed from the EYE-RELATIVE
+/// gaze component:
+///
+///   eyeRelativeYaw = gazeYaw − headYawRad
+///
+/// This ensures:
+///   • Pupils move first within the sockets (while the head is still centred).
+///   • As the head turns (Kinect tracks it → mesh rotates), the pupils settle
+///     back toward centre — the head has "taken over" that angular range.
+///   • If the total gaze exceeds the eye socket limit <em>and</em> the head
+///     hasn't turned yet, pupils sit at the socket edge until it does.
+///
+/// ── Head Pose Input ───────────────────────────────────────────
+/// <c>SetHeadPose(Vector3 rotationDeg)</c> receives
+/// <c>FaceFrame.HeadRotation</c> from <c>AvatarWindow.OnSnapshotReady</c>.
+/// The values (pitchDeg, yawDeg, rollDeg) are converted to radians and
+/// used only for the eye-relative pupil computation.
+///
+/// ── Thread Safety ─────────────────────────────────────────────
+/// <c>SetMesh</c>, <c>SetFeaturePoints</c>, <c>UpdateEyeData</c>,
+/// <c>SetHeadPose</c>, and <c>SetGaze</c> may be called from any thread;
+/// WPF marshals <c>InvalidateVisual</c> to the UI dispatcher automatically.
 /// </summary>
 public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 {
@@ -79,6 +95,15 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     private float _gazePitch;
     private float _gazeYaw;
     private float _gazeDistM = 1.5f;
+
+    // ── Head pose (from Kinect FaceFrame.HeadRotation) ──────────────────
+    // Degrees from Get3DPose(): X=pitch, Y=yaw, Z=roll.
+    // Used for eye-relative pupil computation:
+    //   eyeRelativeYaw = gazeYaw − headYawRad
+    // This implements "eye-first" tracking: pupils cover the gaze angle that
+    // the head has NOT yet rotated to, capped at the socket travel limit.
+    private float _headYawRad;
+    private float _headPitchRad;
 
     // ── Cached eye socket screen positions (for GazeVectorEngine eye provider) ──
     private Point _leftEyeLocalPt;    // updated each OnRender frame
@@ -149,6 +174,23 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         InvalidateVisual();
     }
 
+    /// <summary>
+    /// Updates the head pose from Kinect FaceFrame.HeadRotation (degrees).
+    /// <paramref name="rotationDeg"/> = (pitchDeg, yawDeg, rollDeg).
+    /// Used to compute the eye-relative gaze component — the portion of the
+    /// total gaze angle that the eyes must cover because the head has not yet
+    /// rotated that far.  The head rotation itself is baked into the
+    /// <c>GetProjectedShape</c> mesh vertices, so no additional rendering
+    /// transform is needed for the head.
+    /// </summary>
+    public void SetHeadPose(System.Numerics.Vector3 rotationDeg)
+    {
+        const float Deg2Rad = MathF.PI / 180f;
+        _headYawRad = rotationDeg.Y * Deg2Rad;
+        _headPitchRad = rotationDeg.X * Deg2Rad;
+        // Roll is baked into GetProjectedShape — no separate rendering needed.
+    }
+
     // IAvatarComponent
     void IAvatarComponent.SetGaze(float p, float y, float d) => SetGaze(p, y, d);
     void IAvatarComponent.ResetGaze()
@@ -186,35 +228,46 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         // ── Fit-to-bounds with uniform scale and 8% padding ───
         double padX = w * 0.08;
         double padY = h * 0.08;
-        double scale = Math.Min(
+        double fitScale = Math.Min(
             (w - padX * 2) / _meshWidth,
             (h - padY * 2) / _meshHeight);
 
-        double offX = (w - _meshWidth * scale) / 2.0 - _meshLeft * scale;
-        double offY = (h - _meshHeight * scale) / 2.0 - _meshTop * scale;
+        double offX = (w - _meshWidth * fitScale) / 2.0 - _meshLeft * fitScale;
+        double offY = (h - _meshHeight * fitScale) / 2.0 - _meshTop * fitScale;
 
-        // ── Head-turn transforms ──────────────────────────────
-        // Yaw  → compress X around mesh centre to simulate rotation.
-        // Pitch→ shift all vertices up/down.
-        double yawCompress = Math.Cos(Math.Clamp(_gazeYaw, -Math.PI / 3, Math.PI / 3));
-        double pitchShift = Math.Sin(-_gazePitch) * h * 0.07;
+        // ── Whether the real Candide-3 projected mesh is active ──────────
+        // When true: GetProjectedShape succeeded; head rotation is already
+        // baked into the vertex positions.  We render with a pure transform.
+        // When false: edge-chain fallback using 87 feature points; we apply
+        // a naive cos-compress / pitch-shift to approximate head orientation.
+        bool hasMesh = _triangles is not null;
+
+        // ── Transform parameters (full-mesh vs feature-point fallback) ───
+        // Full-mesh mode: no manual head transforms — they are in the vertices.
+        // Fallback mode : yaw→X-compress, pitch→Y-shift (approximate).
         double meshCentreX = w / 2.0;
+        double yawCompress = hasMesh ? 1.0 :
+            Math.Cos(Math.Clamp(_gazeYaw, -Math.PI / 3, Math.PI / 3));
+        double pitchShift = hasMesh ? 0.0 :
+            Math.Sin(-_gazePitch) * h * 0.07;
 
+        // ── Vertex mapping ───────────────────────────────────────────────
+        // Converts a mesh-space vertex index to screen-space Point.
         Point Map(int idx)
         {
             Vector2 v = _vertices[idx];
-            double x = v.X * scale + offX;
-            double y = v.Y * scale + offY + pitchShift;
-            // Compress X toward mesh centre to simulate yaw rotation.
-            x = meshCentreX + (x - meshCentreX) * yawCompress;
+            double x = v.X * fitScale + offX;
+            double y = v.Y * fitScale + offY + pitchShift;
+            if (!hasMesh)
+                x = meshCentreX + (x - meshCentreX) * yawCompress;
             return new Point(x, y);
         }
 
-        // ── Draw triangle edges OR dot-cloud ─────────────────
-        if (_triangles is not null)
+        // ── Draw triangle edges OR feature-point edge chains ─────────────
+        if (hasMesh)
         {
-            // Full wireframe mesh
-            foreach (var (a, b, c) in _triangles)
+            // Full wireframe mesh — GetProjectedShape succeeded.
+            foreach (var (a, b, c) in _triangles!)
             {
                 if ((uint)a >= (uint)_vertices.Length ||
                     (uint)b >= (uint)_vertices.Length ||
@@ -228,8 +281,7 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         }
         else
         {
-            // Feature-point wireframe: Kinect 87-point edge chains.
-            // Skip Vector2.Zero entries — they are uninitialized slots.
+            // Feature-point wireframe: Kinect 87-point edge chains (fallback).
             foreach (var chain in FaceEdgeChains.Chains)
             {
                 for (int i = 0; i < chain.Length - 1; i++)
@@ -241,31 +293,49 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                     dc.DrawLine(_wirePen, Map(a), Map(b));
                 }
             }
-
-            // Pupils drawn in the unified gaze block below.
         }
 
-        // ── Gaze-driven pupils in eye sockets ────────────────────────────────
-        // Uses FeaturePoints2D indices to locate the eye socket centres + radii,
-        // regardless of whether the full mesh or edge-chain fallback is active.
+        // ── Gaze-driven pupils in eye sockets ────────────────────────────
         // Right eye loop: fp indices [9,10,11,12,13,14]
         // Left  eye loop: fp indices [30,31,32,33,34,35]
+        //
+        // Eye-first tracking design
+        // ─────────────────────────
+        // In full-mesh mode the head pose is already baked into the projected
+        // feature-point positions, so the pupil offset should reflect only the
+        // EYE-relative component of the gaze:
+        //
+        //   eyeRelativeYaw   = gazeYaw   − headYawRad
+        //   eyeRelativePitch = gazePitch − headPitchRad
+        //
+        // This means:
+        //   • While the user's eyes alone track a target, the pupils move
+        //     within the sockets (head mesh stays centred).
+        //   • When the head also turns (Kinect tracks it, mesh rotates),
+        //     the pupil offset shrinks back toward zero — the head "takes over"
+        //     the angular range the eyes were covering.
+        //   • If gaze exceeds socket limit AND head hasn't turned enough,
+        //     pupils sit at the socket edge until the head catches up.
+        //
+        // In fallback mode we use the raw gaze angle (no head pose available).
         if (_featurePoints is { Length: > 35 })
         {
-            // MapFP: applies the SAME fit-to-bounds transform as Map but to feature-point indices.
-            // Both FaceMeshVertices2D and FeaturePoints2D are in the same 640×480 projected space.
+            // MapFP: applies fit-to-bounds transform to a feature-point index.
+            // Both FaceMeshVertices2D and FeaturePoints2D live in the same 640×480
+            // projected space, so we use the same `fitScale`/`offX`/`offY` offsets.
             Point MapFP(int idx)
             {
                 if (idx >= _featurePoints.Length || _featurePoints[idx] == Vector2.Zero)
                     return new Point(double.NaN, double.NaN);
                 Vector2 v = _featurePoints[idx];
-                double fx = v.X * scale + offX;
-                double fy = v.Y * scale + offY + pitchShift;
-                fx = meshCentreX + (fx - meshCentreX) * yawCompress;
+                double fx = v.X * fitScale + offX;
+                double fy = v.Y * fitScale + offY + pitchShift;
+                if (!hasMesh)
+                    fx = meshCentreX + (fx - meshCentreX) * yawCompress;
                 return new Point(fx, fy);
             }
 
-            // Compute centroid + half-width of an eye socket from a set of fp indices.
+            // Compute centroid + half-width of an eye socket from a set of feature-point indices.
             static (double cx, double cy, double r) EyeSocket(
                 Func<int, Point> mapFP, int[] idx)
             {
@@ -281,7 +351,6 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                     if (p.X > maxX) maxX = p.X;
                 }
                 if (n == 0) return (double.NaN, double.NaN, 0);
-                // Radius = half the horizontal eye span, so pupil fits inside.
                 return (sx / n, sy / n, (maxX - minX) * 0.42);
             }
 
@@ -292,12 +361,21 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 
             if (!double.IsNaN(rcx) && !double.IsNaN(lcx) && rr > 1 && lr > 1)
             {
-                // Gaze math mirrors AvatarCoreControl.SetGaze:
-                // Pitch > 0 = looking UP → pupils translate −Y
-                // Yaw   > 0 = looking RIGHT → pupils translate +X
+                // ── Eye-relative gaze angles ──────────────────────────────
+                // Full-mesh: subtract head rotation so pupils move only the
+                //   residual angle the eyes must cover.
+                // Fallback : use raw gaze (head pose not reliably tracked).
                 const double MaxAngle = Math.PI / 4.0;
-                double normYaw = Math.Clamp(_gazeYaw, -MaxAngle, MaxAngle) / MaxAngle;
-                double normPitch = Math.Clamp(_gazePitch, -MaxAngle, MaxAngle) / MaxAngle;
+                double effectiveYaw = hasMesh
+                    ? Math.Clamp(_gazeYaw - _headYawRad, -MaxAngle, MaxAngle)
+                    : Math.Clamp(_gazeYaw, -MaxAngle, MaxAngle);
+                double effectivePitch = hasMesh
+                    ? Math.Clamp(_gazePitch - _headPitchRad, -MaxAngle, MaxAngle)
+                    : Math.Clamp(_gazePitch, -MaxAngle, MaxAngle);
+
+                double normYaw = effectiveYaw / MaxAngle;
+                double normPitch = effectivePitch / MaxAngle;
+
                 // Binocular convergence: pupils angle inward as user leans in.
                 double conv = rr * 0.25 * Math.Clamp((1.2 - _gazeDistM) / 1.2, 0.0, 1.0);
                 double travel = 0.42;  // fraction of socket radius for full-angle travel

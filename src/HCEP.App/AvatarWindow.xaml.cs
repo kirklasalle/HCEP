@@ -108,8 +108,8 @@ public partial class AvatarWindow : Window
     private void ApplyMode(bool use3D)
     {
         _is3DMode = use3D;
-        Avatar.Visibility  = use3D ? Visibility.Collapsed : Visibility.Visible;
-        Avatar3D.Visibility = use3D ? Visibility.Visible  : Visibility.Collapsed;
+        Avatar.Visibility = use3D ? Visibility.Collapsed : Visibility.Visible;
+        Avatar3D.Visibility = use3D ? Visibility.Visible : Visibility.Collapsed;
         _activeAvatar = use3D ? (IAvatarComponent)Avatar3D : Avatar;
         Title = use3D ? "HCEP — True Gaze Avatar (3D Wireframe)"
                        : "HCEP — True Gaze Avatar";
@@ -126,11 +126,11 @@ public partial class AvatarWindow : Window
     {
         _orchestrator.SetAvatarEyeProvider(
             provider: () => _is3DMode
-                ? (new Vector2((float)Avatar3D.LeftEyeScreenPos.X,  (float)Avatar3D.LeftEyeScreenPos.Y),
+                ? (new Vector2((float)Avatar3D.LeftEyeScreenPos.X, (float)Avatar3D.LeftEyeScreenPos.Y),
                    new Vector2((float)Avatar3D.RightEyeScreenPos.X, (float)Avatar3D.RightEyeScreenPos.Y))
-                : (new Vector2((float)Avatar.LeftEyeScreenPos.X,  (float)Avatar.LeftEyeScreenPos.Y),
+                : (new Vector2((float)Avatar.LeftEyeScreenPos.X, (float)Avatar.LeftEyeScreenPos.Y),
                    new Vector2((float)Avatar.RightEyeScreenPos.X, (float)Avatar.RightEyeScreenPos.Y)),
-            screenWidthPhysicalPx:  _screenWidthPx,
+            screenWidthPhysicalPx: _screenWidthPx,
             screenHeightPhysicalPx: _screenHeightPx);
     }
 
@@ -154,7 +154,12 @@ public partial class AvatarWindow : Window
         // Always push feature points — Avatar3D needs them for eye socket gaze tracking
         // regardless of whether the full mesh or edge-chain fallback is active.
         if (face is { IsTracked: true, FeaturePoints2D.Length: > 0 })
+        {
             Avatar3D.UpdateEyeData(face.FeaturePoints2D);
+            // Pass head pose so Avatar3D can compute eye-relative gaze for pupils.
+            // FaceFrame.HeadRotation = (pitchDeg, yawDeg, rollDeg) from Kinect Get3DPose().
+            Avatar3D.SetHeadPose(face.HeadRotation);
+        }
 
         // 3D wireframe: push live mesh or feature-point fallback
         if (!_is3DMode) return;
