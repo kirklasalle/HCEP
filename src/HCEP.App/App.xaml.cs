@@ -95,8 +95,26 @@ public partial class App : Application
 
         _appLogger = _host.Services.GetRequiredService<ILogger<App>>();
 
-        var mainWindow = _host.Services.GetRequiredService<MainWindow>();
-        mainWindow.Show();
+        // ── Window routing: --window avatar launches Avatar directly ─
+        bool avatarMode = e.Args.Length > 0 &&
+            e.Args[0].Equals("--window", StringComparison.OrdinalIgnoreCase) &&
+            e.Args.Length > 1 &&
+            e.Args[1].Equals("avatar", StringComparison.OrdinalIgnoreCase);
+
+        if (avatarMode)
+        {
+            // Start pipeline so the Avatar gets live gaze data
+            var orchestrator = _host.Services.GetRequiredService<HCEPPipelineOrchestrator>();
+            _ = orchestrator.StartAsync();
+
+            var avatarWindow = _host.Services.GetRequiredService<AvatarWindow>();
+            avatarWindow.Show();
+        }
+        else
+        {
+            var mainWindow = _host.Services.GetRequiredService<MainWindow>();
+            mainWindow.Show();
+        }
     }
 
     protected override async void OnExit(ExitEventArgs e)
