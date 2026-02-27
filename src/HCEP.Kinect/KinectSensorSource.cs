@@ -65,8 +65,6 @@ public sealed class KinectSensorSource : ISensorSource
     private bool _faceTrackingStarted;
     private byte[]? _lastColorPixels;
     private short[]? _lastDepthRaw;
-    private GCHandle _colorPinHandle;
-    private GCHandle _depthPinHandle;
 
     // Depth format tracking — NuiImageStreamOpen determines the raw format.
     // DepthAndPlayerIndex (type 0) produces D13P3; plain Depth (type 4) produces D16.
@@ -436,6 +434,30 @@ public sealed class KinectSensorSource : ISensorSource
                 return;
             }
 
+            // Pre-allocate IFTImage internal buffers — matches C++ reference pattern
+            // (KinectSensor.cpp: m_VideoBuffer->Allocate / m_DepthBuffer->Allocate).
+            // FaceTrackLib owns the buffer; each frame we Marshal.Copy data into it.
+            int hr = FtImageRaw.Allocate(_ftVideoImagePtr, 640, 480, FTIMAGEFORMAT.UINT8_B8G8R8X8);
+            if (hr < 0)
+            {
+                _logger.LogWarning("IFTImage.Allocate(video) failed hr=0x{HR:X8}", unchecked((uint)hr));
+                DisposeFaceTracking();
+                return;
+            }
+
+            var depthFmt = _depthIsD13P3 ? FTIMAGEFORMAT.UINT16_D13P3 : FTIMAGEFORMAT.UINT16_D16;
+            hr = FtImageRaw.Allocate(_ftDepthImagePtr, 640, 480, depthFmt);
+            if (hr < 0)
+            {
+                _logger.LogWarning("IFTImage.Allocate(depth) failed hr=0x{HR:X8} format={F}", unchecked((uint)hr), depthFmt);
+                DisposeFaceTracking();
+                return;
+            }
+
+            _logger.LogInformation(
+                "IFTImage buffers allocated: video=640×480 BGRX, depth=640×480 {Fmt}",
+                depthFmt);
+
             // Camera configs: Kinect v1 color 640×480, focal ~531.15 pixels
             // Depth 640×480: SDK nominal depth focal is 285.63 at 320×240.
             // For 640×480 we multiply by 2, matching C++ KinectSensor.cpp:
@@ -443,7 +465,7 @@ public sealed class KinectSensorSource : ISensorSource
             _videoConfig = new FT_CAMERA_CONFIG { Width = 640, Height = 480, FocalLength = 531.15f };
             var depthConfig = new FT_CAMERA_CONFIG { Width = 640, Height = 480, FocalLength = 571.26f };
 
-            int hr = _faceTracker.Initialize(ref _videoConfig, ref depthConfig, IntPtr.Zero, null);
+            hr = _faceTracker.Initialize(ref _videoConfig, ref depthConfig, IntPtr.Zero, null);
             if (hr < 0)
             {
                 _logger.LogWarning("IFTFaceTracker.Initialize failed (hr=0x{HR:X8})", hr);
@@ -471,9 +493,6 @@ public sealed class KinectSensorSource : ISensorSource
 
     private void DisposeFaceTracking()
     {
-        if (_colorPinHandle.IsAllocated) _colorPinHandle.Free();
-        if (_depthPinHandle.IsAllocated) _depthPinHandle.Free();
-
         if (_faceModel is not null) { try { Marshal.ReleaseComObject(_faceModel); } catch { } _faceModel = null; }
         if (_faceResult is not null) { try { Marshal.ReleaseComObject(_faceResult); } catch { } _faceResult = null; }
         if (_ftVideoImagePtr != IntPtr.Zero) { try { Marshal.Release(_ftVideoImagePtr); } catch { } _ftVideoImagePtr = IntPtr.Zero; }
@@ -1176,48 +1195,38 @@ public sealed class KinectSensorSource : ISensorSource
 
         try
         {
-            // Free previous pin handles
-            if (_colorPinHandle.IsAllocated) _colorPinHandle.Free();
-            if (_depthPinHandle.IsAllocated) _depthPinHandle.Free();
+            // ── Copy frame data into pre-allocated IFTImage buffers ──────
+            // Matches C++ reference pattern: KinectSensor::GetVideoBuffer()->CopyTo(m_colorImage)
+            // IFTImage buffers were pre-allocated in InitializeFaceTracking
+            // with Allocate(). Each frame we copy data into the owned buffer.
 
-            // Pin managed arrays so native code can read them
-            _colorPinHandle = GCHandle.Alloc(colorPixels, GCHandleType.Pinned);
-            _depthPinHandle = GCHandle.Alloc(depthRaw, GCHandleType.Pinned);
-
-            // Attach color pixels (BGRX 32bpp) to IFTImage via raw vtable
-            // (FaceTrackLib COM objects have broken QI — cannot use .NET RCW)
-            int hr = FtImageRaw.Attach(_ftVideoImagePtr, 640, 480,
-                _colorPinHandle.AddrOfPinnedObject(),
-                FTIMAGEFORMAT.UINT8_B8G8R8X8,
-                640 * 4);
-            if (hr < 0)
+            // Color: BGRX 640×480 = 1,228,800 bytes
+            IntPtr videoBuf = FtImageRaw.GetBuffer(_ftVideoImagePtr);
+            if (videoBuf == IntPtr.Zero)
             {
                 if (!_realFaceFirstBailLogged)
                 {
                     _realFaceFirstBailLogged = true;
-                    _logger.LogWarning("[REAL FACE BAIL] ftVideoImage.Attach failed hr=0x{Hr:X8}", unchecked((uint)hr));
+                    _logger.LogWarning("[REAL FACE BAIL] ftVideoImage.GetBuffer returned NULL — image not allocated?");
                 }
                 return false;
             }
+            Marshal.Copy(colorPixels, 0, videoBuf, colorPixels.Length);
 
-            // Attach depth data — format depends on how the stream was opened.
-            // DepthAndPlayerIndex → D13P3 (13-bit depth + 3-bit player index)
-            // Plain Depth → D16 (16-bit depth, no player index)
-            var depthFormat = _depthIsD13P3 ? FTIMAGEFORMAT.UINT16_D13P3 : FTIMAGEFORMAT.UINT16_D16;
-            hr = FtImageRaw.Attach(_ftDepthImagePtr, 640, 480,
-                _depthPinHandle.AddrOfPinnedObject(),
-                depthFormat,
-                640 * 2);
-            if (hr < 0)
+            // Depth: D13P3/D16 640×480 = 307,200 shorts = 614,400 bytes
+            IntPtr depthBuf = FtImageRaw.GetBuffer(_ftDepthImagePtr);
+            if (depthBuf == IntPtr.Zero)
             {
                 if (!_realFaceFirstBailLogged)
                 {
                     _realFaceFirstBailLogged = true;
-                    _logger.LogWarning("[REAL FACE BAIL] ftDepthImage.Attach failed hr=0x{Hr:X8} format={F}",
-                        unchecked((uint)hr), depthFormat);
+                    _logger.LogWarning("[REAL FACE BAIL] ftDepthImage.GetBuffer returned NULL — image not allocated?");
                 }
                 return false;
             }
+            Marshal.Copy(depthRaw, 0, depthBuf, depthRaw.Length);
+
+            int hr;  // shared HRESULT for tracking and mesh calls below
 
             // Build sensor data struct — pass raw COM pointers directly.
             // AddRef so the pointers stay valid through the native call;
@@ -1261,10 +1270,12 @@ public sealed class KinectSensorSource : ISensorSource
                         _faceTrackingStarted = true;
                         _logger.LogInformation("[REAL FACE] StartTracking SUCCEEDED (hr=0x{Hr:X8} status=0x{St:X8})", unchecked((uint)hr), unchecked((uint)startStatus));
                     }
-                    else if (!_realFaceFirstBailLogged)
+                    else
                     {
-                        _realFaceFirstBailLogged = true;
-                        _logger.LogWarning("[REAL FACE BAIL] StartTracking failed hr=0x{Hr:X8} status=0x{St:X8}", unchecked((uint)hr), unchecked((uint)startStatus));
+                        // StartTracking often fails for the first few frames while it
+                        // searches for a face. Log at Debug (not Warning) and keep retrying.
+                        _logger.LogDebug("[REAL FACE] StartTracking not yet locked — hr=0x{Hr:X8} status=0x{St:X8}", unchecked((uint)hr), unchecked((uint)startStatus));
+                        return false;  // retry next frame — do NOT set bail flag
                     }
                 }
                 else
@@ -1272,12 +1283,10 @@ public sealed class KinectSensorSource : ISensorSource
                     hr = _faceTracker.ContinueTracking(ref sensorData, headPointsPtr, _faceResult);
                     if (hr < 0 || _faceResult.GetStatus() < 0)
                     {
-                        if (!_realFaceFirstBailLogged)
-                        {
-                            _realFaceFirstBailLogged = true;
-                            _logger.LogWarning("[REAL FACE BAIL] ContinueTracking failed hr=0x{Hr:X8} status=0x{St:X8}",
-                                unchecked((uint)hr), unchecked((uint)_faceResult.GetStatus()));
-                        }
+                        // Lost tracking — fall back to StartTracking next frame.
+                        // Log at Debug, not Warning (temporary tracking loss is normal).
+                        _logger.LogDebug("[REAL FACE] ContinueTracking lost face — hr=0x{Hr:X8} status=0x{St:X8}",
+                            unchecked((uint)hr), unchecked((uint)_faceResult.GetStatus()));
                         _faceTrackingStarted = false;
                         return false;
                     }

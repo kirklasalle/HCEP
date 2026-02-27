@@ -385,11 +385,21 @@ internal delegate IntPtr FTCreateImageDelegate();
 //   Slot 0: QueryInterface  1: AddRef  2: Release
 //   Slot 3: Allocate  4: Attach  5: Reset  6: GetWidth  7: GetHeight ...
 //
-// We only need Attach (slot 4) for face tracking.
+// Vtable slot numbering (absolute, including IUnknown):
+//   0: QI  1: AddRef  2: Release
+//   3: Allocate  4: Attach  5: Reset  6: GetWidth  7: GetHeight
+//   8: GetStride  9: GetBytesPerPixel  10: GetBufferSize  11: GetFormat
+//   12: GetBuffer  13: IsAttached  14: CopyTo  15: DrawLine
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtImageAllocateDelegate(IntPtr pThis, uint width, uint height, FTIMAGEFORMAT format);
 
 [UnmanagedFunctionPointer(CallingConvention.StdCall)]
 internal delegate int FtImageAttachDelegate(
     IntPtr pThis, uint width, uint height, IntPtr pData, FTIMAGEFORMAT format, uint stride);
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate IntPtr FtImageGetBufferDelegate(IntPtr pThis);
 
 /// <summary>
 /// Raw vtable call helpers for IFTImage COM objects.
@@ -398,16 +408,39 @@ internal delegate int FtImageAttachDelegate(
 internal static class FtImageRaw
 {
     /// <summary>
+    /// Calls IFTImage::Allocate via raw vtable slot 3.
+    /// Allocates an internal owned buffer — the standard C++ reference pattern.
+    /// </summary>
+    public static int Allocate(IntPtr pImage, uint width, uint height, FTIMAGEFORMAT format)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pImage);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 3 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtImageAllocateDelegate>(slot);
+        return fn(pImage, width, height, format);
+    }
+
+    /// <summary>
     /// Calls IFTImage::Attach via raw vtable slot 4.
     /// </summary>
     public static int Attach(IntPtr pImage, uint width, uint height, IntPtr pData, FTIMAGEFORMAT format, uint stride)
     {
-        // The vtable pointer is the first pointer in the COM object
         IntPtr vtable = Marshal.ReadIntPtr(pImage);
-        // Attach is slot 4 (QI=0, AddRef=1, Release=2, Allocate=3, Attach=4)
-        IntPtr attachSlot = Marshal.ReadIntPtr(vtable, 4 * IntPtr.Size);
-        var attach = Marshal.GetDelegateForFunctionPointer<FtImageAttachDelegate>(attachSlot);
-        return attach(pImage, width, height, pData, format, stride);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 4 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtImageAttachDelegate>(slot);
+        return fn(pImage, width, height, pData, format, stride);
+    }
+
+    /// <summary>
+    /// Calls IFTImage::GetBuffer via raw vtable slot 12.
+    /// Returns a pointer to the image's internal pixel buffer.
+    /// Only valid after Allocate — returns NULL if image is empty.
+    /// </summary>
+    public static IntPtr GetBuffer(IntPtr pImage)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pImage);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 12 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtImageGetBufferDelegate>(slot);
+        return fn(pImage);
     }
 }
 
