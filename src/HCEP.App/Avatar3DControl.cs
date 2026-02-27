@@ -9,6 +9,30 @@ using System.Windows.Media;
 
 namespace HCEP.App;
 
+// ── Kinect FaceTracking SDK 87-point feature-point edge connectivity ──────────
+// Indices match KinectSensorSource FeaturePoints2D ordering.
+// Mirrors and extends VideoOverlayControl._faceEdgeChains.
+file static class FaceEdgeChains
+{
+    public static readonly int[][] Chains =
+    [
+        // Eyes (closed loops)
+        [10, 11, 9, 13, 14, 12, 10],                                           // right eye
+        [31, 32, 30, 34, 35, 33, 31],                                          // left eye
+        // Eyebrows
+        [5, 6, 7, 8],                                                          // right brow
+        [29, 28, 27, 26],                                                      // left brow
+        // Nose
+        [13, 34],                                                              // bridge
+        [40, 41, 42, 43, 44, 45, 40],                                          // tip + nostrils
+        // Mouth
+        [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 48],                 // outer lip
+        [60, 61, 62, 63, 64, 65, 66, 67, 60],                                 // inner lip
+        // Jaw / face contour
+        [0, 1, 2, 3, 4, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 0],
+    ];
+}
+
 /// <summary>
 /// 3D Wireframe Avatar — renders the Kinect FaceTrackLib Candide-3 mesh
 /// (typically ~121 vertices, ~218 triangles) using WPF DrawingContext.
@@ -171,11 +195,28 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         }
         else
         {
-            // Feature-point dot-cloud fallback (mesh not yet available)
-            var dotBrush = new SolidColorBrush(Color.FromArgb(200, 0, 220, 190));
-            dotBrush.Freeze();
-            for (int i = 0; i < _vertices.Length; i++)
-                dc.DrawEllipse(dotBrush, null, Map(i), 2.0, 2.0);
+            // Feature-point wireframe: Kinect 87-point edge chains.
+            // Skip Vector2.Zero entries — they are uninitialized slots.
+            foreach (var chain in FaceEdgeChains.Chains)
+            {
+                for (int i = 0; i < chain.Length - 1; i++)
+                {
+                    int a = chain[i], b = chain[i + 1];
+                    if (a >= _vertices.Length || b >= _vertices.Length) continue;
+                    Vector2 va = _vertices[a], vb = _vertices[b];
+                    if (va == Vector2.Zero || vb == Vector2.Zero) continue;
+                    dc.DrawLine(_wirePen, Map(a), Map(b));
+                }
+            }
+
+            // Pupil dots on top of edge lines
+            var pupilBrush = new SolidColorBrush(Color.FromArgb(230, 0, 220, 190));
+            pupilBrush.Freeze();
+            foreach (int pi in new[] { 69, 73 })
+            {
+                if (pi >= _vertices.Length || _vertices[pi] == Vector2.Zero) continue;
+                dc.DrawEllipse(pupilBrush, null, Map(pi), 3.5, 3.5);
+            }
         }
     }
 
@@ -190,6 +231,10 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 
         foreach (Vector2 v in _vertices)
         {
+            // Skip uninitialized slots — Vector2.Zero is not a real face point.
+            // Including zeros pulls minX/minY to 0 which shifts the entire face
+            // to the lower-right and creates the stray upper-left dot.
+            if (v == Vector2.Zero) continue;
             if (v.X < minX) minX = v.X;
             if (v.Y < minY) minY = v.Y;
             if (v.X > maxX) maxX = v.X;
