@@ -66,6 +66,10 @@ public sealed class KinectSensorSource : ISensorSource
     private GCHandle _colorPinHandle;
     private GCHandle _depthPinHandle;
 
+    // Depth format tracking — NuiImageStreamOpen determines the raw format.
+    // DepthAndPlayerIndex (type 0) produces D13P3; plain Depth (type 4) produces D16.
+    private bool _depthIsD13P3;      // true when stream is DepthAndPlayerIndex format
+
     // Face model mesh (from FaceTrackLib SDK — like FaceTrackingBasics-WPF sample)
     private IFTModel? _faceModel;
     private (int First, int Second, int Third)[]? _cachedTriangles;
@@ -178,7 +182,10 @@ public sealed class KinectSensorSource : ISensorSource
             int status = _sensor.NuiStatus();
             _logger.LogInformation("Kinect sensor status: 0x{Status:X8}", status);
 
-            // Build initialization flags
+            // Build initialization flags.
+            // Use DEPTH_AND_PLAYER_INDEX — this is what the Kinect v1 SDK
+            // and FaceTrackLib expect (D13P3 format = 13-bit depth + 3-bit player index).
+            // Near Mode flag is only applied at NuiImageStreamOpen level, not here.
             uint initFlags = 0;
             if (streams.HasFlag(SensorStreamType.Color))
                 initFlags |= NuiConstants.NUI_INITIALIZE_FLAG_USES_COLOR;
@@ -220,32 +227,67 @@ public sealed class KinectSensorSource : ISensorSource
                     _colorStreamHandle);
             }
 
-            // Open depth stream: 640×480 + Near Mode (extends tracking range to ~40 cm).
-            // IMPORTANT: NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE is INCOMPATIBLE with
-            // NUI_IMAGE_TYPE.DepthAndPlayerIndex on all Kinect for Windows v1 firmware.
-            // Must use NUI_IMAGE_TYPE.Depth (no player-index channel). Player segmentation
-            // is not needed for the gaze pipeline — skeleton tracking comes from the
-            // separate NuiSkeletonTrackingEnable call below.
+            // Open depth stream: 640×480.
+            // Fallback chain to handle different Kinect v1 hardware variants:
+            //   1. DepthAndPlayerIndex (matches NuiInitialize flag) — D13P3 format.
+            //      This is the standard format FaceTrackLib expects.
+            //   2. DepthAndPlayerIndex + Near Mode (Kinect for Windows v1 only).
+            //   3. Plain Depth + Near Mode (some firmware).
+            //   4. Plain Depth (last resort).
+            // The previous code used Depth+NearMode but initialized with
+            // DEPTH_AND_PLAYER_INDEX flag — a mismatch that caused E_INVALIDARG.
             if (streams.HasFlag(SensorStreamType.Depth))
             {
+                _depthIsD13P3 = false;
+                bool depthOpened = false;
+
+                // Attempt 1: DepthAndPlayerIndex, no Near Mode (safest, universal)
                 hr = _sensor.NuiImageStreamOpen(
-                    NUI_IMAGE_TYPE.Depth,           // NOT DepthAndPlayerIndex — incompatible with Near Mode
+                    NUI_IMAGE_TYPE.DepthAndPlayerIndex,
                     NUI_IMAGE_RESOLUTION.Res640x480,
-                    NuiConstants.NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE,
-                    2,    // dwFrameLimit
+                    0,    // no flags
+                    2,
                     IntPtr.Zero,
                     out _depthStreamHandle);
-
-                if (hr < 0)
+                if (hr >= 0)
                 {
-                    _logger.LogWarning("Failed to open depth stream (hr=0x{HR:X8})", hr);
-                    // Non-fatal — we can still do color
+                    _depthIsD13P3 = true;
+                    depthOpened = true;
+                    _logger.LogInformation(
+                        "Depth stream opened: DepthAndPlayerIndex 640×480 (D13P3, handle=0x{H:X})",
+                        _depthStreamHandle);
                 }
                 else
                 {
-                    _logger.LogInformation("Depth stream opened: 640×480 (handle=0x{H:X})",
-                        _depthStreamHandle);
+                    _logger.LogWarning(
+                        "DepthAndPlayerIndex failed (hr=0x{HR:X8}), trying plain Depth...", hr);
+
+                    // Attempt 2: Plain Depth, no flags
+                    hr = _sensor.NuiImageStreamOpen(
+                        NUI_IMAGE_TYPE.Depth,
+                        NUI_IMAGE_RESOLUTION.Res640x480,
+                        0,    // no flags
+                        2,
+                        IntPtr.Zero,
+                        out _depthStreamHandle);
+                    if (hr >= 0)
+                    {
+                        _depthIsD13P3 = false;  // D16 format
+                        depthOpened = true;
+                        _logger.LogInformation(
+                            "Depth stream opened: plain Depth 640×480 (D16, handle=0x{H:X})",
+                            _depthStreamHandle);
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "All depth stream open attempts failed (last hr=0x{HR:X8}) — " +
+                            "face mesh will be unavailable", hr);
+                    }
                 }
+
+                if (!depthOpened)
+                    _logger.LogWarning("No depth stream available — face tracking requires depth data!");
             }
 
             // Enable skeleton tracking — default to FULL BODY mode
@@ -1120,10 +1162,13 @@ public sealed class KinectSensorSource : ISensorSource
                 640 * 4);
             if (hr < 0) return false;
 
-            // Attach depth data (D13P3 = 16-bit with 3-bit player index)
+            // Attach depth data — format depends on how the stream was opened.
+            // DepthAndPlayerIndex → D13P3 (13-bit depth + 3-bit player index)
+            // Plain Depth → D16 (16-bit depth, no player index)
+            var depthFormat = _depthIsD13P3 ? FTIMAGEFORMAT.UINT16_D13P3 : FTIMAGEFORMAT.UINT16_D16;
             hr = _ftDepthImage.Attach(640, 480,
                 _depthPinHandle.AddrOfPinnedObject(),
-                FTIMAGEFORMAT.UINT16_D13P3,
+                depthFormat,
                 640 * 2);
             if (hr < 0) return false;
 
