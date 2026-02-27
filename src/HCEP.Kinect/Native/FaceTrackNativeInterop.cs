@@ -444,6 +444,144 @@ internal static class FtImageRaw
     }
 }
 
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtResultResetDelegate(IntPtr pThis);
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtResultGetStatusDelegate(IntPtr pThis);
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtResultGetFaceRectDelegate(IntPtr pThis, out RECT pRect);
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtResultGet2DShapePointsDelegate(IntPtr pThis, out IntPtr ppPoints, out uint pPointCount);
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtResultGet3DPoseDelegate(IntPtr pThis, out float pScale, [Out] float[] rotationXYZ, [Out] float[] translationXYZ);
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtResultGetAUCoefficientsDelegate(IntPtr pThis, out IntPtr ppCoefficients, out uint pAUCount);
+
+internal static class FtResultRaw
+{
+    public static int Reset(IntPtr pResult)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pResult);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 3 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtResultResetDelegate>(slot);
+        return fn(pResult);
+    }
+
+    public static int GetStatus(IntPtr pResult)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pResult);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 5 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtResultGetStatusDelegate>(slot);
+        return fn(pResult);
+    }
+
+    public static int GetFaceRect(IntPtr pResult, out RECT rect)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pResult);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 6 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtResultGetFaceRectDelegate>(slot);
+        return fn(pResult, out rect);
+    }
+
+    public static int Get2DShapePoints(IntPtr pResult, out IntPtr points, out uint pointCount)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pResult);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 7 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtResultGet2DShapePointsDelegate>(slot);
+        return fn(pResult, out points, out pointCount);
+    }
+
+    public static int Get3DPose(IntPtr pResult, out float scale, float[] rotationXYZ, float[] translationXYZ)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pResult);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 8 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtResultGet3DPoseDelegate>(slot);
+        return fn(pResult, out scale, rotationXYZ, translationXYZ);
+    }
+
+    public static int GetAUCoefficients(IntPtr pResult, out IntPtr coefs, out uint count)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pResult);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 9 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtResultGetAUCoefficientsDelegate>(slot);
+        return fn(pResult, out coefs, out count);
+    }
+}
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtTrackerInitializeDelegate(IntPtr pThis, ref FT_CAMERA_CONFIG videoConfig, ref FT_CAMERA_CONFIG depthConfig, IntPtr depthToColorMappingFunc, [MarshalAs(UnmanagedType.LPWStr)] string? modelPath);
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtTrackerCreateFTResultDelegate(IntPtr pThis, out IntPtr ppFTResult);
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtTrackerGetShapeUnitsDelegate(IntPtr pThis, out float pHeadScale, out IntPtr ppSUCoefs, ref uint pSUCount, [MarshalAs(UnmanagedType.Bool)] out bool pHaveConverged);
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtTrackerGetFaceModelDelegate(IntPtr pThis, out IntPtr ppModel);
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtTrackerStartTrackingDelegate(IntPtr pThis, ref FT_SENSOR_DATA sensorData, IntPtr pRoi, IntPtr headPoints, IntPtr pFTResult);
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtTrackerContinueTrackingDelegate(IntPtr pThis, ref FT_SENSOR_DATA sensorData, IntPtr headPoints, IntPtr pFTResult);
+
+internal static class FtFaceTrackerRaw
+{
+    public static int Initialize(IntPtr pTracker, ref FT_CAMERA_CONFIG videoConfig, ref FT_CAMERA_CONFIG depthConfig, IntPtr depthToColorMappingFunc, string? modelPath)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pTracker);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 3 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtTrackerInitializeDelegate>(slot);
+        return fn(pTracker, ref videoConfig, ref depthConfig, depthToColorMappingFunc, modelPath);
+    }
+
+    public static int CreateFTResult(IntPtr pTracker, out IntPtr pResult)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pTracker);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 5 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtTrackerCreateFTResultDelegate>(slot);
+        return fn(pTracker, out pResult);
+    }
+
+    public static int GetShapeUnits(IntPtr pTracker, out float headScale, out IntPtr suCoefs, ref uint suCount, out bool converged)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pTracker);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 7 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtTrackerGetShapeUnitsDelegate>(slot);
+        return fn(pTracker, out headScale, out suCoefs, ref suCount, out converged);
+    }
+
+    public static int GetFaceModel(IntPtr pTracker, out IntPtr pModel)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pTracker);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 10 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtTrackerGetFaceModelDelegate>(slot);
+        return fn(pTracker, out pModel);
+    }
+
+    public static int StartTracking(IntPtr pTracker, ref FT_SENSOR_DATA sensorData, IntPtr pRoi, IntPtr headPoints, IntPtr pResult)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pTracker);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 11 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtTrackerStartTrackingDelegate>(slot);
+        return fn(pTracker, ref sensorData, pRoi, headPoints, pResult);
+    }
+
+    public static int ContinueTracking(IntPtr pTracker, ref FT_SENSOR_DATA sensorData, IntPtr headPoints, IntPtr pResult)
+    {
+        IntPtr vtable = Marshal.ReadIntPtr(pTracker);
+        IntPtr slot = Marshal.ReadIntPtr(vtable, 12 * IntPtr.Size);
+        var fn = Marshal.GetDelegateForFunctionPointer<FtTrackerContinueTrackingDelegate>(slot);
+        return fn(pTracker, ref sensorData, headPoints, pResult);
+    }
+}
+
 // ── Native Library Loader ──────────────────────────────────────
 
 internal static class FaceTrackNative
@@ -510,6 +648,13 @@ internal static class FaceTrackNative
         if (pTracker == IntPtr.Zero) return null;
 
         return (IFTFaceTracker)Marshal.GetObjectForIUnknown(pTracker);
+    }
+
+    /// <summary>Creates a new IFTFaceTracker as a raw COM pointer (IntPtr).</summary>
+    public static IntPtr CreateFaceTrackerRaw()
+    {
+        if (_createTracker is null) return IntPtr.Zero;
+        return _createTracker(IntPtr.Zero);  // returns raw IFTFaceTracker*, refcount=1
     }
 
     /// <summary>Creates a new IFTImage COM instance (wrapped in RCW — may fail QI).</summary>

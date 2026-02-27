@@ -55,8 +55,8 @@ public sealed class KinectSensorSource : ISensorSource
     private int _skelPollCount;
 
     // Face tracking (FaceTrackLib.dll)
-    private IFTFaceTracker? _faceTracker;
-    private IFTResult? _faceResult;
+    private IntPtr _faceTrackerPtr;
+    private IntPtr _faceResultPtr;
     // Raw COM IntPtrs — NOT wrapped in .NET RCW because FaceTrackLib COM objects
     // have broken QueryInterface (E_NOINTERFACE). Called via FtImageRaw vtable helper.
     private IntPtr _ftVideoImagePtr;
@@ -418,8 +418,8 @@ public sealed class KinectSensorSource : ISensorSource
                 return;
             }
 
-            _faceTracker = FaceTrackNative.CreateFaceTracker();
-            if (_faceTracker is null)
+            _faceTrackerPtr = FaceTrackNative.CreateFaceTrackerRaw();
+            if (_faceTrackerPtr == IntPtr.Zero)
             {
                 _logger.LogWarning("FTCreateFaceTracker returned null");
                 return;
@@ -465,7 +465,7 @@ public sealed class KinectSensorSource : ISensorSource
             _videoConfig = new FT_CAMERA_CONFIG { Width = 640, Height = 480, FocalLength = 531.15f };
             var depthConfig = new FT_CAMERA_CONFIG { Width = 640, Height = 480, FocalLength = 571.26f };
 
-            hr = _faceTracker.Initialize(ref _videoConfig, ref depthConfig, IntPtr.Zero, null);
+            hr = FtFaceTrackerRaw.Initialize(_faceTrackerPtr, ref _videoConfig, ref depthConfig, IntPtr.Zero, null);
             if (hr < 0)
             {
                 _logger.LogWarning("IFTFaceTracker.Initialize failed (hr=0x{HR:X8})", hr);
@@ -473,8 +473,8 @@ public sealed class KinectSensorSource : ISensorSource
                 return;
             }
 
-            hr = _faceTracker.CreateFTResult(out _faceResult!);
-            if (hr < 0 || _faceResult is null)
+            hr = FtFaceTrackerRaw.CreateFTResult(_faceTrackerPtr, out _faceResultPtr);
+            if (hr < 0 || _faceResultPtr == IntPtr.Zero)
             {
                 _logger.LogWarning("IFTFaceTracker.CreateFTResult failed (hr=0x{HR:X8})", hr);
                 DisposeFaceTracking();
@@ -494,10 +494,10 @@ public sealed class KinectSensorSource : ISensorSource
     private void DisposeFaceTracking()
     {
         if (_faceModel is not null) { try { Marshal.ReleaseComObject(_faceModel); } catch { } _faceModel = null; }
-        if (_faceResult is not null) { try { Marshal.ReleaseComObject(_faceResult); } catch { } _faceResult = null; }
+        if (_faceResultPtr != IntPtr.Zero) { try { Marshal.Release(_faceResultPtr); } catch { } _faceResultPtr = IntPtr.Zero; }
         if (_ftVideoImagePtr != IntPtr.Zero) { try { Marshal.Release(_ftVideoImagePtr); } catch { } _ftVideoImagePtr = IntPtr.Zero; }
         if (_ftDepthImagePtr != IntPtr.Zero) { try { Marshal.Release(_ftDepthImagePtr); } catch { } _ftDepthImagePtr = IntPtr.Zero; }
-        if (_faceTracker is not null) { try { Marshal.ReleaseComObject(_faceTracker); } catch { } _faceTracker = null; }
+        if (_faceTrackerPtr != IntPtr.Zero) { try { Marshal.Release(_faceTrackerPtr); } catch { } _faceTrackerPtr = IntPtr.Zero; }
 
         _cachedTriangles = null;
         _meshVertexCount = 0;
@@ -1162,7 +1162,7 @@ public sealed class KinectSensorSource : ISensorSource
         int trackingId,
         DateTimeOffset timestamp)
     {
-        if (_faceTracker is null || _faceResult is null ||
+        if (_faceTrackerPtr == IntPtr.Zero || _faceResultPtr == IntPtr.Zero ||
             _ftVideoImagePtr == IntPtr.Zero || _ftDepthImagePtr == IntPtr.Zero)
         {
             if (!_realFaceFirstBailLogged)
@@ -1170,8 +1170,8 @@ public sealed class KinectSensorSource : ISensorSource
                 _realFaceFirstBailLogged = true;
                 _logger.LogWarning(
                     "[REAL FACE BAIL] null guard: tracker={T} result={R} video={V} depth={D}",
-                    _faceTracker != null ? "OK" : "NULL",
-                    _faceResult != null ? "OK" : "NULL",
+                    _faceTrackerPtr != IntPtr.Zero ? "OK" : "NULL",
+                    _faceResultPtr != IntPtr.Zero ? "OK" : "NULL",
                     _ftVideoImagePtr != IntPtr.Zero ? "OK" : "NULL",
                     _ftDepthImagePtr != IntPtr.Zero ? "OK" : "NULL");
             }
@@ -1259,12 +1259,12 @@ public sealed class KinectSensorSource : ISensorSource
                 Marshal.StructureToPtr(headPoints[1], headPointsPtr + Marshal.SizeOf<FT_VECTOR3D>(), false);
 
                 // Reset result before use
-                _faceResult.Reset();
+                FtResultRaw.Reset(_faceResultPtr);
 
                 if (!_faceTrackingStarted)
                 {
-                    hr = _faceTracker.StartTracking(ref sensorData, IntPtr.Zero, headPointsPtr, _faceResult);
-                    int startStatus = _faceResult.GetStatus();
+                    hr = FtFaceTrackerRaw.StartTracking(_faceTrackerPtr, ref sensorData, IntPtr.Zero, headPointsPtr, _faceResultPtr);
+                    int startStatus = FtResultRaw.GetStatus(_faceResultPtr);
                     if (hr >= 0 && startStatus >= 0)
                     {
                         _faceTrackingStarted = true;
@@ -1280,13 +1280,15 @@ public sealed class KinectSensorSource : ISensorSource
                 }
                 else
                 {
-                    hr = _faceTracker.ContinueTracking(ref sensorData, headPointsPtr, _faceResult);
-                    if (hr < 0 || _faceResult.GetStatus() < 0)
+                    int contStatus;
+                    hr = FtFaceTrackerRaw.ContinueTracking(_faceTrackerPtr, ref sensorData, headPointsPtr, _faceResultPtr);
+                    contStatus = FtResultRaw.GetStatus(_faceResultPtr);
+                    if (hr < 0 || contStatus < 0)
                     {
                         // Lost tracking — fall back to StartTracking next frame.
                         // Log at Debug, not Warning (temporary tracking loss is normal).
                         _logger.LogDebug("[REAL FACE] ContinueTracking lost face — hr=0x{Hr:X8} status=0x{St:X8}",
-                            unchecked((uint)hr), unchecked((uint)_faceResult.GetStatus()));
+                            unchecked((uint)hr), unchecked((uint)contStatus));
                         _faceTrackingStarted = false;
                         return false;
                     }
@@ -1304,12 +1306,13 @@ public sealed class KinectSensorSource : ISensorSource
                     Marshal.FreeHGlobal(headPointsPtr);
             }
 
-            if (_faceResult.GetStatus() < 0)
+            int postStatus = FtResultRaw.GetStatus(_faceResultPtr);
+            if (postStatus < 0)
             {
                 if (!_realFaceFirstBailLogged)
                 {
                     _realFaceFirstBailLogged = true;
-                    _logger.LogWarning("[REAL FACE BAIL] post-tracking GetStatus < 0 (status=0x{St:X8})", unchecked((uint)_faceResult.GetStatus()));
+                    _logger.LogWarning("[REAL FACE BAIL] post-tracking GetStatus < 0 (status=0x{St:X8})", unchecked((uint)postStatus));
                 }
                 return false;
             }
@@ -1319,7 +1322,7 @@ public sealed class KinectSensorSource : ISensorSource
             // 3D Pose: scale, rotation (pitch/yaw/roll), translation
             float[] rotation = new float[3];
             float[] translation = new float[3];
-            hr = _faceResult.Get3DPose(out float scale, rotation, translation);
+            hr = FtResultRaw.Get3DPose(_faceResultPtr, out float scale, rotation, translation);
             if (hr < 0)
             {
                 if (!_realFaceFirstBailLogged)
@@ -1331,7 +1334,7 @@ public sealed class KinectSensorSource : ISensorSource
             }
 
             // Face rectangle
-            hr = _faceResult.GetFaceRect(out RECT faceRect);
+            hr = FtResultRaw.GetFaceRect(_faceResultPtr, out RECT faceRect);
             int faceX = faceRect.Left;
             int faceY = faceRect.Top;
             int faceW = faceRect.Right - faceRect.Left;
@@ -1339,7 +1342,7 @@ public sealed class KinectSensorSource : ISensorSource
 
             // Animation Units (6 values)
             float[] actionUnits = new float[6];
-            hr = _faceResult.GetAUCoefficients(out IntPtr auPtr, out uint auCount);
+            hr = FtResultRaw.GetAUCoefficients(_faceResultPtr, out IntPtr auPtr, out uint auCount);
             if (hr >= 0 && auPtr != IntPtr.Zero && auCount > 0)
             {
                 int copyCount = Math.Min((int)auCount, 6);
@@ -1348,7 +1351,7 @@ public sealed class KinectSensorSource : ISensorSource
 
             // 2D Shape Points (feature points for eye detection etc.)
             Vector2[] points2D = new Vector2[87];
-            hr = _faceResult.Get2DShapePoints(out IntPtr pts2DPtr, out uint pts2DCount);
+            hr = FtResultRaw.Get2DShapePoints(_faceResultPtr, out IntPtr pts2DPtr, out uint pts2DCount);
             if (hr >= 0 && pts2DPtr != IntPtr.Zero && pts2DCount > 0)
             {
                 int copyCount = Math.Min((int)pts2DCount, 87);
@@ -1371,9 +1374,9 @@ public sealed class KinectSensorSource : ISensorSource
             // ── Unconditional trace: prove this code path is reached ──
             if (!_meshFirstDiagLogged)
             {
-                _logger.LogInformation(
+                    _logger.LogInformation(
                     "[MESH TRACE] ENTRY: faceTracker={FT} faceModel={FM} vertexCount={V} cachedTriangles={CT}",
-                    _faceTracker != null ? "OK" : "NULL",
+                    _faceTrackerPtr != IntPtr.Zero ? "OK" : "NULL",
                     _faceModel != null ? "OK" : "NULL",
                     _meshVertexCount,
                     _cachedTriangles != null ? _cachedTriangles.Length.ToString() : "NULL");
@@ -1382,9 +1385,9 @@ public sealed class KinectSensorSource : ISensorSource
             try
             {
                 // Get face model (first time only)
-                if (_faceModel == null && _faceTracker != null)
+                if (_faceModel == null && _faceTrackerPtr != IntPtr.Zero)
                 {
-                    hr = _faceTracker.GetFaceModel(out IntPtr pModel);
+                    hr = FtFaceTrackerRaw.GetFaceModel(_faceTrackerPtr, out IntPtr pModel);
                     if (hr >= 0 && pModel != IntPtr.Zero)
                     {
                         _faceModel = (IFTModel)Marshal.GetObjectForIUnknown(pModel);
@@ -1448,7 +1451,7 @@ public sealed class KinectSensorSource : ISensorSource
                     // Step 1: Get SU coef pointer straight from the tracker.
                     // suPtrDirect points into SDK-internal memory — valid for rest of this call.
                     uint suRuntime = 0;
-                    hr = _faceTracker!.GetShapeUnits(out float headScale, out IntPtr suPtrDirect, ref suRuntime, out bool suConverged);
+                    hr = FtFaceTrackerRaw.GetShapeUnits(_faceTrackerPtr, out float headScale, out IntPtr suPtrDirect, ref suRuntime, out bool suConverged);
                     IntPtr suToPass = (hr >= 0) ? suPtrDirect : IntPtr.Zero;   // NULL = neutral shape; SDK handles it
 
                     // Use model-level SU count, exactly as C++ uses pModel->GetSUCount().
@@ -1478,7 +1481,7 @@ public sealed class KinectSensorSource : ISensorSource
                     }
 
                     // Step 2: Re-read AU coefficients for this frame.
-                    hr = _faceResult.GetAUCoefficients(out IntPtr auPtrMesh, out uint auCountMesh);
+                    hr = FtResultRaw.GetAUCoefficients(_faceResultPtr, out IntPtr auPtrMesh, out uint auCountMesh);
                     if (hr >= 0 && auPtrMesh != IntPtr.Zero)
                     {
                         var rotVec = new FT_VECTOR3D { x = rotation[0], y = rotation[1], z = rotation[2] };
