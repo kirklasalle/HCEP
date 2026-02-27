@@ -88,6 +88,7 @@ public partial class App : Application
                 services.AddTransient<SensorViewWindow>();
                 services.AddTransient<KinectVideoViewModel>();
                 services.AddTransient<KinectVideoWindow>();
+                services.AddTransient<CalibrationWindow>();
             })
             .Build();
 

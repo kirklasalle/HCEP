@@ -37,6 +37,7 @@ public partial class MainViewModel : ObservableObject
     // Child window references (prevent duplicates)
     private SensorViewWindow? _sensorViewWindow;
     private KinectVideoWindow? _kinectVideoWindow;
+    private CalibrationWindow? _calibrationWindow;
 
     public MainViewModel(
         IPipelineOrchestrator pipeline,
@@ -225,6 +226,20 @@ public partial class MainViewModel : ObservableObject
         _kinectVideoWindow.Closed += (_, _) => _kinectVideoWindow = null;
         _kinectVideoWindow.Show();
         _logger.LogInformation("Kinect Video window opened");
+    }
+
+    [RelayCommand]
+    private void OpenCalibration()
+    {
+        if (_calibrationWindow is { IsLoaded: true })
+        {
+            _calibrationWindow.Activate();
+            return;
+        }
+        _calibrationWindow = _services.GetRequiredService<CalibrationWindow>();
+        _calibrationWindow.Closed += (_, _) => _calibrationWindow = null;
+        _calibrationWindow.Show();
+        _logger.LogInformation("Calibration window opened");
     }
 
     [RelayCommand]

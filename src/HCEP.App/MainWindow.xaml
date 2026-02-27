@@ -61,6 +61,11 @@
                           IsChecked="{Binding DepthStreamEnabled}"
                           ToolTip="Enable or disable the depth + IR streams from the Kinect sensor"/>
             </MenuItem>
+            <MenuItem Header="_Avatar">
+                <MenuItem Header="_Gaze Calibration"
+                          Command="{Binding OpenCalibrationCommand}"
+                          ToolTip="Open the full-screen gaze calibration overlay to compute the Kinect-to-screen offset"/>
+            </MenuItem>
             <MenuItem Header="_Help">
                 <MenuItem Header="_About HCEP"
                           ToolTip="Information about HCEP — Human Communication Eye Protocol"/>

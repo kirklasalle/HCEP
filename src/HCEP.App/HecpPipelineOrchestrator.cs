@@ -60,7 +60,7 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
     private const float ScreenWidthMm = 530f;   // ~24" 16:9 panel
     private const float ScreenHeightMm = 300f;
 
-    private readonly CalibrationMatrixCalculator _calibration = new(
+    private CalibrationMatrixCalculator _calibration = new(
         kinectOffsetFromScreenCentreMm: new Vector3(KinectOffsetXMm, KinectOffsetYMm, KinectOffsetZMm),
         screenWidthMm: ScreenWidthMm,
         screenHeightMm: ScreenHeightMm);
@@ -101,6 +101,32 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
     public bool IsRunning => _isRunning;
     public SceneSnapshot? LatestSnapshot => _latestSnapshot;
     public double CurrentFps => _hcepFpsCounter.Fps;
+
+    /// <summary>
+    /// The most recent face-tracking frame from the Kinect sensor.
+    /// Read by <see cref="CalibrationWindow"/> during the calibration protocol.
+    /// </summary>
+    public FaceFrame? LatestFaceFrame => _latestFace;
+
+    /// <summary>
+    /// Applies an empirically-determined Kinect-to-screen-centre offset computed
+    /// by <see cref="CalibrationWindow"/> and rebuilds the calibration matrix.
+    /// Safe to call from any thread — the new matrix is swapped atomically.
+    /// </summary>
+    /// <param name="kinectOffsetXMm">Kinect horizontal offset from screen centre (mm, +ve = Kinect right of centre).</param>
+    /// <param name="kinectOffsetYMm">Kinect vertical offset above screen centre (mm, +ve = Kinect above centre).</param>
+    /// <param name="kinectOffsetZMm">Kinect forward protrusion beyond screen bezel (mm, +ve = Kinect in front).</param>
+    public void ApplyCalibration(float kinectOffsetXMm, float kinectOffsetYMm, float kinectOffsetZMm)
+    {
+        _calibration = new CalibrationMatrixCalculator(
+            kinectOffsetFromScreenCentreMm: new Vector3(kinectOffsetXMm, kinectOffsetYMm, kinectOffsetZMm),
+            screenWidthMm: ScreenWidthMm,
+            screenHeightMm: ScreenHeightMm);
+
+        _logger.LogInformation(
+            "Calibration applied — KinectOffset: X={X:F1} mm, Y={Y:F1} mm, Z={Z:F1} mm",
+            kinectOffsetXMm, kinectOffsetYMm, kinectOffsetZMm);
+    }
 
     /// <summary>
     /// Enroll the currently tracked face under the given name.
