@@ -209,13 +209,16 @@ public sealed class KinectSensorSource : ISensorSource
                     _colorStreamHandle);
             }
 
-            // Open depth stream: 640×480 with player index
+            // Open depth stream: 640×480 with player index + Near Mode
+            // Near Mode extends tracking from 1 m down to ~40 cm (Kinect for Windows only).
+            // Note: NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE may require Depth (no player index)
+            //       on some firmware versions; fall back gracefully if hr < 0.
             if (streams.HasFlag(SensorStreamType.Depth))
             {
                 hr = _sensor.NuiImageStreamOpen(
                     NUI_IMAGE_TYPE.DepthAndPlayerIndex,
                     NUI_IMAGE_RESOLUTION.Res640x480,
-                    0,    // dwImageFrameFlags
+                    NuiConstants.NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE,
                     2,    // dwFrameLimit
                     IntPtr.Zero,
                     out _depthStreamHandle);
@@ -237,9 +240,11 @@ public sealed class KinectSensorSource : ISensorSource
             {
                 // Start with full-body tracking (no seated flag).
                 // Can be switched at runtime via SeatedMode property.
+                // Always include ENABLE_IN_NEAR_RANGE so skeleton is tracked down to ~40 cm.
                 uint skelFlags = _seatedMode
                     ? NuiConstants.NUI_SKELETON_TRACKING_FLAG_ENABLE_SEATED_SUPPORT
                     : 0u;
+                skelFlags |= NuiConstants.NUI_SKELETON_TRACKING_FLAG_ENABLE_IN_NEAR_RANGE;
                 hr = _sensor.NuiSkeletonTrackingEnable(IntPtr.Zero, skelFlags);
                 if (hr < 0)
                     _logger.LogWarning("Failed to enable skeleton tracking (hr=0x{HR:X8})", hr);

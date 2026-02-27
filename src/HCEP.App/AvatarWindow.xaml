@@ -19,11 +19,18 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- ── Avatar UserControl ──────────────────────────── -->
-        <local:AvatarCoreControl x:Name="Avatar"
-                                 Grid.Row="0"
-                                 HorizontalAlignment="Center"
-                                 VerticalAlignment="Center"/>
+        <!-- ── Avatar area: 2D Happy Face or 3D Wireframe ────── -->
+        <Grid Grid.Row="0">
+            <local:AvatarCoreControl x:Name="Avatar"
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Center"/>
+            <!-- 3D wireframe control — Collapsed until user switches mode -->
+            <local:Avatar3DControl x:Name="Avatar3D"
+                                   Visibility="Collapsed"
+                                   HorizontalAlignment="Stretch"
+                                   VerticalAlignment="Stretch"
+                                   Margin="8"/>
+        </Grid>
 
         <!-- ── Telemetry HUD ──────────────────────────────────── -->
         <Border Grid.Row="1"
@@ -36,6 +43,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- TrackingMode -->
@@ -102,8 +110,28 @@
                                FontSize="11"
                                HorizontalAlignment="Center"/>
                 </StackPanel>
+
+                <!-- Mode toggle: 2D ↔ 3D -->
+                <Button Grid.Column="4"
+                        x:Name="ModeToggleButton"
+                        Click="ModeToggle_Click"
+                        Margin="6,2,2,2"
+                        Padding="8,2"
+                        Background="#FF1E1E1E"
+                        Foreground="#FFAAFFAA"
+                        BorderBrush="#44FFFFFF"
+                        BorderThickness="1"
+                        FontFamily="Segoe UI"
+                        FontSize="10"
+                        FontWeight="SemiBold"
+                        Cursor="Hand"
+                        ToolTip="Toggle between 2D Happy Face and 3D Wireframe avatar">
+                    <TextBlock x:Name="ModeButtonText" Text="3D"/>
+                </Button>
+
             </Grid>
         </Border>
 
     </Grid>
 </Window>
+

@@ -5,6 +5,8 @@
 
 using System.Numerics;
 using System.Windows;
+using System.Windows.Media;
+using HCEP.Core.Models;
 
 namespace HCEP.App;
 
@@ -35,6 +37,7 @@ namespace HCEP.App;
 public partial class AvatarWindow : Window
 {
     private readonly HCEPPipelineOrchestrator _orchestrator;
+    private bool _is3DMode;
 
     public AvatarWindow(HCEPPipelineOrchestrator orchestrator)
     {
@@ -42,7 +45,11 @@ public partial class AvatarWindow : Window
         InitializeComponent();
 
         Loaded += Window_Loaded;
-        Closed += (_, _) => _orchestrator.GazeVectorReady -= OnGazeVectorReady;
+        Closed += (_, _) =>
+        {
+            _orchestrator.GazeVectorReady -= OnGazeVectorReady;
+            _orchestrator.SnapshotReady -= OnSnapshotReady;
+        };
     }
 
     // ── Startup ───────────────────────────────────────────────
@@ -78,8 +85,36 @@ public partial class AvatarWindow : Window
 
         // ── Subscribe to computed gaze events ─────────────────
         _orchestrator.GazeVectorReady += OnGazeVectorReady;
+        _orchestrator.SnapshotReady   += OnSnapshotReady;
 
         TrackingModeText.Text = "waiting";
+    }
+
+    // ── Mode toggle ───────────────────────────────────
+
+    private void ModeToggle_Click(object sender, RoutedEventArgs e)
+    {
+        _is3DMode = !_is3DMode;
+        Avatar.Visibility   = _is3DMode ? Visibility.Collapsed : Visibility.Visible;
+        Avatar3D.Visibility = _is3DMode ? Visibility.Visible   : Visibility.Collapsed;
+        ModeButtonText.Text = _is3DMode ? "2D" : "3D";
+        Title = _is3DMode ? "HCEP — True Gaze Avatar (3D Wireframe)"
+                           : "HCEP — True Gaze Avatar";
+    }
+
+    // ── Mesh data callback (from SnapshotReady, background thread) ─
+
+    private void OnSnapshotReady(SceneSnapshot snapshot)
+    {
+        if (!_is3DMode) return;
+
+        var face = snapshot.PrimaryPerson?.Face;
+        if (face?.FaceMeshVertices2D is null || face.FaceMeshTriangles is null) return;
+
+        var verts = face.FaceMeshVertices2D;
+        var tris  = face.FaceMeshTriangles;
+
+        Dispatcher.BeginInvoke(() => Avatar3D.SetMesh(verts, tris));
     }
 
     // ── Gaze callback (arrives from background thread) ────────
@@ -90,6 +125,7 @@ public partial class AvatarWindow : Window
         Dispatcher.BeginInvoke(() =>
         {
             Avatar.SetGaze(pitch, yaw, distanceM);
+            Avatar3D.SetGaze(pitch, yaw);  // head-turn for 3D wireframe
 
             PitchText.Text = $"{pitch * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
             YawText.Text = $"{yaw * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
@@ -97,13 +133,13 @@ public partial class AvatarWindow : Window
 
             if (isPrecision)
             {
-                TrackingModeText.Text = "PRECISION";
-                TrackingModeText.Foreground = System.Windows.Media.Brushes.LightGreen;
+                TrackingModeText.Text       = "PRECISION";
+                TrackingModeText.Foreground = Brushes.LightGreen;
             }
             else
             {
-                TrackingModeText.Text = "FALLBACK";
-                TrackingModeText.Foreground = System.Windows.Media.Brushes.Orange;
+                TrackingModeText.Text       = "FALLBACK";
+                TrackingModeText.Foreground = Brushes.Orange;
             }
         });
     }

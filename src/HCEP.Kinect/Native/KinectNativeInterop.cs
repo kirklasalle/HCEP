@@ -142,7 +142,13 @@ internal static class NuiConstants
     // Skeleton tracking flags (for NuiSkeletonTrackingEnable)
     public const uint NUI_SKELETON_TRACKING_FLAG_SUPPRESS_NO_FRAME_DATA = 0x00000001;
     public const uint NUI_SKELETON_TRACKING_FLAG_ENABLE_SEATED_SUPPORT = 0x00000004;
-    public const uint NUI_SKELETON_TRACKING_FLAG_ENABLE_IN_NEAR_RANGE  = 0x00000008;
+    public const uint NUI_SKELETON_TRACKING_FLAG_ENABLE_IN_NEAR_RANGE = 0x00000008;
+
+    // Image stream flags (for NuiImageStreamOpen dwImageFrameFlags)
+    // SAFETY: Tilt motor commands (NuiCameraElevationSetAngle auto-centering) are DISABLED
+    //         per hardware safety directive 2026-02-27. ElevationAngle setter remains for
+    //         manual UI use only; no automated motor movement is implemented.
+    public const uint NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE = 0x00020000; // extends range to ~40cm
 
     public const int NUI_IMAGE_PLAYER_INDEX_SHIFT = 3;
 
