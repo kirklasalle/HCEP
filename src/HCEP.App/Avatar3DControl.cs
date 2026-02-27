@@ -69,6 +69,19 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     }
 
     /// <summary>
+    /// Feature-point fallback: renders a dot cloud using the 87 FaceTrackLib landmark
+    /// points when the full <c>GetProjectedShape</c> mesh is not yet available.
+    /// Called from <c>AvatarWindow.OnSnapshotReady</c> when <c>FaceMeshVertices2D</c> is null.
+    /// </summary>
+    public void SetFeaturePoints(Vector2[] points)
+    {
+        _vertices = points;
+        _triangles = null;   // null = dot-cloud mode
+        ComputeBounds();
+        InvalidateVisual();
+    }
+
+    /// <summary>
     /// Updates the gaze angles (radians) used to simulate head-turn.
     /// Call in sync with <c>AvatarCoreControl.SetGaze</c> from <c>OnGazeVectorReady</c>.
     /// </summary>
@@ -97,9 +110,9 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         // Transparent background — inherits dark window colour.
         dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, ActualWidth, ActualHeight));
 
-        if (_vertices is null || _triangles is null || _vertices.Length == 0)
+        if (_vertices is null || _vertices.Length == 0)
         {
-            // No mesh yet — draw a placeholder crosshair.
+            // No data at all — draw a placeholder crosshair.
             var grey = new Pen(new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)), 1.0);
             grey.Freeze();
             double cx = ActualWidth / 2, cy = ActualHeight / 2;
@@ -140,21 +153,29 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
             return new Point(x, y);
         }
 
-        // ── Draw triangle edges ───────────────────────────────
-        foreach (var (a, b, c) in _triangles)
+        // ── Draw triangle edges OR dot-cloud ─────────────────
+        if (_triangles is not null)
         {
-            if ((uint)a >= (uint)_vertices.Length ||
-                (uint)b >= (uint)_vertices.Length ||
-                (uint)c >= (uint)_vertices.Length)
-                continue;
+            // Full wireframe mesh
+            foreach (var (a, b, c) in _triangles)
+            {
+                if ((uint)a >= (uint)_vertices.Length ||
+                    (uint)b >= (uint)_vertices.Length ||
+                    (uint)c >= (uint)_vertices.Length)
+                    continue;
 
-            Point pa = Map(a);
-            Point pb = Map(b);
-            Point pc = Map(c);
-
-            dc.DrawLine(_wirePen, pa, pb);
-            dc.DrawLine(_wirePen, pb, pc);
-            dc.DrawLine(_wirePen, pc, pa);
+                dc.DrawLine(_wirePen, Map(a), Map(b));
+                dc.DrawLine(_wirePen, Map(b), Map(c));
+                dc.DrawLine(_wirePen, Map(c), Map(a));
+            }
+        }
+        else
+        {
+            // Feature-point dot-cloud fallback (mesh not yet available)
+            var dotBrush = new SolidColorBrush(Color.FromArgb(200, 0, 220, 190));
+            dotBrush.Freeze();
+            for (int i = 0; i < _vertices.Length; i++)
+                dc.DrawEllipse(dotBrush, null, Map(i), 2.0, 2.0);
         }
     }
 

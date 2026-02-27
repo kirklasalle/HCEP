@@ -140,14 +140,22 @@ public partial class AvatarWindow : Window
             });
         }
 
-        // 3D wireframe: push live mesh data
+        // 3D wireframe: push live mesh or feature-point fallback
         if (!_is3DMode) return;
-        if (face?.FaceMeshVertices2D is null || face.FaceMeshTriangles is null) return;
+        if (face is null) return;
 
-        var verts = face.FaceMeshVertices2D;
-        var tris = face.FaceMeshTriangles;
-
-        Dispatcher.BeginInvoke(() => Avatar3D.SetMesh(verts, tris));
+        if (face.FaceMeshVertices2D is { Length: > 0 } && face.FaceMeshTriangles is { Length: > 0 })
+        {
+            var verts = face.FaceMeshVertices2D;
+            var tris = face.FaceMeshTriangles;
+            Dispatcher.BeginInvoke(() => Avatar3D.SetMesh(verts, tris));
+        }
+        else if (face.FeaturePoints2D is { Length: > 0 })
+        {
+            // Full mesh not yet available — show 87-point landmark dot-cloud as fallback
+            var pts = face.FeaturePoints2D;
+            Dispatcher.BeginInvoke(() => Avatar3D.SetFeaturePoints(pts));
+        }
     }
 
     // ── Gaze callback (arrives from background thread) ────────
