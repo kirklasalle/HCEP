@@ -152,7 +152,7 @@
                                     Value="6,3"/>
                             <Style.Triggers>
                                 <Trigger Property="IsHighlighted"
-                                        Value="True">
+                                         Value="True">
                                     <Setter Property="Background"
                                             Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
                                     <Setter Property="Foreground"

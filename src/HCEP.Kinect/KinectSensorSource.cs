@@ -435,9 +435,11 @@ public sealed class KinectSensorSource : ISensorSource
             }
 
             // Camera configs: Kinect v1 color 640×480, focal ~531.15 pixels
-            // Depth 640×480, focal ~285.63 pixels (after NUI_IMAGE_PLAYER_INDEX_SHIFT)
+            // Depth 640×480: SDK nominal depth focal is 285.63 at 320×240.
+            // For 640×480 we multiply by 2, matching C++ KinectSensor.cpp:
+            //   focalLength = NUI_CAMERA_DEPTH_NOMINAL_FOCAL_LENGTH_IN_PIXELS * 2.f
             _videoConfig = new FT_CAMERA_CONFIG { Width = 640, Height = 480, FocalLength = 531.15f };
-            var depthConfig = new FT_CAMERA_CONFIG { Width = 640, Height = 480, FocalLength = 285.63f };
+            var depthConfig = new FT_CAMERA_CONFIG { Width = 640, Height = 480, FocalLength = 571.26f };
 
             int hr = _faceTracker.Initialize(ref _videoConfig, ref depthConfig, IntPtr.Zero, null);
             if (hr < 0)
@@ -1130,6 +1132,9 @@ public sealed class KinectSensorSource : ISensorSource
         return pts;
     }
 
+    // One-shot flag so we only log the very first early-return reason once
+    private bool _realFaceFirstBailLogged;
+
     private bool TryEmitRealFaceFrame(
         NUI_SKELETON_DATA skel,
         ImmutableDictionary<int, Vector3>.Builder joints,
@@ -1138,12 +1143,34 @@ public sealed class KinectSensorSource : ISensorSource
     {
         if (_faceTracker is null || _faceResult is null ||
             _ftVideoImage is null || _ftDepthImage is null)
+        {
+            if (!_realFaceFirstBailLogged)
+            {
+                _realFaceFirstBailLogged = true;
+                _logger.LogWarning(
+                    "[REAL FACE BAIL] null guard: tracker={T} result={R} video={V} depth={D}",
+                    _faceTracker != null ? "OK" : "NULL",
+                    _faceResult != null ? "OK" : "NULL",
+                    _ftVideoImage != null ? "OK" : "NULL",
+                    _ftDepthImage != null ? "OK" : "NULL");
+            }
             return false;
+        }
 
         var colorPixels = _lastColorPixels;
         var depthRaw = _lastDepthRaw;
         if (colorPixels is null || depthRaw is null)
+        {
+            if (!_realFaceFirstBailLogged)
+            {
+                _realFaceFirstBailLogged = true;
+                _logger.LogWarning(
+                    "[REAL FACE BAIL] frame data: colorPixels={C} depthRaw={D}",
+                    colorPixels != null ? colorPixels.Length.ToString() : "NULL",
+                    depthRaw != null ? depthRaw.Length.ToString() : "NULL");
+            }
             return false;
+        }
 
         try
         {
@@ -1160,7 +1187,15 @@ public sealed class KinectSensorSource : ISensorSource
                 _colorPinHandle.AddrOfPinnedObject(),
                 FTIMAGEFORMAT.UINT8_B8G8R8X8,
                 640 * 4);
-            if (hr < 0) return false;
+            if (hr < 0)
+            {
+                if (!_realFaceFirstBailLogged)
+                {
+                    _realFaceFirstBailLogged = true;
+                    _logger.LogWarning("[REAL FACE BAIL] ftVideoImage.Attach failed hr=0x{Hr:X8}", unchecked((uint)hr));
+                }
+                return false;
+            }
 
             // Attach depth data — format depends on how the stream was opened.
             // DepthAndPlayerIndex → D13P3 (13-bit depth + 3-bit player index)
@@ -1170,7 +1205,16 @@ public sealed class KinectSensorSource : ISensorSource
                 _depthPinHandle.AddrOfPinnedObject(),
                 depthFormat,
                 640 * 2);
-            if (hr < 0) return false;
+            if (hr < 0)
+            {
+                if (!_realFaceFirstBailLogged)
+                {
+                    _realFaceFirstBailLogged = true;
+                    _logger.LogWarning("[REAL FACE BAIL] ftDepthImage.Attach failed hr=0x{Hr:X8} format={F}",
+                        unchecked((uint)hr), depthFormat);
+                }
+                return false;
+            }
 
             // Build sensor data struct
             var sensorData = new FT_SENSOR_DATA
@@ -1204,15 +1248,29 @@ public sealed class KinectSensorSource : ISensorSource
                 if (!_faceTrackingStarted)
                 {
                     hr = _faceTracker.StartTracking(ref sensorData, IntPtr.Zero, headPointsPtr, _faceResult);
-                    if (hr >= 0 && _faceResult.GetStatus() >= 0)
+                    int startStatus = _faceResult.GetStatus();
+                    if (hr >= 0 && startStatus >= 0)
+                    {
                         _faceTrackingStarted = true;
+                        _logger.LogInformation("[REAL FACE] StartTracking SUCCEEDED (hr=0x{Hr:X8} status=0x{St:X8})", unchecked((uint)hr), unchecked((uint)startStatus));
+                    }
+                    else if (!_realFaceFirstBailLogged)
+                    {
+                        _realFaceFirstBailLogged = true;
+                        _logger.LogWarning("[REAL FACE BAIL] StartTracking failed hr=0x{Hr:X8} status=0x{St:X8}", unchecked((uint)hr), unchecked((uint)startStatus));
+                    }
                 }
                 else
                 {
                     hr = _faceTracker.ContinueTracking(ref sensorData, headPointsPtr, _faceResult);
                     if (hr < 0 || _faceResult.GetStatus() < 0)
                     {
-                        // Lost tracking — try StartTracking again next frame
+                        if (!_realFaceFirstBailLogged)
+                        {
+                            _realFaceFirstBailLogged = true;
+                            _logger.LogWarning("[REAL FACE BAIL] ContinueTracking failed hr=0x{Hr:X8} status=0x{St:X8}",
+                                unchecked((uint)hr), unchecked((uint)_faceResult.GetStatus()));
+                        }
                         _faceTrackingStarted = false;
                         return false;
                     }
@@ -1231,7 +1289,14 @@ public sealed class KinectSensorSource : ISensorSource
             }
 
             if (_faceResult.GetStatus() < 0)
+            {
+                if (!_realFaceFirstBailLogged)
+                {
+                    _realFaceFirstBailLogged = true;
+                    _logger.LogWarning("[REAL FACE BAIL] post-tracking GetStatus < 0 (status=0x{St:X8})", unchecked((uint)_faceResult.GetStatus()));
+                }
                 return false;
+            }
 
             // ── Extract face tracking results ──
 
@@ -1239,7 +1304,15 @@ public sealed class KinectSensorSource : ISensorSource
             float[] rotation = new float[3];
             float[] translation = new float[3];
             hr = _faceResult.Get3DPose(out float scale, rotation, translation);
-            if (hr < 0) return false;
+            if (hr < 0)
+            {
+                if (!_realFaceFirstBailLogged)
+                {
+                    _realFaceFirstBailLogged = true;
+                    _logger.LogWarning("[REAL FACE BAIL] Get3DPose failed hr=0x{Hr:X8}", unchecked((uint)hr));
+                }
+                return false;
+            }
 
             // Face rectangle
             hr = _faceResult.GetFaceRect(out RECT faceRect);
@@ -1546,7 +1619,11 @@ public sealed class KinectSensorSource : ISensorSource
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Real face tracking frame error");
+            if (!_realFaceFirstBailLogged)
+            {
+                _realFaceFirstBailLogged = true;
+                _logger.LogWarning(ex, "[REAL FACE BAIL] EXCEPTION in TryEmitRealFaceFrame");
+            }
             return false;
         }
     }
