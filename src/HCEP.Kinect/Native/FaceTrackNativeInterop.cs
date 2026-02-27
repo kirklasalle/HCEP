@@ -372,6 +372,45 @@ internal delegate IntPtr FTCreateFaceTrackerDelegate(IntPtr reserved);
 [UnmanagedFunctionPointer(CallingConvention.StdCall)]
 internal delegate IntPtr FTCreateImageDelegate();
 
+// ── Raw Vtable Helpers for IFTImage ────────────────────────────
+//
+// FaceTrackLib COM objects have broken QueryInterface — they don't respond
+// to QI for their own IID. The .NET RCW triggers QI on the first method call,
+// causing InvalidCastException (E_NOINTERFACE). This is common with lightweight
+// SDK COM objects that expose interfaces via direct vtable only (C++ casts
+// the pointer without QI).
+//
+// Solution: bypass the RCW entirely and call through raw vtable slots.
+// IFTImage vtable layout (from FaceTrackLib.h):
+//   Slot 0: QueryInterface  1: AddRef  2: Release
+//   Slot 3: Allocate  4: Attach  5: Reset  6: GetWidth  7: GetHeight ...
+//
+// We only need Attach (slot 4) for face tracking.
+
+[UnmanagedFunctionPointer(CallingConvention.StdCall)]
+internal delegate int FtImageAttachDelegate(
+    IntPtr pThis, uint width, uint height, IntPtr pData, FTIMAGEFORMAT format, uint stride);
+
+/// <summary>
+/// Raw vtable call helpers for IFTImage COM objects.
+/// Bypasses .NET COM interop RCW which fails QI on FaceTrackLib objects.
+/// </summary>
+internal static class FtImageRaw
+{
+    /// <summary>
+    /// Calls IFTImage::Attach via raw vtable slot 4.
+    /// </summary>
+    public static int Attach(IntPtr pImage, uint width, uint height, IntPtr pData, FTIMAGEFORMAT format, uint stride)
+    {
+        // The vtable pointer is the first pointer in the COM object
+        IntPtr vtable = Marshal.ReadIntPtr(pImage);
+        // Attach is slot 4 (QI=0, AddRef=1, Release=2, Allocate=3, Attach=4)
+        IntPtr attachSlot = Marshal.ReadIntPtr(vtable, 4 * IntPtr.Size);
+        var attach = Marshal.GetDelegateForFunctionPointer<FtImageAttachDelegate>(attachSlot);
+        return attach(pImage, width, height, pData, format, stride);
+    }
+}
+
 // ── Native Library Loader ──────────────────────────────────────
 
 internal static class FaceTrackNative
@@ -440,7 +479,7 @@ internal static class FaceTrackNative
         return (IFTFaceTracker)Marshal.GetObjectForIUnknown(pTracker);
     }
 
-    /// <summary>Creates a new IFTImage COM instance.</summary>
+    /// <summary>Creates a new IFTImage COM instance (wrapped in RCW — may fail QI).</summary>
     public static IFTImage? CreateImage()
     {
         if (_createImage is null) return null;
@@ -449,6 +488,18 @@ internal static class FaceTrackNative
         if (pImage == IntPtr.Zero) return null;
 
         return (IFTImage)Marshal.GetObjectForIUnknown(pImage);
+    }
+
+    /// <summary>
+    /// Creates a new IFTImage as a raw COM pointer (IntPtr).
+    /// Use this instead of CreateImage() because FaceTrackLib COM objects
+    /// have broken QueryInterface — the .NET RCW throws InvalidCastException.
+    /// Call methods via FtImageRaw helper, release with Marshal.Release().
+    /// </summary>
+    public static IntPtr CreateImageRaw()
+    {
+        if (_createImage is null) return IntPtr.Zero;
+        return _createImage();  // returns raw IFTImage*, refcount=1
     }
 
     /// <summary>

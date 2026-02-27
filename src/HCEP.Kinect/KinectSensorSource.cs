@@ -57,8 +57,10 @@ public sealed class KinectSensorSource : ISensorSource
     // Face tracking (FaceTrackLib.dll)
     private IFTFaceTracker? _faceTracker;
     private IFTResult? _faceResult;
-    private IFTImage? _ftVideoImage;
-    private IFTImage? _ftDepthImage;
+    // Raw COM IntPtrs — NOT wrapped in .NET RCW because FaceTrackLib COM objects
+    // have broken QueryInterface (E_NOINTERFACE). Called via FtImageRaw vtable helper.
+    private IntPtr _ftVideoImagePtr;
+    private IntPtr _ftDepthImagePtr;
     private bool _faceTrackingInitialized;
     private bool _faceTrackingStarted;
     private byte[]? _lastColorPixels;
@@ -425,9 +427,9 @@ public sealed class KinectSensorSource : ISensorSource
                 return;
             }
 
-            _ftVideoImage = FaceTrackNative.CreateImage();
-            _ftDepthImage = FaceTrackNative.CreateImage();
-            if (_ftVideoImage is null || _ftDepthImage is null)
+            _ftVideoImagePtr = FaceTrackNative.CreateImageRaw();
+            _ftDepthImagePtr = FaceTrackNative.CreateImageRaw();
+            if (_ftVideoImagePtr == IntPtr.Zero || _ftDepthImagePtr == IntPtr.Zero)
             {
                 _logger.LogWarning("FTCreateImage returned null");
                 DisposeFaceTracking();
@@ -474,8 +476,8 @@ public sealed class KinectSensorSource : ISensorSource
 
         if (_faceModel is not null) { try { Marshal.ReleaseComObject(_faceModel); } catch { } _faceModel = null; }
         if (_faceResult is not null) { try { Marshal.ReleaseComObject(_faceResult); } catch { } _faceResult = null; }
-        if (_ftVideoImage is not null) { try { Marshal.ReleaseComObject(_ftVideoImage); } catch { } _ftVideoImage = null; }
-        if (_ftDepthImage is not null) { try { Marshal.ReleaseComObject(_ftDepthImage); } catch { } _ftDepthImage = null; }
+        if (_ftVideoImagePtr != IntPtr.Zero) { try { Marshal.Release(_ftVideoImagePtr); } catch { } _ftVideoImagePtr = IntPtr.Zero; }
+        if (_ftDepthImagePtr != IntPtr.Zero) { try { Marshal.Release(_ftDepthImagePtr); } catch { } _ftDepthImagePtr = IntPtr.Zero; }
         if (_faceTracker is not null) { try { Marshal.ReleaseComObject(_faceTracker); } catch { } _faceTracker = null; }
 
         _cachedTriangles = null;
@@ -1142,7 +1144,7 @@ public sealed class KinectSensorSource : ISensorSource
         DateTimeOffset timestamp)
     {
         if (_faceTracker is null || _faceResult is null ||
-            _ftVideoImage is null || _ftDepthImage is null)
+            _ftVideoImagePtr == IntPtr.Zero || _ftDepthImagePtr == IntPtr.Zero)
         {
             if (!_realFaceFirstBailLogged)
             {
@@ -1151,8 +1153,8 @@ public sealed class KinectSensorSource : ISensorSource
                     "[REAL FACE BAIL] null guard: tracker={T} result={R} video={V} depth={D}",
                     _faceTracker != null ? "OK" : "NULL",
                     _faceResult != null ? "OK" : "NULL",
-                    _ftVideoImage != null ? "OK" : "NULL",
-                    _ftDepthImage != null ? "OK" : "NULL");
+                    _ftVideoImagePtr != IntPtr.Zero ? "OK" : "NULL",
+                    _ftDepthImagePtr != IntPtr.Zero ? "OK" : "NULL");
             }
             return false;
         }
@@ -1182,8 +1184,9 @@ public sealed class KinectSensorSource : ISensorSource
             _colorPinHandle = GCHandle.Alloc(colorPixels, GCHandleType.Pinned);
             _depthPinHandle = GCHandle.Alloc(depthRaw, GCHandleType.Pinned);
 
-            // Attach color pixels (BGRX 32bpp) to IFTImage
-            int hr = _ftVideoImage.Attach(640, 480,
+            // Attach color pixels (BGRX 32bpp) to IFTImage via raw vtable
+            // (FaceTrackLib COM objects have broken QI — cannot use .NET RCW)
+            int hr = FtImageRaw.Attach(_ftVideoImagePtr, 640, 480,
                 _colorPinHandle.AddrOfPinnedObject(),
                 FTIMAGEFORMAT.UINT8_B8G8R8X8,
                 640 * 4);
@@ -1201,7 +1204,7 @@ public sealed class KinectSensorSource : ISensorSource
             // DepthAndPlayerIndex → D13P3 (13-bit depth + 3-bit player index)
             // Plain Depth → D16 (16-bit depth, no player index)
             var depthFormat = _depthIsD13P3 ? FTIMAGEFORMAT.UINT16_D13P3 : FTIMAGEFORMAT.UINT16_D16;
-            hr = _ftDepthImage.Attach(640, 480,
+            hr = FtImageRaw.Attach(_ftDepthImagePtr, 640, 480,
                 _depthPinHandle.AddrOfPinnedObject(),
                 depthFormat,
                 640 * 2);
@@ -1216,11 +1219,15 @@ public sealed class KinectSensorSource : ISensorSource
                 return false;
             }
 
-            // Build sensor data struct
+            // Build sensor data struct — pass raw COM pointers directly.
+            // AddRef so the pointers stay valid through the native call;
+            // we Release in the finally block below.
+            Marshal.AddRef(_ftVideoImagePtr);
+            Marshal.AddRef(_ftDepthImagePtr);
             var sensorData = new FT_SENSOR_DATA
             {
-                pVideoFrame = Marshal.GetIUnknownForObject(_ftVideoImage),
-                pDepthFrame = Marshal.GetIUnknownForObject(_ftDepthImage),
+                pVideoFrame = _ftVideoImagePtr,
+                pDepthFrame = _ftDepthImagePtr,
                 ZoomFactor = 1.0f,
                 ViewOffsetX = 0,
                 ViewOffsetY = 0,
