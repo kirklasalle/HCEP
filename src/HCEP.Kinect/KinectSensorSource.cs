@@ -1279,6 +1279,17 @@ public sealed class KinectSensorSource : ISensorSource
             Vector2[]? meshVertices = null;
             var meshTriangles = _cachedTriangles;
 
+            // ── Unconditional trace: prove this code path is reached ──
+            if (!_meshFirstDiagLogged)
+            {
+                _logger.LogInformation(
+                    "[MESH TRACE] ENTRY: faceTracker={FT} faceModel={FM} vertexCount={V} cachedTriangles={CT}",
+                    _faceTracker != null ? "OK" : "NULL",
+                    _faceModel != null ? "OK" : "NULL",
+                    _meshVertexCount,
+                    _cachedTriangles != null ? _cachedTriangles.Length.ToString() : "NULL");
+            }
+
             try
             {
                 // Get face model (first time only)

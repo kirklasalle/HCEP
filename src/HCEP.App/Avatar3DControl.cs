@@ -97,11 +97,11 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     private float _gazeDistM = 1.5f;
 
     // ── Head pose (from Kinect FaceFrame.HeadRotation) ──────────────────
-    // Stored but used only for future advanced eye-saccade gating.
-    // NOT subtracted from gaze — GazeVectorReady pitch/yaw are computed
-    // geometrically (avatar→user angle), independent of head-pose space.
+    // In full-mesh mode these are baked into GetProjectedShape vertices.
+    // In fallback mode these drive the head rotation transform.
     private float _headYawRad;
     private float _headPitchRad;
+    private float _headRollRad;
 
     // ── Mesh status (surfaced to AvatarWindow HUD) ───────────────────────
     public int MeshVertexCount { get; private set; }
@@ -194,7 +194,10 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         const float Deg2Rad = MathF.PI / 180f;
         _headYawRad = rotationDeg.Y * Deg2Rad;
         _headPitchRad = rotationDeg.X * Deg2Rad;
-        // Roll is baked into GetProjectedShape — no separate rendering needed.
+        _headRollRad = rotationDeg.Z * Deg2Rad;
+        // In fallback mode, head rotation is rendered by OnRender.
+        // In full-mesh mode, rotation is baked into GetProjectedShape vertices.
+        InvalidateVisual();
     }
 
     // IAvatarComponent
@@ -250,22 +253,47 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 
         // ── Transform parameters (full-mesh vs feature-point fallback) ───
         // Full-mesh mode: no manual head transforms — they are in the vertices.
-        // Fallback mode : yaw→X-compress, pitch→Y-shift (approximate).
+        // Fallback mode : use REAL head rotation from Kinect FaceFrame.HeadRotation.
+        //   yaw  → X-compress (cos) + slight X-shift (sin)
+        //   pitch → Y-shift
+        //   roll  → rotation around face centre
         double meshCentreX = w / 2.0;
+        double meshCentreY = h / 2.0;
+
+        double headYaw = _headYawRad;
+        double headPitch = _headPitchRad;
+        double headRoll = _headRollRad;
+
         double yawCompress = hasMesh ? 1.0 :
-            Math.Cos(Math.Clamp(_gazeYaw, -Math.PI / 3, Math.PI / 3));
+            Math.Cos(Math.Clamp(headYaw, -Math.PI / 3, Math.PI / 3));
+        double yawShiftX = hasMesh ? 0.0 :
+            Math.Sin(-headYaw) * w * 0.12;   // lateral shift with yaw
         double pitchShift = hasMesh ? 0.0 :
-            Math.Sin(-_gazePitch) * h * 0.07;
+            Math.Sin(-headPitch) * h * 0.10;  // vertical shift with pitch
+        double rollAngle = hasMesh ? 0.0 : headRoll;
 
         // ── Vertex mapping ───────────────────────────────────────────────
         // Converts a mesh-space vertex index to screen-space Point.
+        // Fallback mode applies: yaw-compress, yaw-shift, pitch-shift, then roll.
         Point Map(int idx)
         {
             Vector2 v = _vertices[idx];
             double x = v.X * fitScale + offX;
             double y = v.Y * fitScale + offY + pitchShift;
             if (!hasMesh)
-                x = meshCentreX + (x - meshCentreX) * yawCompress;
+            {
+                x = meshCentreX + (x - meshCentreX) * yawCompress + yawShiftX;
+                // Apply roll rotation around the visual centre
+                if (Math.Abs(rollAngle) > 0.001)
+                {
+                    double dx = x - meshCentreX;
+                    double dy = y - meshCentreY;
+                    double cosR = Math.Cos(rollAngle);
+                    double sinR = Math.Sin(rollAngle);
+                    x = meshCentreX + dx * cosR - dy * sinR;
+                    y = meshCentreY + dx * sinR + dy * cosR;
+                }
+            }
             return new Point(x, y);
         }
 
@@ -333,7 +361,18 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 double fx = v.X * fitScale + offX;
                 double fy = v.Y * fitScale + offY + pitchShift;
                 if (!hasMesh)
-                    fx = meshCentreX + (fx - meshCentreX) * yawCompress;
+                {
+                    fx = meshCentreX + (fx - meshCentreX) * yawCompress + yawShiftX;
+                    if (Math.Abs(rollAngle) > 0.001)
+                    {
+                        double dx = fx - meshCentreX;
+                        double dy = fy - meshCentreY;
+                        double cosR = Math.Cos(rollAngle);
+                        double sinR = Math.Sin(rollAngle);
+                        fx = meshCentreX + dx * cosR - dy * sinR;
+                        fy = meshCentreY + dx * sinR + dy * cosR;
+                    }
+                }
                 return new Point(fx, fy);
             }
 
@@ -374,7 +413,7 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 // No head-pose subtraction: gaze and head-pose live in
                 // different reference frames (geometry vs. camera-space rotation).
                 const double MaxGazeAngle = Math.PI / 9.0; // 20°
-                double normYaw   = Math.Clamp(_gazeYaw,   -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
+                double normYaw = Math.Clamp(_gazeYaw, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
                 double normPitch = Math.Clamp(_gazePitch, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
 
                 // Travel = fraction of socket half-span pupils move for full-angle gaze.
@@ -404,7 +443,7 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 
                 // Cache local-space socket centres for LayoutUpdated → screen coord tracking.
                 _rightEyeLocalPt = new Point(rcx, rcy);
-                _leftEyeLocalPt  = new Point(lcx, lcy);
+                _leftEyeLocalPt = new Point(lcx, lcy);
             }
         }
     }
