@@ -74,6 +74,15 @@ public sealed class KinectSensorSource : ISensorSource
     private uint _suModelCount;      // IFTModel.GetSUCount() — fixed at model load
     private uint _lastMeshHr;        // last GetProjectedShape HRESULT (0 = success)
 
+    // ── Mesh diagnostic trace counters ──
+    private int _meshAttemptCount;    // total GetProjectedShape attempts
+    private int _meshSuccessCount;    // successful GetProjectedShape calls
+    private int _meshFailCount;       // failed GetProjectedShape calls
+    private bool _meshFirstDiagLogged; // one-shot startup diagnostic
+    private bool _meshFirstOkLogged;   // one-shot first success
+    private bool _meshFirstFailLogged; // one-shot first failure
+    private int _meshGuardSkipCount;   // times mesh guard prevented entry
+
     public KinectSensorSource(ILogger<KinectSensorSource> logger)
     {
         _logger = logger;
@@ -429,6 +438,13 @@ public sealed class KinectSensorSource : ISensorSource
         _meshVertexCount = 0;
         _suModelCount = 0;
         _lastMeshHr = 0;
+        _meshAttemptCount = 0;
+        _meshSuccessCount = 0;
+        _meshFailCount = 0;
+        _meshGuardSkipCount = 0;
+        _meshFirstDiagLogged = false;
+        _meshFirstOkLogged = false;
+        _meshFirstFailLogged = false;
         _faceTrackingInitialized = false;
         _faceTrackingStarted = false;
     }
@@ -1234,7 +1250,9 @@ public sealed class KinectSensorSource : ISensorSource
                         // NOT the runtime value from IFTFaceTracker.GetShapeUnits.
                         _suModelCount = _faceModel.GetSUCount();
                         _lastMeshHr = 0;
-                        _logger.LogInformation("Face model loaded: {VertexCount} vertices, {SuCount} SUs", _meshVertexCount, _suModelCount);
+                        _logger.LogInformation(
+                            "[MESH TRACE] Face model loaded: ptr=0x{Ptr:X} vertexCount={V} suCount={SU} auCount={AU}",
+                            pModel, _meshVertexCount, _suModelCount, _faceModel.GetAUCount());
 
                         // Get triangle topology (static — only need once, like SDK sample)
                         hr = _faceModel.GetTriangles(out IntPtr triPtr, out uint triCount);
@@ -1249,8 +1267,23 @@ public sealed class KinectSensorSource : ISensorSource
                                 _cachedTriangles[i] = (tri.First, tri.Second, tri.Third);
                             }
                             meshTriangles = _cachedTriangles;
-                            _logger.LogInformation("Face model triangles: {Count} triangles", triCount);
+                            _logger.LogInformation(
+                                "[MESH TRACE] Triangles loaded: {Count} tris, first=({A},{B},{C})",
+                                triCount,
+                                _cachedTriangles[0].First, _cachedTriangles[0].Second, _cachedTriangles[0].Third);
                         }
+                        else
+                        {
+                            _logger.LogWarning(
+                                "[MESH TRACE] GetTriangles FAILED: hr=0x{Hr:X8} ptr=0x{Ptr:X} count={N}",
+                                unchecked((uint)hr), triPtr, triCount);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "[MESH TRACE] GetFaceModel FAILED: hr=0x{Hr:X8} pModel=0x{Ptr:X}",
+                            unchecked((uint)hr), pModel);
                     }
                 }
 
@@ -1270,7 +1303,7 @@ public sealed class KinectSensorSource : ISensorSource
                     // Step 1: Get SU coef pointer straight from the tracker.
                     // suPtrDirect points into SDK-internal memory — valid for rest of this call.
                     uint suRuntime = 0;
-                    hr = _faceTracker!.GetShapeUnits(out float _, out IntPtr suPtrDirect, ref suRuntime, out bool suConverged);
+                    hr = _faceTracker!.GetShapeUnits(out float headScale, out IntPtr suPtrDirect, ref suRuntime, out bool suConverged);
                     IntPtr suToPass = (hr >= 0) ? suPtrDirect : IntPtr.Zero;   // NULL = neutral shape; SDK handles it
 
                     // Use model-level SU count, exactly as C++ uses pModel->GetSUCount().
@@ -1278,6 +1311,26 @@ public sealed class KinectSensorSource : ISensorSource
 
                     if (!suConverged)
                         _logger.LogDebug("SU not yet converged (suRuntime={N}), using neutral shape", suRuntime);
+
+                    // ── One-shot startup diagnostic (first time we reach this path) ──
+                    if (!_meshFirstDiagLogged)
+                    {
+                        _meshFirstDiagLogged = true;
+                        _logger.LogInformation(
+                            "[MESH TRACE] === FIRST MESH ATTEMPT ==="
+                            + " | faceModel=OK vertexCount={V} suModelCount={SuM}"
+                            + " | GetShapeUnits: hr=0x{SuHr:X8} headScale={HS:F3} suPtr=0x{SuPtr:X} suRuntime={SuR} converged={Conv}"
+                            + " | videoConfig: {CW}x{CH} focal={CF:F2}"
+                            + " | triangles={TC}"
+                            + " | pose: scale={S:F4} rot=({RX:F2},{RY:F2},{RZ:F2}) trans=({TX:F3},{TY:F3},{TZ:F3})",
+                            _meshVertexCount, _suModelCount,
+                            unchecked((uint)hr), headScale, suPtrDirect, suRuntime, suConverged,
+                            _videoConfig.Width, _videoConfig.Height, _videoConfig.FocalLength,
+                            meshTriangles.Length,
+                            scale,
+                            rotation[0], rotation[1], rotation[2],
+                            translation[0], translation[1], translation[2]);
+                    }
 
                     // Step 2: Re-read AU coefficients for this frame.
                     hr = _faceResult.GetAUCoefficients(out IntPtr auPtrMesh, out uint auCountMesh);
@@ -1290,6 +1343,7 @@ public sealed class KinectSensorSource : ISensorSource
                         // Step 3: Allocate output buffer (FT_VECTOR2D = 8 bytes each).
                         int bufSize = (int)_meshVertexCount * 8;
                         IntPtr vertBuf = Marshal.AllocHGlobal(bufSize);
+                        _meshAttemptCount++;
                         try
                         {
                             hr = _faceModel.GetProjectedShape(
@@ -1306,6 +1360,7 @@ public sealed class KinectSensorSource : ISensorSource
 
                             if (hr >= 0)
                             {
+                                _meshSuccessCount++;
                                 meshVertices = new Vector2[_meshVertexCount];
                                 for (int i = 0; i < (int)_meshVertexCount; i++)
                                 {
@@ -1315,25 +1370,84 @@ public sealed class KinectSensorSource : ISensorSource
                                     meshVertices[i] = new Vector2(vx, vy);
                                 }
                                 _lastMeshHr = 0;  // success
-                                _logger.LogDebug("GetProjectedShape OK: {V} vertices", _meshVertexCount);
+
+                                // One-shot: log first successful mesh with sample vertices
+                                if (!_meshFirstOkLogged)
+                                {
+                                    _meshFirstOkLogged = true;
+                                    var v0 = meshVertices.Length > 0 ? meshVertices[0] : Vector2.Zero;
+                                    var v1 = meshVertices.Length > 1 ? meshVertices[1] : Vector2.Zero;
+                                    var vn = meshVertices.Length > 2 ? meshVertices[^1] : Vector2.Zero;
+                                    _logger.LogInformation(
+                                        "[MESH TRACE] === FIRST SUCCESS ==="
+                                        + " | {V} vertices | v[0]=({X0:F1},{Y0:F1}) v[1]=({X1:F1},{Y1:F1}) v[last]=({XN:F1},{YN:F1})"
+                                        + " | suPtr=0x{SuPtr:X} suCount={SuC} auPtr=0x{AuPtr:X} auCount={AuC}"
+                                        + " | scale={S:F4} rot=({RX:F2},{RY:F2},{RZ:F2}) trans=({TX:F3},{TY:F3},{TZ:F3})",
+                                        _meshVertexCount,
+                                        v0.X, v0.Y, v1.X, v1.Y, vn.X, vn.Y,
+                                        suToPass, suPassCount, auPtrMesh, auCountMesh,
+                                        scale,
+                                        rotation[0], rotation[1], rotation[2],
+                                        translation[0], translation[1], translation[2]);
+                                }
                             }
                             else
                             {
+                                _meshFailCount++;
                                 // Emit the HRESULT in the FaceFrame so AvatarWindow can show it in the MESH HUD.
                                 _lastMeshHr = unchecked((uint)hr);
-                                _logger.LogWarning(
-                                    "GetProjectedShape FAILED hr=0x{Hr:X8} suPass={SuPass} suModel={SuModel} suRuntime={SuRuntime} auCount={AuCount}",
-                                    unchecked((uint)hr), suToPass, suPassCount, suRuntime, auCountMesh);
+
+                                // One-shot: detailed failure with all parameter values
+                                if (!_meshFirstFailLogged)
+                                {
+                                    _meshFirstFailLogged = true;
+                                    _logger.LogWarning(
+                                        "[MESH TRACE] === FIRST FAILURE ==="
+                                        + " | hr=0x{Hr:X8}"
+                                        + " | suPtr=0x{SuPtr:X} suCount={SuC} auPtr=0x{AuPtr:X} auCount={AuC}"
+                                        + " | scale={S:F4} rot=({RX:F2},{RY:F2},{RZ:F2}) trans=({TX:F3},{TY:F3},{TZ:F3})"
+                                        + " | videoConfig: {CW}x{CH} focal={CF:F2}"
+                                        + " | vertexCount={V} bufSize={BS}",
+                                        unchecked((uint)hr),
+                                        suToPass, suPassCount, auPtrMesh, auCountMesh,
+                                        scale,
+                                        rotation[0], rotation[1], rotation[2],
+                                        translation[0], translation[1], translation[2],
+                                        _videoConfig.Width, _videoConfig.Height, _videoConfig.FocalLength,
+                                        _meshVertexCount, bufSize);
+                                }
                             }
                         }
                         finally
                         {
                             Marshal.FreeHGlobal(vertBuf);
                         }
+
+                        // Periodic summary every 300 frames (~10 sec at 30fps)
+                        if (_meshAttemptCount % 300 == 0)
+                        {
+                            _logger.LogInformation(
+                                "[MESH TRACE] summary: {Attempts} attempts, {Ok} ok, {Fail} fail, lastHr=0x{Hr:X8}, guardSkips={GS}",
+                                _meshAttemptCount, _meshSuccessCount, _meshFailCount, _lastMeshHr, _meshGuardSkipCount);
+                        }
                     }
                     else
                     {
-                        _logger.LogWarning("GetAUCoefficients failed hr=0x{Hr:X8} — skipping GetProjectedShape", unchecked((uint)hr));
+                        _logger.LogWarning("[MESH TRACE] GetAUCoefficients failed hr=0x{Hr:X8} — skipping GetProjectedShape", unchecked((uint)hr));
+                    }
+                }
+                else
+                {
+                    // Log guard-failure once, then periodically
+                    _meshGuardSkipCount++;
+                    if (_meshGuardSkipCount == 1 || _meshGuardSkipCount % 300 == 0)
+                    {
+                        _logger.LogWarning(
+                            "[MESH TRACE] Guard skipped (count={N}): faceModel={FM} vertexCount={V} triangles={T}",
+                            _meshGuardSkipCount,
+                            _faceModel != null ? "OK" : "NULL",
+                            _meshVertexCount,
+                            meshTriangles != null ? meshTriangles.Length.ToString() : "NULL");
                     }
                 }
             }
