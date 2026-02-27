@@ -72,7 +72,7 @@
                 <MenuItem>
                     <MenuItem.Header>
                         <StackPanel Orientation="Horizontal"
-                                VerticalAlignment="Center">
+                                    VerticalAlignment="Center">
                             <TextBlock Text="Mode: "
                                        VerticalAlignment="Center"
                                        FontSize="11"
@@ -82,6 +82,25 @@
                                       SelectedValuePath="Content"
                                       FontSize="11"
                                       ToolTip="Switch avatar between 2D Happy Face and 3D Wireframe">
+                                <ComboBox.ItemContainerStyle>
+                                    <Style TargetType="ComboBoxItem">
+                                        <Setter Property="Background"
+                                                Value="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"/>
+                                        <Setter Property="Foreground"
+                                                Value="{DynamicResource {x:Static SystemColors.WindowTextBrushKey}}"/>
+                                        <Setter Property="Padding"
+                                                Value="6,3"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsHighlighted"
+                                                    Value="True">
+                                                <Setter Property="Background"
+                                                        Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                                                <Setter Property="Foreground"
+                                                        Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ComboBox.ItemContainerStyle>
                                 <ComboBoxItem Content="2D Happy"/>
                                 <ComboBoxItem Content="3D Wireframe"/>
                             </ComboBox>

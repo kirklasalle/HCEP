@@ -127,9 +127,21 @@ public partial class AvatarWindow : Window
 
     private void OnSnapshotReady(SceneSnapshot snapshot)
     {
-        if (!_is3DMode) return;
-
         var face = snapshot.PrimaryPerson?.Face;
+
+        // When no FaceFrame exists, GazeVectorReady never fires — update status here so
+        // the HUD doesn't stay frozen on "waiting" while the pipeline is alive.
+        if (face is null)
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                TrackingModeText.Text = snapshot.PrimaryPerson is null ? "SEARCHING" : "NO FACE";
+                TrackingModeText.Foreground = System.Windows.Media.Brushes.Gray;
+            });
+        }
+
+        // 3D wireframe: push live mesh data
+        if (!_is3DMode) return;
         if (face?.FaceMeshVertices2D is null || face.FaceMeshTriangles is null) return;
 
         var verts = face.FaceMeshVertices2D;

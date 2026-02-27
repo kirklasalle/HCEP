@@ -209,14 +209,16 @@ public sealed class KinectSensorSource : ISensorSource
                     _colorStreamHandle);
             }
 
-            // Open depth stream: 640×480 with player index + Near Mode
-            // Near Mode extends tracking from 1 m down to ~40 cm (Kinect for Windows only).
-            // Note: NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE may require Depth (no player index)
-            //       on some firmware versions; fall back gracefully if hr < 0.
+            // Open depth stream: 640×480 + Near Mode (extends tracking range to ~40 cm).
+            // IMPORTANT: NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE is INCOMPATIBLE with
+            // NUI_IMAGE_TYPE.DepthAndPlayerIndex on all Kinect for Windows v1 firmware.
+            // Must use NUI_IMAGE_TYPE.Depth (no player-index channel). Player segmentation
+            // is not needed for the gaze pipeline — skeleton tracking comes from the
+            // separate NuiSkeletonTrackingEnable call below.
             if (streams.HasFlag(SensorStreamType.Depth))
             {
                 hr = _sensor.NuiImageStreamOpen(
-                    NUI_IMAGE_TYPE.DepthAndPlayerIndex,
+                    NUI_IMAGE_TYPE.Depth,           // NOT DepthAndPlayerIndex — incompatible with Near Mode
                     NUI_IMAGE_RESOLUTION.Res640x480,
                     NuiConstants.NUI_IMAGE_STREAM_FLAG_ENABLE_NEAR_MODE,
                     2,    // dwFrameLimit
