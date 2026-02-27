@@ -29,7 +29,7 @@ namespace HCEP.App;
 ///   Yaw   > 0  → looking RIGHT→ pupils translate +X
 ///   Input is in radians; <see cref="MaxGazeAngleRad"/> (45°) maps to max travel.
 /// </summary>
-public partial class AvatarCoreControl : UserControl
+public partial class AvatarCoreControl : UserControl, IAvatarComponent
 {
     // ── Layout constants (must match XAML geometry) ────────────
 
@@ -150,6 +150,10 @@ public partial class AvatarCoreControl : UserControl
         RightPupilTransform.X = 0;
         RightPupilTransform.Y = 0;
     }
+
+    // IAvatarComponent ─ explicit impl bridges float pipeline → double WPF math
+    void IAvatarComponent.SetGaze(float p, float y, float d) => SetGaze((double)p, (double)y, (double)d);
+    void IAvatarComponent.ResetGaze() => ResetGaze();
 
     // ── Helpers ───────────────────────────────────────────────
 

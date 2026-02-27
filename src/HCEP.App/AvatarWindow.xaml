@@ -48,7 +48,7 @@
 
                 <!-- TrackingMode -->
                 <StackPanel Grid.Column="0"
-                        Orientation="Vertical">
+                            Orientation="Vertical">
                     <TextBlock Text="MODE"
                                Foreground="#44FFFFFF"
                                FontFamily="Segoe UI"
@@ -65,7 +65,7 @@
 
                 <!-- Distance -->
                 <StackPanel Grid.Column="1"
-                        Orientation="Vertical">
+                            Orientation="Vertical">
                     <TextBlock Text="DIST"
                                Foreground="#44FFFFFF"
                                FontFamily="Segoe UI"
@@ -81,7 +81,7 @@
 
                 <!-- Pitch -->
                 <StackPanel Grid.Column="2"
-                        Orientation="Vertical">
+                            Orientation="Vertical">
                     <TextBlock Text="PITCH"
                                Foreground="#44FFFFFF"
                                FontFamily="Segoe UI"
@@ -97,7 +97,7 @@
 
                 <!-- Yaw -->
                 <StackPanel Grid.Column="3"
-                        Orientation="Vertical">
+                            Orientation="Vertical">
                     <TextBlock Text="YAW"
                                Foreground="#44FFFFFF"
                                FontFamily="Segoe UI"
@@ -111,23 +111,24 @@
                                HorizontalAlignment="Center"/>
                 </StackPanel>
 
-                <!-- Mode toggle: 2D ↔ 3D -->
-                <Button Grid.Column="4"
-                        x:Name="ModeToggleButton"
-                        Click="ModeToggle_Click"
-                        Margin="6,2,2,2"
-                        Padding="8,2"
-                        Background="#FF1E1E1E"
-                        Foreground="#FFAAFFAA"
-                        BorderBrush="#44FFFFFF"
-                        BorderThickness="1"
-                        FontFamily="Segoe UI"
-                        FontSize="10"
-                        FontWeight="SemiBold"
-                        Cursor="Hand"
-                        ToolTip="Toggle between 2D Happy Face and 3D Wireframe avatar">
-                    <TextBlock x:Name="ModeButtonText" Text="3D"/>
-                </Button>
+                <!-- Avatar mode selector (2D / 3D) -->
+                <ComboBox Grid.Column="4"
+                          x:Name="AvatarModeCombo"
+                          SelectionChanged="AvatarMode_SelectionChanged"
+                          Margin="6,2,2,2"
+                          Padding="4,2"
+                          MinWidth="80"
+                          Background="#FF1E1E1E"
+                          Foreground="#FFAAFFAA"
+                          BorderBrush="#44FFFFFF"
+                          BorderThickness="1"
+                          FontFamily="Segoe UI"
+                          FontSize="10"
+                          Cursor="Hand"
+                          ToolTip="Switch between 2D Happy Face and 3D Wireframe avatar">
+                    <ComboBoxItem Content="2D Happy"/>
+                    <ComboBoxItem Content="3D Wireframe"/>
+                </ComboBox>
 
             </Grid>
         </Border>

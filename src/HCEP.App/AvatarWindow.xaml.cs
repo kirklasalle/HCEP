@@ -38,6 +38,7 @@ public partial class AvatarWindow : Window
 {
     private readonly HCEPPipelineOrchestrator _orchestrator;
     private bool _is3DMode;
+    private IAvatarComponent _activeAvatar = null!;  // set in Window_Loaded
 
     public AvatarWindow(HCEPPipelineOrchestrator orchestrator)
     {
@@ -85,21 +86,41 @@ public partial class AvatarWindow : Window
 
         // ── Subscribe to computed gaze events ─────────────────
         _orchestrator.GazeVectorReady += OnGazeVectorReady;
-        _orchestrator.SnapshotReady   += OnSnapshotReady;
+        _orchestrator.SnapshotReady += OnSnapshotReady;
 
         TrackingModeText.Text = "waiting";
+        _activeAvatar = Avatar;           // default: 2D Happy Face
+        AvatarModeCombo.SelectedIndex = 0;
     }
 
-    // ── Mode toggle ───────────────────────────────────
+    // ── Mode switch ────────────────────────────────────
 
-    private void ModeToggle_Click(object sender, RoutedEventArgs e)
+    private void AvatarMode_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        _is3DMode = !_is3DMode;
-        Avatar.Visibility   = _is3DMode ? Visibility.Collapsed : Visibility.Visible;
-        Avatar3D.Visibility = _is3DMode ? Visibility.Visible   : Visibility.Collapsed;
-        ModeButtonText.Text = _is3DMode ? "2D" : "3D";
-        Title = _is3DMode ? "HCEP — True Gaze Avatar (3D Wireframe)"
-                           : "HCEP — True Gaze Avatar";
+        if (AvatarModeCombo.SelectedIndex < 0) return;
+        ApplyMode(AvatarModeCombo.SelectedIndex == 1);
+    }
+
+    /// <summary>Externally switch the avatar mode (called from MainViewModel).</summary>
+    public void SetAvatarMode(bool use3D)
+    {
+        // Guard: called from VM before the window may be fully loaded
+        if (!IsLoaded) return;
+        Dispatcher.BeginInvoke(() =>
+        {
+            AvatarModeCombo.SelectedIndex = use3D ? 1 : 0;
+            ApplyMode(use3D);
+        });
+    }
+
+    private void ApplyMode(bool use3D)
+    {
+        _is3DMode = use3D;
+        Avatar.Visibility = use3D ? Visibility.Collapsed : Visibility.Visible;
+        Avatar3D.Visibility = use3D ? Visibility.Visible : Visibility.Collapsed;
+        _activeAvatar = use3D ? (IAvatarComponent)Avatar3D : Avatar;
+        Title = use3D ? "HCEP — True Gaze Avatar (3D Wireframe)"
+                       : "HCEP — True Gaze Avatar";
     }
 
     // ── Mesh data callback (from SnapshotReady, background thread) ─
@@ -112,7 +133,7 @@ public partial class AvatarWindow : Window
         if (face?.FaceMeshVertices2D is null || face.FaceMeshTriangles is null) return;
 
         var verts = face.FaceMeshVertices2D;
-        var tris  = face.FaceMeshTriangles;
+        var tris = face.FaceMeshTriangles;
 
         Dispatcher.BeginInvoke(() => Avatar3D.SetMesh(verts, tris));
     }
@@ -124,8 +145,7 @@ public partial class AvatarWindow : Window
         // Marshal to UI thread, update Avatar pupils and HUD.
         Dispatcher.BeginInvoke(() =>
         {
-            Avatar.SetGaze(pitch, yaw, distanceM);
-            Avatar3D.SetGaze(pitch, yaw);  // head-turn for 3D wireframe
+            _activeAvatar.SetGaze(pitch, yaw, distanceM);
 
             PitchText.Text = $"{pitch * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
             YawText.Text = $"{yaw * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
@@ -133,12 +153,12 @@ public partial class AvatarWindow : Window
 
             if (isPrecision)
             {
-                TrackingModeText.Text       = "PRECISION";
+                TrackingModeText.Text = "PRECISION";
                 TrackingModeText.Foreground = Brushes.LightGreen;
             }
             else
             {
-                TrackingModeText.Text       = "FALLBACK";
+                TrackingModeText.Text = "FALLBACK";
                 TrackingModeText.Foreground = Brushes.Orange;
             }
         });

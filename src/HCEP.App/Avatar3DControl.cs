@@ -32,7 +32,7 @@ namespace HCEP.App;
 ///   half-edge from the triangle list is sufficient for a visual MVP.
 /// • Transparent background allows the dark <c>AvatarWindow</c> to show through.
 /// </summary>
-public sealed class Avatar3DControl : FrameworkElement
+public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 {
     // ── Stable wire pen (frozen — shareable across render cycles) ─
     private static readonly Pen _wirePen;
@@ -76,6 +76,17 @@ public sealed class Avatar3DControl : FrameworkElement
     {
         _gazePitch = pitchRad;
         _gazeYaw = yawRad;
+        InvalidateVisual();
+    }
+
+    // IAvatarComponent
+    void IAvatarComponent.SetGaze(float p, float y, float d) => SetGaze(p, y);
+    void IAvatarComponent.ResetGaze()
+    {
+        _vertices = null;
+        _triangles = null;
+        _gazePitch = 0;
+        _gazeYaw = 0;
         InvalidateVisual();
     }
 

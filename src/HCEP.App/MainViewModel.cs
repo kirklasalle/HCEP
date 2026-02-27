@@ -111,6 +111,15 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _avatarGazePitch = "—";
     [ObservableProperty] private string _avatarGazeYaw = "—";
 
+    // ── Avatar Mode (2D / 3D hot-swap) ───────────────────────
+    [ObservableProperty] private string _currentAvatarMode = "2D Happy";
+
+    partial void OnCurrentAvatarModeChanged(string value)
+    {
+        if (_avatarWindow is { IsLoaded: true })
+            _avatarWindow.SetAvatarMode(value == "3D Wireframe");
+    }
+
     private bool _suppressSeatedModeToggle;
 
     partial void OnShowFullSkeletonChanged(bool value)

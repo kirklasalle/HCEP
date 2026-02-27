@@ -68,6 +68,26 @@
                 <MenuItem Header="_Show Avatar"
                           Command="{Binding OpenAvatarWindowCommand}"
                           ToolTip="Open the True Gaze Avatar window — Happy Face with live pupil gaze tracking"/>
+                <Separator/>
+                <MenuItem>
+                    <MenuItem.Header>
+                        <StackPanel Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="Mode: "
+                                       VerticalAlignment="Center"
+                                       FontSize="11"
+                                       Foreground="#CCFFFFFF"/>
+                            <ComboBox Width="110"
+                                      SelectedValue="{Binding CurrentAvatarMode, Mode=TwoWay}"
+                                      SelectedValuePath="Content"
+                                      FontSize="11"
+                                      ToolTip="Switch avatar between 2D Happy Face and 3D Wireframe">
+                                <ComboBoxItem Content="2D Happy"/>
+                                <ComboBoxItem Content="3D Wireframe"/>
+                            </ComboBox>
+                        </StackPanel>
+                    </MenuItem.Header>
+                </MenuItem>
             </MenuItem>
             <MenuItem Header="_Help">
                 <MenuItem Header="_About HCEP"
