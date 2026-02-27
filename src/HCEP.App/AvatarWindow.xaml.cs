@@ -79,20 +79,32 @@ public partial class AvatarWindow : Window
         // ── Subscribe to computed gaze events ─────────────────
         _orchestrator.GazeVectorReady += OnGazeVectorReady;
 
-        StatusText.Text = " · registered";
+        TrackingModeText.Text = "waiting";
     }
 
     // ── Gaze callback (arrives from background thread) ────────
 
-    private void OnGazeVectorReady(float pitch, float yaw)
+    private void OnGazeVectorReady(float pitch, float yaw, float distanceM, bool isPrecision)
     {
-        // Marshal to UI thread and update both Avatar pupils and status bar.
+        // Marshal to UI thread, update Avatar pupils and HUD.
         Dispatcher.BeginInvoke(() =>
         {
-            Avatar.SetGaze(pitch, yaw);
-            PitchText.Text = $"{pitch * 180f / MathF.PI:+0.0;-0.0;0.0}°";
-            YawText.Text = $"{yaw * 180f / MathF.PI:+0.0;-0.0;0.0}°";
-            StatusText.Text = " · live";
+            Avatar.SetGaze(pitch, yaw, distanceM);
+
+            PitchText.Text    = $"{pitch * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
+            YawText.Text      = $"{yaw   * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
+            DistanceText.Text = $"{distanceM:F2} m";
+
+            if (isPrecision)
+            {
+                TrackingModeText.Text       = "PRECISION";
+                TrackingModeText.Foreground = System.Windows.Media.Brushes.LightGreen;
+            }
+            else
+            {
+                TrackingModeText.Text       = "FALLBACK";
+                TrackingModeText.Foreground = System.Windows.Media.Brushes.Orange;
+            }
         });
     }
 }

@@ -114,15 +114,31 @@ public partial class AvatarCoreControl : UserControl
     /// Horizontal gaze angle in radians.
     /// Positive = looking right → pupils translate right (positive X).
     /// </param>
-    public void SetGaze(double pitchRad, double yawRad)
+    /// <param name="userDistanceM">
+    /// User's distance from the sensor in metres (Camera Space Z).
+    /// Used to compute binocular convergence: pupils angle inward when the
+    /// user is close. Pass 0 or omit to suppress convergence.
+    /// </param>
+    public void SetGaze(double pitchRad, double yawRad, double userDistanceM = 1.5)
     {
         double dx = Clamp(yawRad / MaxGazeAngleRad, -1.0, 1.0) * MaxPupilTravelPx;
         double dy = Clamp(pitchRad / MaxGazeAngleRad, -1.0, 1.0) * MaxPupilTravelPx;
 
+        // ── Binocular convergence ──────────────────────────────
+        // When the user leans in (small distanceM), pupils converge inward
+        // to simulate the avatar focusing on a near object.
+        //   Reference far  : 1.2 m → zero convergence
+        //   Reference close : 0.0 m → max convergence (±ConvergenceMaxPx)
+        const double ConvergenceMaxPx = 6.0;  // half of MaxPupilTravelPx
+        const double ConvergenceFarM = 1.2;
+        double convergence = ConvergenceMaxPx *
+            Clamp((ConvergenceFarM - userDistanceM) / ConvergenceFarM, 0.0, 1.0);
+
         // Pitch > 0 = looking up = pupils move UP = negative Y
-        LeftPupilTransform.X = dx;
+        // Left pupil converges rightward (+X); right pupil converges leftward (−X).
+        LeftPupilTransform.X = dx + convergence;
         LeftPupilTransform.Y = -dy;
-        RightPupilTransform.X = dx;
+        RightPupilTransform.X = dx - convergence;
         RightPupilTransform.Y = -dy;
     }
 

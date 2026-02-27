@@ -202,11 +202,12 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
     public event Action<LlmExchange>? LlmResponseReady;
 
     /// <summary>
-    /// Fires each snapshot tick (~10 Hz) with the smoothed (pitch, yaw) radians
-    /// for <c>AvatarCoreControl.SetGaze()</c>.  Raised from the background pipeline
+    /// Fires each snapshot tick (~10 Hz) with the smoothed gaze data for
+    /// <c>AvatarCoreControl.SetGaze()</c>.  Raised from the background pipeline
     /// thread — subscribers must marshal to the UI thread before touching WPF objects.
+    /// Parameters: (pitch radians, yaw radians, userDistanceM, isPrecisionTracking).
     /// </summary>
-    public event Action<float, float>? GazeVectorReady;
+    public event Action<float, float, float, bool>? GazeVectorReady;
 
     public async Task StartAsync(CancellationToken ct = default)
     {
@@ -460,10 +461,12 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
                     if (latestFace is not null && _avatarEyeProvider is not null && _avatarScreenWidthPx > 0)
                     {
                         Vector3 userEyeM;
+                        bool isPrecision;
                         if (latestFace.IsTracked && avatarIkTarget.HasValue)
                         {
                             // avatarIkTarget is already in Camera Space metres (from GetFocusPoint3D).
                             userEyeM = avatarIkTarget.Value;
+                            isPrecision = true;
                         }
                         else
                         {
@@ -471,7 +474,10 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
                             // Reset EMA so stale high-fidelity values don't bleed into fallback.
                             _gazeEngine.Reset();
                             userEyeM = latestFace.HeadTranslation / 1000f;
+                            isPrecision = false;
                         }
+
+                        float distanceM = userEyeM.Z; // Camera Space +Z = toward user
 
                         var (leftPx, rightPx) = _avatarEyeProvider();
 
@@ -489,7 +495,7 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
                         // userEyeM is in Camera Space metres — GazeVectorEngine converts to mm internally.
                         var (pitch, yaw) = _gazeEngine.Compute(userEyeM, avatarEyeWorldMm);
 
-                        GazeVectorReady?.Invoke(pitch, yaw);
+                        GazeVectorReady?.Invoke(pitch, yaw, distanceM, isPrecision);
                     }
 
                     person = new TrackedPerson

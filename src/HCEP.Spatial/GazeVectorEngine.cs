@@ -52,6 +52,15 @@ public sealed class GazeVectorEngine
     /// </summary>
     public float SmoothingAlpha { get; set; } = 0.20f;
 
+    /// <summary>
+    /// Vertical gaze correction applied after EMA smoothing (radians).
+    /// Negative value shifts pupils downward — use to compensate for the
+    /// "looking at forehead" bias introduced by Kinect FaceTracking placing
+    /// eye sockets higher than the actual perceived eye contact point.
+    /// Default: −5° (≈ −0.0873 rad). Tune in 1° steps during validation.
+    /// </summary>
+    public float VerticalCorrectionRad { get; set; } = -5f * MathF.PI / 180f;
+
     // ── Smooth state ───────────────────────────────────────────
     private float _smoothedPitch;
     private float _smoothedYaw;
@@ -160,7 +169,10 @@ public sealed class GazeVectorEngine
             _smoothedYaw += SmoothingAlpha * (rawYaw - _smoothedYaw);
         }
 
-        return (_smoothedPitch, _smoothedYaw);
+        // Apply vertical correction AFTER smoothing so offset is stable.
+        float correctedPitch = _smoothedPitch + VerticalCorrectionRad;
+
+        return (correctedPitch, _smoothedYaw);
     }
 
     /// <summary>

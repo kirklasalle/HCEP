@@ -105,6 +105,12 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private string _rightEyePosition = "—";
     [ObservableProperty] private string _interOcularDistance = "—";
 
+    // ── Avatar Gaze Telemetry ──────────────────────────────────
+    [ObservableProperty] private string _avatarTrackingMode = "—";
+    [ObservableProperty] private string _avatarUserDistance = "—";
+    [ObservableProperty] private string _avatarGazePitch = "—";
+    [ObservableProperty] private string _avatarGazeYaw = "—";
+
     private bool _suppressSeatedModeToggle;
 
     partial void OnShowFullSkeletonChanged(bool value)
@@ -124,6 +130,18 @@ public partial class MainViewModel : ObservableObject
     /// Called by the orchestrator when it auto-switches between seated/full-body mode.
     /// Updates the UI toggle without re-triggering the sensor switch.
     /// </summary>
+    private void OnGazeVectorReady(float pitch, float yaw, float distanceM, bool isPrecision)
+    {
+        // GazeVectorReady fires from the background pipeline thread — dispatch to UI.
+        _dispatcher.InvokeAsync(() =>
+        {
+            AvatarTrackingMode = isPrecision ? "Precision" : "Fallback";
+            AvatarUserDistance = $"{distanceM:F2} m";
+            AvatarGazePitch    = $"{pitch * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
+            AvatarGazeYaw      = $"{yaw   * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
+        });
+    }
+
     private void OnSeatedModeChanged(bool isSeated)
     {
         _dispatcher.InvokeAsync(() =>
@@ -165,9 +183,12 @@ public partial class MainViewModel : ObservableObject
             _pipeline.ColorFrameReady += OnColorFrameReady;
             _pipeline.LlmResponseReady += OnLlmResponseReady;
 
-            // Subscribe to auto-fallback mode changes
+            // Subscribe to orchestrator-specific events
             if (_pipeline is HCEPPipelineOrchestrator orch)
+            {
                 orch.SeatedModeChanged += OnSeatedModeChanged;
+                orch.GazeVectorReady += OnGazeVectorReady;
+            }
 
             // Start metrics refresh timer (4 Hz)
             _metricsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
@@ -193,7 +214,10 @@ public partial class MainViewModel : ObservableObject
         _pipeline.ColorFrameReady -= OnColorFrameReady;
         _pipeline.LlmResponseReady -= OnLlmResponseReady;
         if (_pipeline is HCEPPipelineOrchestrator o)
+        {
             o.SeatedModeChanged -= OnSeatedModeChanged;
+            o.GazeVectorReady -= OnGazeVectorReady;
+        }
 
         try { await _pipeline.StopAsync(); }
         catch (Exception ex) { _logger.LogWarning(ex, "Error during shutdown"); }

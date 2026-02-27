@@ -25,38 +25,80 @@
                                  HorizontalAlignment="Center"
                                  VerticalAlignment="Center"/>
 
-        <!-- ── Status Bar ───────────────────────────────────── -->
+        <!-- ── Telemetry HUD ──────────────────────────────────── -->
         <Border Grid.Row="1"
-                Background="#CC111111"
-                Padding="10,4"
-                ToolTip="Live gaze vector readout — Pitch and Yaw angles driving the pupils">
-            <StackPanel Orientation="Horizontal">
-                <TextBlock Text="Pitch: "
-                           Foreground="#66FFFFFF"
-                           FontFamily="Segoe UI"
-                           FontSize="11"/>
-                <TextBlock x:Name="PitchText"
-                           Text="—"
-                           Foreground="#FF64D8FF"
-                           FontFamily="Segoe Mono,Consolas"
-                           FontSize="11"
-                           MinWidth="55"/>
-                <TextBlock Text="  Yaw: "
-                           Foreground="#66FFFFFF"
-                           FontFamily="Segoe UI"
-                           FontSize="11"/>
-                <TextBlock x:Name="YawText"
-                           Text="—"
-                           Foreground="#FF64D8FF"
-                           FontFamily="Segoe Mono,Consolas"
-                           FontSize="11"
-                           MinWidth="55"/>
-                <TextBlock x:Name="StatusText"
-                           Text=" · waiting…"
-                           Foreground="#88FFFFFF"
-                           FontFamily="Segoe UI"
-                           FontSize="11"/>
-            </StackPanel>
+                Background="#DD0D0D0D"
+                Padding="8,5"
+                ToolTip="Live gaze telemetry — TrackingMode, Distance, Pitch, Yaw">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- TrackingMode -->
+                <StackPanel Grid.Column="0" Orientation="Vertical">
+                    <TextBlock Text="MODE"
+                               Foreground="#44FFFFFF"
+                               FontFamily="Segoe UI"
+                               FontSize="9"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="TrackingModeText"
+                               Text="—"
+                               Foreground="#FFAAFFAA"
+                               FontFamily="Segoe Mono,Consolas"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Distance -->
+                <StackPanel Grid.Column="1" Orientation="Vertical">
+                    <TextBlock Text="DIST"
+                               Foreground="#44FFFFFF"
+                               FontFamily="Segoe UI"
+                               FontSize="9"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="DistanceText"
+                               Text="—"
+                               Foreground="#FF64D8FF"
+                               FontFamily="Segoe Mono,Consolas"
+                               FontSize="11"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Pitch -->
+                <StackPanel Grid.Column="2" Orientation="Vertical">
+                    <TextBlock Text="PITCH"
+                               Foreground="#44FFFFFF"
+                               FontFamily="Segoe UI"
+                               FontSize="9"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="PitchText"
+                               Text="—"
+                               Foreground="#FF64D8FF"
+                               FontFamily="Segoe Mono,Consolas"
+                               FontSize="11"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Yaw -->
+                <StackPanel Grid.Column="3" Orientation="Vertical">
+                    <TextBlock Text="YAW"
+                               Foreground="#44FFFFFF"
+                               FontFamily="Segoe UI"
+                               FontSize="9"
+                               HorizontalAlignment="Center"/>
+                    <TextBlock x:Name="YawText"
+                               Text="—"
+                               Foreground="#FF64D8FF"
+                               FontFamily="Segoe Mono,Consolas"
+                               FontSize="11"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
         </Border>
 
     </Grid>
