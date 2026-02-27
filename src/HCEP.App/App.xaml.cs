@@ -89,6 +89,7 @@ public partial class App : Application
                 services.AddTransient<KinectVideoViewModel>();
                 services.AddTransient<KinectVideoWindow>();
                 services.AddTransient<CalibrationWindow>();
+                services.AddTransient<AvatarWindow>();
             })
             .Build();
 

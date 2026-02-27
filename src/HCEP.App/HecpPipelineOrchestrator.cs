@@ -67,6 +67,13 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
 
     private readonly MicroSaccadeController _saccade = new();
 
+    // ── Phase 3: World-Space Gaze Engine ────────────────────
+    private readonly GazeVectorEngine _gazeEngine = new();
+    /// <summary>Thread-safe delegate that reads the Avatar eye screen positions (physical px).</summary>
+    private Func<(Vector2 left, Vector2 right)>? _avatarEyeProvider;
+    private float _avatarScreenWidthPx;
+    private float _avatarScreenHeightPx;
+
     // ── Auto-fallback: full-body → seated mode ──────────────
     private DateTimeOffset _lastPersonSeenAt = DateTimeOffset.MinValue;
     private bool _autoFellBackToSeated;
@@ -123,9 +130,34 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
             screenWidthMm: ScreenWidthMm,
             screenHeightMm: ScreenHeightMm);
 
+        // Calibration changed — reset smoothing so the new geometry takes effect immediately.
+        _gazeEngine.Reset();
+
         _logger.LogInformation(
             "Calibration applied — KinectOffset: X={X:F1} mm, Y={Y:F1} mm, Z={Z:F1} mm",
             kinectOffsetXMm, kinectOffsetYMm, kinectOffsetZMm);
+    }
+
+    /// <summary>
+    /// Registers the Avatar eye provider delegate and physical screen dimensions
+    /// for the Phase 3 world-space gaze calculation.
+    /// Called once by <see cref="AvatarWindow"/> after its visual tree is live.
+    /// </summary>
+    /// <param name="provider">Returns (left, right) avatar eye socket positions in physical screen pixels.</param>
+    /// <param name="screenWidthPhysicalPx">Physical screen width (device pixels, not WPF DIPs).</param>
+    /// <param name="screenHeightPhysicalPx">Physical screen height (device pixels, not WPF DIPs).</param>
+    public void SetAvatarEyeProvider(
+        Func<(Vector2 left, Vector2 right)> provider,
+        float screenWidthPhysicalPx,
+        float screenHeightPhysicalPx)
+    {
+        _avatarEyeProvider = provider;
+        _avatarScreenWidthPx = screenWidthPhysicalPx;
+        _avatarScreenHeightPx = screenHeightPhysicalPx;
+        _gazeEngine.Reset();
+        _logger.LogInformation(
+            "AvatarEyeProvider registered — screen {W:F0}×{H:F0} px",
+            screenWidthPhysicalPx, screenHeightPhysicalPx);
     }
 
     /// <summary>
@@ -168,6 +200,13 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
     public event Action<ColorFrame>? InfraredFrameReady;
     public event Action<SkeletonFrame>? SkeletonFrameReady;
     public event Action<LlmExchange>? LlmResponseReady;
+
+    /// <summary>
+    /// Fires each snapshot tick (~10 Hz) with the smoothed (pitch, yaw) radians
+    /// for <c>AvatarCoreControl.SetGaze()</c>.  Raised from the background pipeline
+    /// thread — subscribers must marshal to the UI thread before touching WPF objects.
+    /// </summary>
+    public event Action<float, float>? GazeVectorReady;
 
     public async Task StartAsync(CancellationToken ct = default)
     {
@@ -413,6 +452,29 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
                     if (latestFace is not null && latestFace.IsTracked)
                     {
                         avatarIkTarget = _saccade.GetFocusPoint3D(latestFace);
+
+                        // ── Phase 3: World-Space Gaze Vector → Avatar ─────
+                        if (_avatarEyeProvider is not null && _avatarScreenWidthPx > 0)
+                        {
+                            var (leftPx, rightPx) = _avatarEyeProvider();
+
+                            // Mirror the saccade: if fixating user's LEFT eye, use Avatar LEFT eye socket.
+                            Vector2 avatarEyePx = _saccade.CurrentTarget == EyeSocketTarget.Left
+                                ? leftPx : rightPx;
+
+                            var cal = _calibration; // thread-safe snapshot
+                            Vector3 avatarEyeWorldMm = GazeVectorEngine.AvatarEyeScreenToWorldMm(
+                                avatarEyePx,
+                                new Vector2(_avatarScreenWidthPx, _avatarScreenHeightPx),
+                                new Vector2(ScreenWidthMm, ScreenHeightMm),
+                                cal.KinectOffsetFromScreenCentreMm);
+
+                            // userEyePos is in METRES (Camera Space) — GazeVectorEngine converts internally.
+                            var (pitch, yaw) = _gazeEngine.Compute(
+                                avatarIkTarget.Value, avatarEyeWorldMm);
+
+                            GazeVectorReady?.Invoke(pitch, yaw);
+                        }
                     }
 
                     person = new TrackedPerson

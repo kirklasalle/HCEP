@@ -1,0 +1,63 @@
+<Window x:Class="HCEP.App.AvatarWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:HCEP.App"
+        Title="HCEP — True Gaze Avatar"
+        Background="#FF0A0A0A"
+        Width="340"
+        Height="340"
+        MinWidth="220"
+        MinHeight="220"
+        ResizeMode="CanResizeWithGrip"
+        Topmost="True"
+        ShowInTaskbar="True"
+        ToolTip="HCEP True Gaze Avatar — pupils track the physical user in real time">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ── Avatar UserControl ──────────────────────────── -->
+        <local:AvatarCoreControl x:Name="Avatar"
+                                 Grid.Row="0"
+                                 HorizontalAlignment="Center"
+                                 VerticalAlignment="Center"/>
+
+        <!-- ── Status Bar ───────────────────────────────────── -->
+        <Border Grid.Row="1"
+                Background="#CC111111"
+                Padding="10,4"
+                ToolTip="Live gaze vector readout — Pitch and Yaw angles driving the pupils">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Pitch: "
+                           Foreground="#66FFFFFF"
+                           FontFamily="Segoe UI"
+                           FontSize="11"/>
+                <TextBlock x:Name="PitchText"
+                           Text="—"
+                           Foreground="#FF64D8FF"
+                           FontFamily="Segoe Mono,Consolas"
+                           FontSize="11"
+                           MinWidth="55"/>
+                <TextBlock Text="  Yaw: "
+                           Foreground="#66FFFFFF"
+                           FontFamily="Segoe UI"
+                           FontSize="11"/>
+                <TextBlock x:Name="YawText"
+                           Text="—"
+                           Foreground="#FF64D8FF"
+                           FontFamily="Segoe Mono,Consolas"
+                           FontSize="11"
+                           MinWidth="55"/>
+                <TextBlock x:Name="StatusText"
+                           Text=" · waiting…"
+                           Foreground="#88FFFFFF"
+                           FontFamily="Segoe UI"
+                           FontSize="11"/>
+            </StackPanel>
+        </Border>
+
+    </Grid>
+</Window>

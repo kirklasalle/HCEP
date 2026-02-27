@@ -38,6 +38,7 @@ public partial class MainViewModel : ObservableObject
     private SensorViewWindow? _sensorViewWindow;
     private KinectVideoWindow? _kinectVideoWindow;
     private CalibrationWindow? _calibrationWindow;
+    private AvatarWindow? _avatarWindow;
 
     public MainViewModel(
         IPipelineOrchestrator pipeline,
@@ -240,6 +241,20 @@ public partial class MainViewModel : ObservableObject
         _calibrationWindow.Closed += (_, _) => _calibrationWindow = null;
         _calibrationWindow.Show();
         _logger.LogInformation("Calibration window opened");
+    }
+
+    [RelayCommand]
+    private void OpenAvatarWindow()
+    {
+        if (_avatarWindow is { IsLoaded: true })
+        {
+            _avatarWindow.Activate();
+            return;
+        }
+        _avatarWindow = _services.GetRequiredService<AvatarWindow>();
+        _avatarWindow.Closed += (_, _) => _avatarWindow = null;
+        _avatarWindow.Show();
+        _logger.LogInformation("Avatar window opened");
     }
 
     [RelayCommand]
