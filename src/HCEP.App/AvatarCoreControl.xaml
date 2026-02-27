@@ -1,0 +1,96 @@
+<UserControl x:Class="HCEP.App.AvatarCoreControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Width="280"
+        Height="280"
+             ToolTip="HCEP True Gaze Avatar — 2D Happy Face with live gaze-driven pupils">
+
+    <!--
+        Layout reference (all coordinates in local canvas space, origin top-left):
+          Face circle centre  : (140, 140) — radius 120
+          Left  eye centre    : ( 95, 112)
+          Right eye centre    : (185, 112)
+          Eye socket diameter :  44 px
+          Pupil diameter      :  20 px  (max travel ±12 px inside socket)
+          Smile arc           : M 78,172  A 62,42 0 0 1 202,172
+    -->
+
+    <Canvas x:Name="RootCanvas"
+            Width="280"
+            Height="280"
+            Background="Transparent">
+
+        <!-- ── Face ──────────────────────────────────────────── -->
+        <Ellipse x:Name="FaceCircle"
+                 Canvas.Left="20"
+                Canvas.Top="20"
+                 Width="240"
+                Height="240"
+                 Fill="#FFFFD700"
+                 Stroke="#FFCC9900"
+                 StrokeThickness="3"
+                 ToolTip="Avatar face — yellow circle representing the avatar head"/>
+
+        <!-- ── Left Eye Socket ───────────────────────────────── -->
+        <!-- Socket Ellipse is the visual outer ring; centre at (95, 112) -->
+        <Ellipse x:Name="LeftEyeSocket"
+                 Canvas.Left="73"
+                Canvas.Top="90"
+                 Width="44"
+                Height="44"
+                 Fill="#FF1A1A1A"
+                 ToolTip="Left eye socket — the fixed bony landmark used for screen coordinate lookup"/>
+
+        <!-- Left Pupil — centred inside socket; animated by TranslateTransform -->
+        <Ellipse x:Name="LeftPupil"
+                 Canvas.Left="83"
+                Canvas.Top="100"
+                 Width="20"
+                Height="20"
+                 Fill="#FF000000"
+                 ToolTip="Left pupil — translated by SetGaze() to track the gaze vector">
+            <Ellipse.RenderTransform>
+                <TranslateTransform x:Name="LeftPupilTransform"
+                        X="0"
+                        Y="0"/>
+            </Ellipse.RenderTransform>
+        </Ellipse>
+
+        <!-- ── Right Eye Socket ──────────────────────────────── -->
+        <Ellipse x:Name="RightEyeSocket"
+                 Canvas.Left="163"
+                Canvas.Top="90"
+                 Width="44"
+                Height="44"
+                 Fill="#FF1A1A1A"
+                 ToolTip="Right eye socket — the fixed bony landmark used for screen coordinate lookup"/>
+
+        <!-- Right Pupil -->
+        <Ellipse x:Name="RightPupil"
+                 Canvas.Left="173"
+                Canvas.Top="100"
+                 Width="20"
+                Height="20"
+                 Fill="#FF000000"
+                 ToolTip="Right pupil — translated by SetGaze() to track the gaze vector">
+            <Ellipse.RenderTransform>
+                <TranslateTransform x:Name="RightPupilTransform"
+                        X="0"
+                        Y="0"/>
+            </Ellipse.RenderTransform>
+        </Ellipse>
+
+        <!-- ── Smile ─────────────────────────────────────────── -->
+        <!--
+            Arc from (78,172) to (202,172), rx=62, ry=42, sweep=1 (clockwise → curves down).
+            StrokeThickness 5 gives a bold, readable smile at avatar viewing distances.
+        -->
+        <Path Stroke="#FF1A1A1A"
+              StrokeThickness="5"
+              StrokeStartLineCap="Round"
+              StrokeEndLineCap="Round"
+              ToolTip="Smile — drawn as a WPF ArcSegment, no external assets required"
+              Data="M 78,172 A 62,42 0 0 1 202,172"/>
+
+    </Canvas>
+</UserControl>
