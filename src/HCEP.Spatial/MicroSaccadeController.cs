@@ -138,15 +138,16 @@ public sealed class MicroSaccadeController
             ? LeftEyeContourIndices
             : RightEyeContourIndices;
 
-        Vector3 socketCentre = ComputeEyeSocketCentre3D(face, indices);
+        // ComputeEyeSocketCentre3D returns head-relative mm (FeaturePoints3D coordinate space).
+        // Add HeadTranslation (also mm, Camera Space) to get absolute Camera Space mm,
+        // then divide by 1000 to return metres as the method contract requires.
+        Vector3 socketHeadMm = ComputeEyeSocketCentre3D(face, indices);
 
-        // If we couldn't resolve a valid socket position, fall back to the
-        // cyclopean midpoint so the IK rig always has a legal target.
-        // CyclopeanPoint3D is derived from FeaturePoints3D, so also metres.
-        if (socketCentre == Vector3.Zero)
-            socketCentre = face.CyclopeanPoint3D;
+        Vector3 absoluteMm = socketHeadMm != Vector3.Zero
+            ? socketHeadMm + face.HeadTranslation
+            : face.CyclopeanPoint3D + face.HeadTranslation;  // cyclopean fallback
 
-        return socketCentre;
+        return absoluteMm / 1000f;  // mm → metres (Camera Space)
     }
 
     /// <summary>
@@ -159,11 +160,13 @@ public sealed class MicroSaccadeController
             ? LeftEyeContourIndices
             : RightEyeContourIndices;
 
-        Vector3 socketCentre = ComputeEyeSocketCentre3D(face, indices);
-        if (socketCentre == Vector3.Zero)
-            socketCentre = face.CyclopeanPoint3D;
+        Vector3 socketHeadMm = ComputeEyeSocketCentre3D(face, indices);
 
-        return socketCentre;
+        Vector3 absoluteMm = socketHeadMm != Vector3.Zero
+            ? socketHeadMm + face.HeadTranslation
+            : face.CyclopeanPoint3D + face.HeadTranslation;
+
+        return absoluteMm / 1000f;  // mm → metres (Camera Space)
     }
 
     /// <summary>
@@ -223,9 +226,8 @@ public sealed class MicroSaccadeController
 
         if (count == 0) return Vector3.Zero;
 
-        // FeaturePoints3D are already in absolute camera space (metres) per
-        // the Kinect v1 SDK contract (Nexus architecture ruling, 2026-02-26).
-        // Do NOT add HeadTranslation; no unit conversion needed.
+        // Returns centroid in head-relative coordinates (mm), matching FaceFrame.FeaturePoints3D.
+        // Callers must add face.HeadTranslation and divide by 1000 to get Camera Space metres.
         return new Vector3(sumX / count, sumY / count, sumZ / count);
     }
 }

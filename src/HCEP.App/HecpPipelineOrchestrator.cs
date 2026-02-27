@@ -452,29 +452,44 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
                     if (latestFace is not null && latestFace.IsTracked)
                     {
                         avatarIkTarget = _saccade.GetFocusPoint3D(latestFace);
+                    }
 
-                        // ── Phase 3: World-Space Gaze Vector → Avatar ─────
-                        if (_avatarEyeProvider is not null && _avatarScreenWidthPx > 0)
+                    // ── Phase 3: World-Space Gaze Vector → Avatar ─────────
+                    // High-fidelity path : IsTracked = true  → precise eye-socket position.
+                    // Bounding-box fallback: IsTracked = false → HeadTranslation centre.
+                    if (latestFace is not null && _avatarEyeProvider is not null && _avatarScreenWidthPx > 0)
+                    {
+                        Vector3 userEyeM;
+                        if (latestFace.IsTracked && avatarIkTarget.HasValue)
                         {
-                            var (leftPx, rightPx) = _avatarEyeProvider();
-
-                            // Mirror the saccade: if fixating user's LEFT eye, use Avatar LEFT eye socket.
-                            Vector2 avatarEyePx = _saccade.CurrentTarget == EyeSocketTarget.Left
-                                ? leftPx : rightPx;
-
-                            var cal = _calibration; // thread-safe snapshot
-                            Vector3 avatarEyeWorldMm = GazeVectorEngine.AvatarEyeScreenToWorldMm(
-                                avatarEyePx,
-                                new Vector2(_avatarScreenWidthPx, _avatarScreenHeightPx),
-                                new Vector2(ScreenWidthMm, ScreenHeightMm),
-                                cal.KinectOffsetFromScreenCentreMm);
-
-                            // userEyePos is in METRES (Camera Space) — GazeVectorEngine converts internally.
-                            var (pitch, yaw) = _gazeEngine.Compute(
-                                avatarIkTarget.Value, avatarEyeWorldMm);
-
-                            GazeVectorReady?.Invoke(pitch, yaw);
+                            // avatarIkTarget is already in Camera Space metres (from GetFocusPoint3D).
+                            userEyeM = avatarIkTarget.Value;
                         }
+                        else
+                        {
+                            // HeadTranslation is in Camera Space mm → convert to metres.
+                            // Reset EMA so stale high-fidelity values don't bleed into fallback.
+                            _gazeEngine.Reset();
+                            userEyeM = latestFace.HeadTranslation / 1000f;
+                        }
+
+                        var (leftPx, rightPx) = _avatarEyeProvider();
+
+                        // Mirror the saccade: if fixating user's LEFT eye, use Avatar LEFT eye socket.
+                        Vector2 avatarEyePx = _saccade.CurrentTarget == EyeSocketTarget.Left
+                            ? leftPx : rightPx;
+
+                        var cal = _calibration; // thread-safe snapshot
+                        Vector3 avatarEyeWorldMm = GazeVectorEngine.AvatarEyeScreenToWorldMm(
+                            avatarEyePx,
+                            new Vector2(_avatarScreenWidthPx, _avatarScreenHeightPx),
+                            new Vector2(ScreenWidthMm, ScreenHeightMm),
+                            cal.KinectOffsetFromScreenCentreMm);
+
+                        // userEyeM is in Camera Space metres — GazeVectorEngine converts to mm internally.
+                        var (pitch, yaw) = _gazeEngine.Compute(userEyeM, avatarEyeWorldMm);
+
+                        GazeVectorReady?.Invoke(pitch, yaw);
                     }
 
                     person = new TrackedPerson
