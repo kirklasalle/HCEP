@@ -181,11 +181,15 @@ public partial class AvatarWindow : Window
         {
             // Full mesh not yet available — show 87-point landmark fallback
             var pts = face.FeaturePoints2D;
+            // Include HRESULT in HUD so the failure reason is immediately visible.
+            string hrLabel = face.MeshHr != 0 ? $"0x{face.MeshHr:X8}" : "FP";
             Dispatcher.BeginInvoke(() =>
             {
                 Avatar3D.SetFeaturePoints(pts);
-                MeshStatusText.Text = "FP";
-                MeshStatusText.Foreground = System.Windows.Media.Brushes.Orange;
+                MeshStatusText.Text = hrLabel;
+                MeshStatusText.Foreground = face.MeshHr != 0
+                    ? System.Windows.Media.Brushes.Red
+                    : System.Windows.Media.Brushes.Orange;
             });
         }
     }

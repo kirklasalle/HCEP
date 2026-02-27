@@ -67,6 +67,13 @@ public sealed record FaceFrame
     /// </summary>
     public (int First, int Second, int Third)[]? FaceMeshTriangles { get; init; }
 
+    /// <summary>
+    /// Last HRESULT from IFTModel.GetProjectedShape.
+    /// 0 = success / not attempted yet.
+    /// Non-zero = failure code (displayed in MESH HUD for diagnostics).
+    /// </summary>
+    public uint MeshHr { get; init; }
+
     // ── Pupil Accessors ────────────────────────────────────────
     /// <summary>Left pupil 3D position (feature point index 69).</summary>
     public Vector3 LeftPupil3D =>

@@ -71,13 +71,8 @@ public sealed class KinectSensorSource : ISensorSource
     private (int First, int Second, int Third)[]? _cachedTriangles;
     private uint _meshVertexCount;
     private FT_CAMERA_CONFIG _videoConfig;
-    // Shape-unit coefficient cache — mirrors C++ FTHelper approach:
-    // GetShapeUnits returns a pointer to an SDK-internal float array; we copy it
-    // into a managed cache so we can pin it for GetProjectedShape every frame.
-    // Before the SU computation converges we pass a zero-filled array which
-    // produces the neutral Candide-3 mesh shape (identical to C++ behaviour).
-    private float[]? _suCoefsCache;
     private uint _suModelCount;      // IFTModel.GetSUCount() — fixed at model load
+    private uint _lastMeshHr;        // last GetProjectedShape HRESULT (0 = success)
 
     public KinectSensorSource(ILogger<KinectSensorSource> logger)
     {
@@ -432,6 +427,8 @@ public sealed class KinectSensorSource : ISensorSource
 
         _cachedTriangles = null;
         _meshVertexCount = 0;
+        _suModelCount = 0;
+        _lastMeshHr = 0;
         _faceTrackingInitialized = false;
         _faceTrackingStarted = false;
     }
@@ -1236,7 +1233,7 @@ public sealed class KinectSensorSource : ISensorSource
                         // This is the canonical count to pass to GetProjectedShape —
                         // NOT the runtime value from IFTFaceTracker.GetShapeUnits.
                         _suModelCount = _faceModel.GetSUCount();
-                        _suCoefsCache = null;   // will be populated on first converged frame
+                        _lastMeshHr = 0;
                         _logger.LogInformation("Face model loaded: {VertexCount} vertices, {SuCount} SUs", _meshVertexCount, _suModelCount);
 
                         // Get triangle topology (static — only need once, like SDK sample)
@@ -1257,40 +1254,32 @@ public sealed class KinectSensorSource : ISensorSource
                     }
                 }
 
-                // Get projected shape vertices (each frame — mirrors C++ FTHelper::SubmitFraceTrackingResult)
-                // ── C++ pattern ──────────────────────────────────────────────────────────────────
-                // FLOAT* pSU = NULL; UINT numSU; BOOL suConverged;
+                // Get projected shape vertices (each frame)
+                // ── Exact C++ pattern from FTHelper::SubmitFraceTrackingResult ───────────────
+                // FLOAT* pSU = NULL;  UINT numSU;  BOOL suConverged;
                 // m_pFaceTracker->GetShapeUnits(NULL, &pSU, &numSU, &suConverged);
-                // VisualizeFaceModel(img, ftModel, &cameraConfig, pSU, 1.0, offset, pResult, color);
-                //   → GetProjectedShape(config, zoom, offset, pSU, pModel->GetSUCount(), pAUs, auCount, ...)
+                //   → pSU is a pointer INTO the SDK's own internal array, or NULL if not ready
+                // GetProjectedShape(config, 1.0, {0,0}, pSU, pModel->GetSUCount(), pAUs, auCount, ...)
+                //   → SDK accepts NULL pSU and renders the neutral Candide-3 shape
                 //
-                // Key differences from our previous approach:
-                //   1. pModel->GetSUCount() is the suCount parameter — NOT the runtime numSU.
-                //   2. pSU may be NULL before convergence; model handles zeros as neutral shape.
-                //   3. C++ does NOT gate on numSU > 0.
-                // ────────────────────────────────────────────────────────────────────────────────
+                // IMPORTANT: pass the raw SDK pointer directly — no managed copy/pin needed.
+                // Pass _suModelCount (= pModel->GetSUCount()) as the count, NOT numSU.
+                // ──────────────────────────────────────────────────────────────────────────────
                 if (_faceModel != null && _meshVertexCount > 0 && meshTriangles != null)
                 {
-                    // Step 1: Retrieve SU coefficients from tracker and cache them.
-                    uint suCount = 0;
-                    hr = _faceTracker!.GetShapeUnits(out float _, out IntPtr suPtr, ref suCount, out bool converged);
-                    if (hr >= 0 && suPtr != IntPtr.Zero && suCount > 0)
-                    {
-                        // Copy SDK-internal SU buffer into our managed cache.
-                        // We pin the managed array for GetProjectedShape below.
-                        if (_suCoefsCache == null || _suCoefsCache.Length != (int)suCount)
-                            _suCoefsCache = new float[suCount];
-                        Marshal.Copy(suPtr, _suCoefsCache, 0, (int)suCount);
-                        if (!converged)
-                            _logger.LogDebug("SU coefs received ({Count}) but not yet converged", suCount);
-                    }
+                    // Step 1: Get SU coef pointer straight from the tracker.
+                    // suPtrDirect points into SDK-internal memory — valid for rest of this call.
+                    uint suRuntime = 0;
+                    hr = _faceTracker!.GetShapeUnits(out float _, out IntPtr suPtrDirect, ref suRuntime, out bool suConverged);
+                    IntPtr suToPass = (hr >= 0) ? suPtrDirect : IntPtr.Zero;   // NULL = neutral shape; SDK handles it
 
-                    // Step 2: Build the SU coef array to pass — zeros = neutral default.
-                    // _suModelCount matches what the SDK model expects (Candide-3 = ~11 SUs).
-                    int suModelCount = (int)(_suModelCount > 0 ? _suModelCount : 11u);
-                    float[] suCoefs = _suCoefsCache ?? new float[suModelCount];
+                    // Use model-level SU count, exactly as C++ uses pModel->GetSUCount().
+                    uint suPassCount = (_suModelCount > 0) ? _suModelCount : 11u;
 
-                    // Step 3: Re-read AU coefficients for this frame.
+                    if (!suConverged)
+                        _logger.LogDebug("SU not yet converged (suRuntime={N}), using neutral shape", suRuntime);
+
+                    // Step 2: Re-read AU coefficients for this frame.
                     hr = _faceResult.GetAUCoefficients(out IntPtr auPtrMesh, out uint auCountMesh);
                     if (hr >= 0 && auPtrMesh != IntPtr.Zero)
                     {
@@ -1298,56 +1287,53 @@ public sealed class KinectSensorSource : ISensorSource
                         var transVec = new FT_VECTOR3D { x = translation[0], y = translation[1], z = translation[2] };
                         var viewOffset = new FT_POINT { X = 0, Y = 0 };
 
-                        // Step 4: Pin managed SU coef array so the GC doesn't move it during the COM call.
-                        var gcHandle = GCHandle.Alloc(suCoefs, GCHandleType.Pinned);
+                        // Step 3: Allocate output buffer (FT_VECTOR2D = 8 bytes each).
+                        int bufSize = (int)_meshVertexCount * 8;
+                        IntPtr vertBuf = Marshal.AllocHGlobal(bufSize);
                         try
                         {
-                            IntPtr pinnedSuPtr = gcHandle.AddrOfPinnedObject();
+                            hr = _faceModel.GetProjectedShape(
+                                ref _videoConfig,
+                                1.0f,
+                                viewOffset,
+                                suToPass, suPassCount,   // raw SDK ptr + model SU count (C++ pattern)
+                                auPtrMesh, auCountMesh,
+                                scale,
+                                ref rotVec,
+                                ref transVec,
+                                vertBuf,
+                                _meshVertexCount);
 
-                            // Step 5: Allocate output buffer for projected vertices (FT_VECTOR2D = 8 bytes each).
-                            int bufSize = (int)_meshVertexCount * 8;
-                            IntPtr vertBuf = Marshal.AllocHGlobal(bufSize);
-                            try
+                            if (hr >= 0)
                             {
-                                hr = _faceModel.GetProjectedShape(
-                                    ref _videoConfig,
-                                    1.0f,
-                                    viewOffset,
-                                    pinnedSuPtr, (uint)suCoefs.Length,
-                                    auPtrMesh, auCountMesh,
-                                    scale,
-                                    ref rotVec,
-                                    ref transVec,
-                                    vertBuf,
-                                    _meshVertexCount);
-
-                                if (hr >= 0)
+                                meshVertices = new Vector2[_meshVertexCount];
+                                for (int i = 0; i < (int)_meshVertexCount; i++)
                                 {
-                                    meshVertices = new Vector2[_meshVertexCount];
-                                    for (int i = 0; i < (int)_meshVertexCount; i++)
-                                    {
-                                        IntPtr p = vertBuf + i * 8;
-                                        float vx = Marshal.PtrToStructure<float>(p);
-                                        float vy = Marshal.PtrToStructure<float>(p + 4);
-                                        meshVertices[i] = new Vector2(vx, vy);
-                                    }
+                                    IntPtr p = vertBuf + i * 8;
+                                    float vx = Marshal.PtrToStructure<float>(p);
+                                    float vy = Marshal.PtrToStructure<float>(p + 4);
+                                    meshVertices[i] = new Vector2(vx, vy);
                                 }
-                                else
-                                {
-                                    _logger.LogWarning(
-                                        "GetProjectedShape FAILED hr=0x{Hr:X8} suLen={SuLen} suModel={SuModel} auCount={AuCount} — using FP fallback",
-                                        unchecked((uint)hr), suCoefs.Length, suModelCount, auCountMesh);
-                                }
+                                _lastMeshHr = 0;  // success
+                                _logger.LogDebug("GetProjectedShape OK: {V} vertices", _meshVertexCount);
                             }
-                            finally
+                            else
                             {
-                                Marshal.FreeHGlobal(vertBuf);
+                                // Emit the HRESULT in the FaceFrame so AvatarWindow can show it in the MESH HUD.
+                                _lastMeshHr = unchecked((uint)hr);
+                                _logger.LogWarning(
+                                    "GetProjectedShape FAILED hr=0x{Hr:X8} suPass={SuPass} suModel={SuModel} suRuntime={SuRuntime} auCount={AuCount}",
+                                    unchecked((uint)hr), suToPass, suPassCount, suRuntime, auCountMesh);
                             }
                         }
                         finally
                         {
-                            gcHandle.Free();
+                            Marshal.FreeHGlobal(vertBuf);
                         }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("GetAUCoefficients failed hr=0x{Hr:X8} — skipping GetProjectedShape", unchecked((uint)hr));
                     }
                 }
             }
@@ -1383,6 +1369,7 @@ public sealed class KinectSensorSource : ISensorSource
                 FaceRect = (faceX, faceY, faceW, faceH),
                 FaceMeshVertices2D = meshVertices,
                 FaceMeshTriangles = meshTriangles,
+                MeshHr = _lastMeshHr,
             });
 
             return true;
