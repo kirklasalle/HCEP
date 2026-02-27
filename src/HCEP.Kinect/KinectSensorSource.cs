@@ -66,6 +66,12 @@ public sealed class KinectSensorSource : ISensorSource
     private GCHandle _colorPinHandle;
     private GCHandle _depthPinHandle;
 
+    // Face model mesh (from FaceTrackLib SDK — like FaceTrackingBasics-WPF sample)
+    private IFTModel? _faceModel;
+    private (int First, int Second, int Third)[]? _cachedTriangles;
+    private uint _meshVertexCount;
+    private FT_CAMERA_CONFIG _videoConfig;
+
     public KinectSensorSource(ILogger<KinectSensorSource> logger)
     {
         _logger = logger;
@@ -370,10 +376,10 @@ public sealed class KinectSensorSource : ISensorSource
 
             // Camera configs: Kinect v1 color 640×480, focal ~531.15 pixels
             // Depth 640×480, focal ~285.63 pixels (after NUI_IMAGE_PLAYER_INDEX_SHIFT)
-            var videoConfig = new FT_CAMERA_CONFIG { Width = 640, Height = 480, FocalLength = 531.15f };
+            _videoConfig = new FT_CAMERA_CONFIG { Width = 640, Height = 480, FocalLength = 531.15f };
             var depthConfig = new FT_CAMERA_CONFIG { Width = 640, Height = 480, FocalLength = 285.63f };
 
-            int hr = _faceTracker.Initialize(ref videoConfig, ref depthConfig, IntPtr.Zero, null);
+            int hr = _faceTracker.Initialize(ref _videoConfig, ref depthConfig, IntPtr.Zero, null);
             if (hr < 0)
             {
                 _logger.LogWarning("IFTFaceTracker.Initialize failed (hr=0x{HR:X8})", hr);
@@ -404,11 +410,14 @@ public sealed class KinectSensorSource : ISensorSource
         if (_colorPinHandle.IsAllocated) _colorPinHandle.Free();
         if (_depthPinHandle.IsAllocated) _depthPinHandle.Free();
 
+        if (_faceModel is not null) { try { Marshal.ReleaseComObject(_faceModel); } catch { } _faceModel = null; }
         if (_faceResult is not null) { try { Marshal.ReleaseComObject(_faceResult); } catch { } _faceResult = null; }
         if (_ftVideoImage is not null) { try { Marshal.ReleaseComObject(_ftVideoImage); } catch { } _ftVideoImage = null; }
         if (_ftDepthImage is not null) { try { Marshal.ReleaseComObject(_ftDepthImage); } catch { } _ftDepthImage = null; }
         if (_faceTracker is not null) { try { Marshal.ReleaseComObject(_faceTracker); } catch { } _faceTracker = null; }
 
+        _cachedTriangles = null;
+        _meshVertexCount = 0;
         _faceTrackingInitialized = false;
         _faceTrackingStarted = false;
     }
@@ -836,19 +845,7 @@ public sealed class KinectSensorSource : ISensorSource
         points3D[30] = new Vector3(0, 10f, -60f);  // Nose tip
         points3D[8] = new Vector3(0, -40f, -30f);  // Chin
 
-        // ── Feature Points 2D (project head to pixel coords) ──
-        // Simple pinhole model: fx≈525, fy≈525, cx=320, cy=240
-        var points2D = new Vector2[87];
-        if (head.Z > 0.1f)
-        {
-            float fx = 525f, fy = 525f, cx = 320f, cy = 240f;
-            float px = cx + head.X * fx / head.Z;
-            float py = cy - head.Y * fy / head.Z;
-            points2D[69] = new Vector2(px - 15f, py - 8f);
-            points2D[73] = new Vector2(px + 15f, py - 8f);
-        }
-
-        // ── Face Bounding Rect (approximate from head projection) ──
+        // ── Face Bounding Rect + 2D Feature Points ──
         int faceX = 280, faceY = 180, faceW = 80, faceH = 100;
         if (head.Z > 0.1f)
         {
@@ -861,6 +858,8 @@ public sealed class KinectSensorSource : ISensorSource
             faceW = (int)(halfSize * 2);
             faceH = (int)(halfSize * 2.5f);
         }
+
+        var points2D = GenerateApproxFacePoints2D(faceX, faceY, faceW, faceH);
 
         // ── Action Units (6 values, neutral = 0.0) ──
         var actionUnits = new float[6];
@@ -905,19 +904,17 @@ public sealed class KinectSensorSource : ISensorSource
         float px = cx + headX * fx / headZ;
         float py = cy - headY * fy / headZ;
 
-        var points2D = new Vector2[87];
-        points2D[69] = new Vector2(px - 15f, py - 8f); // Left pupil
-        points2D[73] = new Vector2(px + 15f, py - 8f); // Right pupil
-
-        var points3D = new Vector3[87];
-        points3D[69] = new Vector3(-31.5f, 30f, -15f);
-        points3D[73] = new Vector3(31.5f, 30f, -15f);
-
         float halfSize = 0.12f * fx / headZ;
         int faceX = (int)(px - halfSize);
         int faceY = (int)(py - halfSize);
         int faceW = (int)(halfSize * 2);
         int faceH = (int)(halfSize * 2.5f);
+
+        var points2D = GenerateApproxFacePoints2D(faceX, faceY, faceW, faceH);
+
+        var points3D = new Vector3[87];
+        points3D[69] = new Vector3(-31.5f, 30f, -15f);
+        points3D[73] = new Vector3(31.5f, 30f, -15f);
 
         FaceFrameReady?.Invoke(new FaceFrame
         {
@@ -939,6 +936,131 @@ public sealed class KinectSensorSource : ISensorSource
     /// provides skeleton head hints, and calls StartTracking/ContinueTracking.
     /// Returns true if a real FaceFrame was emitted.
     /// </summary>
+    // ── Approximate Face Points Generation ───────────────────
+
+    /// <summary>
+    /// Generates approximate 2D feature points for the 87-point FaceTrackLib model
+    /// using standard facial proportions relative to the face bounding box.
+    /// This enables the wireframe overlay to render even without the real FaceTrackLib.
+    /// </summary>
+    private static Vector2[] GenerateApproxFacePoints2D(int faceX, int faceY, int faceW, int faceH)
+    {
+        var pts = new Vector2[87];
+        if (faceW <= 0 || faceH <= 0) return pts;
+
+        // Face center and scale helpers
+        float cx = faceX + faceW * 0.5f;
+        float cy = faceY + faceH * 0.5f;
+        float w = faceW;
+        float h = faceH;
+
+        // Helper: create point from fractional offsets relative to face center
+        // dx, dy in range [-0.5, 0.5] where (0,0) = center
+        Vector2 P(float dx, float dy) => new(cx + dx * w, cy + dy * h);
+
+        // ── Forehead / Top of head ──
+        pts[0] = P(0.00f, -0.48f);   // top of skull (center)
+        pts[1] = P(-0.20f, -0.44f);  // right forehead
+        pts[3] = P(0.20f, -0.44f);   // left forehead
+
+        // ── Right eye (camera-right = person's left) ──
+        pts[10] = P(-0.30f, -0.18f); // outer corner
+        pts[11] = P(-0.23f, -0.23f); // mid top
+        pts[9] = P(-0.18f, -0.23f); // above mid
+        pts[13] = P(-0.10f, -0.18f); // inner corner
+        pts[14] = P(-0.18f, -0.14f); // below mid
+        pts[12] = P(-0.23f, -0.14f); // mid bottom
+
+        // ── Left eye (camera-left = person's right) ──
+        pts[31] = P(0.30f, -0.18f);  // outer corner
+        pts[32] = P(0.23f, -0.23f);  // mid top
+        pts[30] = P(0.18f, -0.23f);  // above mid
+        pts[34] = P(0.10f, -0.18f);  // inner corner
+        pts[35] = P(0.18f, -0.14f);  // below mid
+        pts[33] = P(0.23f, -0.14f);  // mid bottom
+
+        // ── Right eyebrow ──
+        pts[5] = P(-0.35f, -0.30f);  // outer
+        pts[6] = P(-0.25f, -0.34f);  // mid top
+        pts[7] = P(-0.12f, -0.30f);  // inner
+        pts[8] = P(-0.25f, -0.28f);  // mid bottom
+
+        // ── Left eyebrow ──
+        pts[29] = P(0.12f, -0.30f);  // inner (rightSide in chain)
+        pts[28] = P(0.25f, -0.34f);  // mid top
+        pts[27] = P(0.35f, -0.30f);  // outer (leftSide in chain)
+        pts[26] = P(0.25f, -0.28f);  // mid bottom
+
+        // ── Nose (detailed) ──
+        pts[37] = P(0.00f, -0.12f);  // nose bridge top (between eyes)
+        pts[38] = P(0.00f, -0.04f);  // nose bridge middle
+        pts[39] = P(0.00f, 0.02f);   // nose tip
+        pts[40] = P(-0.08f, 0.00f);  // right nostril top
+        pts[41] = P(0.00f, 0.06f);   // nostril bottom center
+        pts[42] = P(0.08f, 0.00f);   // left nostril top
+        pts[43] = P(-0.10f, 0.04f);  // right nostril outer
+        pts[44] = P(0.00f, 0.05f);   // nose bottom center
+        pts[45] = P(0.10f, 0.04f);   // left nostril outer
+
+        // ── Upper lip contour ──
+        pts[16] = P(-0.18f, 0.18f);  // right corner
+        pts[18] = P(-0.13f, 0.14f);  // right dip
+        pts[19] = P(-0.08f, 0.12f);  // right top
+        pts[20] = P(-0.04f, 0.11f);  // right upper
+        pts[2] = P(0.00f, 0.12f);   // center (cupid's bow dip)
+        pts[21] = P(0.04f, 0.11f);   // left upper
+        pts[22] = P(0.08f, 0.12f);   // left top
+        pts[23] = P(0.13f, 0.14f);   // left dip
+        pts[24] = P(0.18f, 0.18f);   // left corner
+
+        // ── Lower lip contour ──
+        pts[46] = P(-0.14f, 0.21f);  // right inner
+        pts[47] = P(-0.10f, 0.24f);  // right outer
+        pts[48] = P(-0.05f, 0.26f);  // bottom right
+        pts[36] = P(0.00f, 0.27f);   // lower lip center (bottom)
+        pts[49] = P(0.05f, 0.26f);   // bottom left
+        pts[50] = P(0.10f, 0.24f);   // left outer
+        pts[51] = P(0.14f, 0.21f);   // left inner
+        // Close lower lip at mouth corners
+        pts[52] = P(0.00f, 0.19f);   // lower lip top center (inside mouth)
+
+        // ── Jawline / Face outline (enhanced) ──
+        pts[15] = P(-0.45f, 0.05f);  // right side of face
+        pts[17] = P(-0.32f, 0.38f);  // right chin
+        pts[4] = P(0.00f, 0.48f);   // chin bottom center
+        pts[25] = P(0.32f, 0.38f);   // left chin
+
+        // Extended face outline (right side: temple → jaw)
+        pts[53] = P(-0.48f, -0.05f); // right temple lower
+        pts[54] = P(-0.47f, 0.00f);  // right cheek upper
+        pts[55] = P(-0.42f, 0.20f);  // right cheek lower
+        pts[56] = P(-0.18f, 0.44f);  // right chin inner
+
+        // Extended face outline (left side: jaw → temple)
+        pts[57] = P(0.18f, 0.44f);   // left chin inner
+        pts[58] = P(0.42f, 0.20f);   // left cheek lower
+        pts[59] = P(0.47f, 0.00f);   // left cheek upper
+        pts[60] = P(0.48f, -0.05f);  // left temple lower
+
+        // Forehead-to-temple connectors (right side)
+        pts[61] = P(-0.10f, -0.46f); // right upper forehead
+        pts[62] = P(-0.35f, -0.38f); // right mid forehead
+        pts[63] = P(-0.42f, -0.24f); // right outer brow
+        pts[64] = P(-0.46f, -0.10f); // right temple upper
+
+        // Forehead-to-temple connectors (left side)
+        pts[65] = P(0.10f, -0.46f);  // left upper forehead
+        pts[66] = P(0.35f, -0.38f);  // left mid forehead
+        pts[67] = P(0.42f, -0.24f);  // left outer brow
+        pts[68] = P(0.46f, -0.10f);  // left temple upper
+
+        // ── Pupils / Eye centers ──
+        pts[69] = P(-0.22f, -0.18f); // right pupil (camera-right)
+        pts[73] = P(0.22f, -0.18f);  // left pupil (camera-left)
+
+        return pts;
+    }
+
     private bool TryEmitRealFaceFrame(
         NUI_SKELETON_DATA skel,
         ImmutableDictionary<int, Vector3>.Builder joints,
@@ -1063,7 +1185,7 @@ public sealed class KinectSensorSource : ISensorSource
                 Marshal.Copy(auPtr, actionUnits, 0, copyCount);
             }
 
-            // 2D Shape Points
+            // 2D Shape Points (feature points for eye detection etc.)
             Vector2[] points2D = new Vector2[87];
             hr = _faceResult.Get2DShapePoints(out IntPtr pts2DPtr, out uint pts2DCount);
             if (hr >= 0 && pts2DPtr != IntPtr.Zero && pts2DCount > 0)
@@ -1076,6 +1198,104 @@ public sealed class KinectSensorSource : ISensorSource
                     float y = Marshal.PtrToStructure<float>(pVec + 4);
                     points2D[i] = new Vector2(x, y);
                 }
+            }
+
+            // ── Triangle Mesh (FaceTrackingBasics-WPF SDK sample approach) ──
+            // Get the IFTModel to retrieve triangle topology and projected mesh vertices.
+            // Triangles are static (cached after first retrieval).
+            // Projected vertices are computed each frame using SU/AU coefficients and pose.
+            Vector2[]? meshVertices = null;
+            var meshTriangles = _cachedTriangles;
+
+            try
+            {
+                // Get face model (first time only)
+                if (_faceModel == null && _faceTracker != null)
+                {
+                    hr = _faceTracker.GetFaceModel(out IntPtr pModel);
+                    if (hr >= 0 && pModel != IntPtr.Zero)
+                    {
+                        _faceModel = (IFTModel)Marshal.GetObjectForIUnknown(pModel);
+                        Marshal.Release(pModel); // GetObjectForIUnknown AddRefs, release ours
+                        _meshVertexCount = _faceModel.GetVertexCount();
+                        _logger.LogInformation("Face model loaded: {VertexCount} vertices", _meshVertexCount);
+
+                        // Get triangle topology (static — only need once, like SDK sample)
+                        hr = _faceModel.GetTriangles(out IntPtr triPtr, out uint triCount);
+                        if (hr >= 0 && triPtr != IntPtr.Zero && triCount > 0)
+                        {
+                            _cachedTriangles = new (int, int, int)[triCount];
+                            int triStructSize = Marshal.SizeOf<FT_TRIANGLE>();
+                            for (uint i = 0; i < triCount; i++)
+                            {
+                                IntPtr p = triPtr + (int)i * triStructSize;
+                                var tri = Marshal.PtrToStructure<FT_TRIANGLE>(p);
+                                _cachedTriangles[i] = (tri.First, tri.Second, tri.Third);
+                            }
+                            meshTriangles = _cachedTriangles;
+                            _logger.LogInformation("Face model triangles: {Count} triangles", triCount);
+                        }
+                    }
+                }
+
+                // Get projected shape vertices (each frame — like SDK's GetProjected3DShape)
+                if (_faceModel != null && _meshVertexCount > 0 && meshTriangles != null)
+                {
+                    // Get SU coefficients from the tracker
+                    uint suCount = 0;
+                    hr = _faceTracker!.GetShapeUnits(out float headScale, out IntPtr suPtr, ref suCount, out bool converged);
+                    if (hr >= 0 && suPtr != IntPtr.Zero && suCount > 0)
+                    {
+                        // Re-read AU pointer (needed for GetProjectedShape)
+                        hr = _faceResult.GetAUCoefficients(out IntPtr auPtrMesh, out uint auCountMesh);
+                        if (hr >= 0 && auPtrMesh != IntPtr.Zero && auCountMesh > 0)
+                        {
+                            var rotVec = new FT_VECTOR3D { x = rotation[0], y = rotation[1], z = rotation[2] };
+                            var transVec = new FT_VECTOR3D { x = translation[0], y = translation[1], z = translation[2] };
+                            var viewOffset = new FT_POINT { X = 0, Y = 0 };
+
+                            // Allocate output buffer for projected vertices (FT_VECTOR2D = 8 bytes each)
+                            int bufSize = (int)_meshVertexCount * 8;
+                            IntPtr vertBuf = Marshal.AllocHGlobal(bufSize);
+                            try
+                            {
+                                hr = _faceModel.GetProjectedShape(
+                                    ref _videoConfig,
+                                    1.0f,
+                                    viewOffset,
+                                    suPtr, suCount,
+                                    auPtrMesh, auCountMesh,
+                                    scale,
+                                    ref rotVec,
+                                    ref transVec,
+                                    vertBuf,
+                                    _meshVertexCount);
+
+                                if (hr >= 0)
+                                {
+                                    meshVertices = new Vector2[_meshVertexCount];
+                                    for (int i = 0; i < (int)_meshVertexCount; i++)
+                                    {
+                                        IntPtr p = vertBuf + i * 8;
+                                        float vx = Marshal.PtrToStructure<float>(p);
+                                        float vy = Marshal.PtrToStructure<float>(p + 4);
+                                        meshVertices[i] = new Vector2(vx, vy);
+                                    }
+                                }
+                            }
+                            finally
+                            {
+                                Marshal.FreeHGlobal(vertBuf);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Mesh extraction failure is non-fatal — we still emit the face frame
+                // with feature points and fall back to edge chain rendering
+                _logger.LogDebug(ex, "Face mesh extraction failed — using feature points only");
             }
 
             // 3D Feature Points (approximate from 2D + depth)
@@ -1101,6 +1321,8 @@ public sealed class KinectSensorSource : ISensorSource
                 FeaturePoints2D = points2D,
                 ActionUnits = actionUnits,
                 FaceRect = (faceX, faceY, faceW, faceH),
+                FaceMeshVertices2D = meshVertices,
+                FaceMeshTriangles = meshTriangles,
             });
 
             return true;

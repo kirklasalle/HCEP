@@ -53,16 +53,32 @@ public sealed class VideoOverlayControl : FrameworkElement
     private const double ImageW = 640.0;
     private const double ImageH = 480.0;
 
+    /// <summary>
+    /// Vertical pixel offset (in Kinect 640×480 pixel space) applied to all overlay
+    /// elements to compensate for the physical offset between the Kinect v1 depth/IR
+    /// sensor and the color camera. Positive = shift down.
+    /// </summary>
+    private const double DepthToColorOffsetY = 48.0;  // ~10% of 480
+
     // ── Brushes & Pens (frozen) ────────────────────────────────
 
     private static readonly Pen _skeletonPen = Freeze(new Pen(new SolidColorBrush(Color.FromArgb(220, 0, 255, 0)), 3.0));
     private static readonly Pen _inferredBonePen = Freeze(new Pen(new SolidColorBrush(Color.FromArgb(100, 0, 255, 0)), 1.5) { DashStyle = DashStyles.Dash });
     private static readonly Pen _faceRectPen = Freeze(new Pen(new SolidColorBrush(Color.FromArgb(220, 255, 255, 0)), 2.0));
     private static readonly Pen _faceWirePen = Freeze(new Pen(new SolidColorBrush(Color.FromArgb(180, 0, 255, 128)), 1.0));
+    private static readonly Pen _faceMeshPen = Freeze(new Pen(new SolidColorBrush(Color.FromArgb(160, 255, 255, 128)), 1.0));
     private static readonly Brush _jointTracked = Freeze(new SolidColorBrush(Color.FromArgb(230, 0, 255, 0)));
     private static readonly Brush _jointInferred = Freeze(new SolidColorBrush(Color.FromArgb(120, 255, 255, 0)));
     private static readonly Brush _facePointBrush = Freeze(new SolidColorBrush(Color.FromArgb(200, 0, 255, 128)));
     private static readonly Brush _pupilBrush = Freeze(new SolidColorBrush(Color.FromArgb(255, 255, 0, 128)));
+    private static readonly Brush _identityBgBrush = Freeze(new SolidColorBrush(Color.FromArgb(180, 0, 0, 0)));
+    private static readonly Brush _identityTextBrush = Freeze(new SolidColorBrush(Color.FromArgb(255, 0, 255, 200)));
+    private static readonly Brush _unknownTextBrush = Freeze(new SolidColorBrush(Color.FromArgb(180, 255, 200, 0)));
+    private static readonly Pen _eyeCrosshairPen = Freeze(new Pen(new SolidColorBrush(Color.FromArgb(255, 0, 200, 255)), 2.0));
+    private static readonly Brush _eyeCenterBrush = Freeze(new SolidColorBrush(Color.FromArgb(255, 0, 200, 255)));
+    private static readonly Brush _eyeLabelBrush = Freeze(new SolidColorBrush(Color.FromArgb(230, 0, 200, 255)));
+    private static readonly Pen _noseWirePen = Freeze(new Pen(new SolidColorBrush(Color.FromArgb(140, 0, 255, 128)), 0.8));
+    private static readonly Pen _faceOutlinePen = Freeze(new Pen(new SolidColorBrush(Color.FromArgb(100, 0, 255, 128)), 0.6) { DashStyle = DashStyles.Dot });
     private static readonly Typeface _typeface = new(
         new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
 
@@ -169,7 +185,16 @@ public sealed class VideoOverlayControl : FrameworkElement
                 if (person.Face is { IsTracked: true } face)
                 {
                     DrawFaceRect(dc, face, scale, offsetX, offsetY);
-                    DrawFaceWireframe(dc, face, scale, offsetX, offsetY);
+
+                    // Use triangle mesh if available (real FaceTrackLib — like SDK sample),
+                    // otherwise fall back to edge chain wireframe (approximate)
+                    if (face.FaceMeshTriangles is { Length: > 0 } && face.FaceMeshVertices2D is { Length: > 0 })
+                        DrawFaceTriangleMesh(dc, face, scale, offsetX, offsetY);
+                    else
+                        DrawFaceWireframe(dc, face, scale, offsetX, offsetY);
+
+                    DrawEyeLocations(dc, person, face, scale, offsetX, offsetY);
+                    DrawIdentityLabel(dc, person, face, scale, offsetX, offsetY);
                 }
             }
         }
@@ -195,7 +220,7 @@ public sealed class VideoOverlayControl : FrameworkElement
     /// Map Kinect 640×480 pixel coords → control coords (Uniform stretch).
     /// </summary>
     private static Point MapPixel(double px, double py, double scale, double offsetX, double offsetY)
-        => new(px * scale + offsetX, py * scale + offsetY);
+        => new(px * scale + offsetX, (py + DepthToColorOffsetY) * scale + offsetY);
 
     /// <summary>
     /// Project a 3D camera-space position (meters) to Kinect 640×480 pixel coords
@@ -381,7 +406,67 @@ public sealed class VideoOverlayControl : FrameworkElement
             new Rect(topLeft, bottomRight));
     }
 
-    // ── Face Feature Point Wireframe ───────────────────────────
+    // ── Face Triangle Mesh (FaceTrackingBasics-WPF SDK sample style) ──
+
+    /// <summary>
+    /// Renders the face as a triangle mesh wireframe — ported from the
+    /// Kinect SDK FaceTrackingBasics-WPF sample's DrawFaceModel method.
+    /// Uses the full 3D face model projected to 2D with triangle topology,
+    /// providing much more detailed face visualization than edge chains.
+    /// </summary>
+    private void DrawFaceTriangleMesh(DrawingContext dc, FaceFrame face,
+        double scale, double offsetX, double offsetY)
+    {
+        var vertices = face.FaceMeshVertices2D;
+        var triangles = face.FaceMeshTriangles;
+        if (vertices == null || triangles == null) return;
+
+        // Build geometry group like the SDK sample — one LineGeometry per triangle edge
+        var meshGroup = new GeometryGroup();
+
+        foreach (var (first, second, third) in triangles)
+        {
+            if (first < 0 || second < 0 || third < 0) continue;
+            if (first >= vertices.Length || second >= vertices.Length || third >= vertices.Length)
+                continue;
+
+            var v1 = vertices[first];
+            var v2 = vertices[second];
+            var v3 = vertices[third];
+
+            // Skip degenerate triangles (all vertices at zero)
+            if (v1 == Vector2.Zero && v2 == Vector2.Zero && v3 == Vector2.Zero)
+                continue;
+
+            var pt1 = MapPixel(v1.X, v1.Y, scale, offsetX, offsetY);
+            var pt2 = MapPixel(v2.X, v2.Y, scale, offsetX, offsetY);
+            var pt3 = MapPixel(v3.X, v3.Y, scale, offsetX, offsetY);
+
+            // Three edges per triangle (same as SDK sample)
+            meshGroup.Children.Add(new LineGeometry(pt1, pt2));
+            meshGroup.Children.Add(new LineGeometry(pt2, pt3));
+            meshGroup.Children.Add(new LineGeometry(pt3, pt1));
+        }
+
+        if (meshGroup.Children.Count > 0)
+            dc.DrawGeometry(null, _faceMeshPen, meshGroup);
+
+        // Also draw eye & pupil dots on top of mesh
+        var pts = face.FeaturePoints2D;
+        if (pts.Length > 73)
+        {
+            for (int i = 69; i <= 73; i += 4) // indices 69 (right pupil) and 73 (left pupil)
+            {
+                if (i >= pts.Length) continue;
+                var p = pts[i];
+                if (p == Vector2.Zero) continue;
+                var pt = MapPixel(p.X, p.Y, scale, offsetX, offsetY);
+                dc.DrawEllipse(_pupilBrush, null, pt, 3.5 * scale, 3.5 * scale);
+            }
+        }
+    }
+
+    // ── Face Feature Point Wireframe (fallback) ────────────────
 
     private void DrawFaceWireframe(DrawingContext dc, FaceFrame face,
         double scale, double offsetX, double offsetY)
@@ -422,6 +507,121 @@ public sealed class VideoOverlayControl : FrameworkElement
                 dc.DrawLine(_faceWirePen, ptA, ptB);
             }
         }
+    }
+
+    // ── Identity Label ────────────────────────────────────────
+
+    private void DrawIdentityLabel(DrawingContext dc, TrackedPerson person, FaceFrame face,
+        double scale, double offsetX, double offsetY)
+    {
+        var (x, y, w, h) = face.FaceRect;
+        if (w <= 0 || h <= 0) return;
+
+        string label;
+        Brush textBrush;
+
+        if (!string.IsNullOrEmpty(person.IdentityName))
+        {
+            label = $"{person.IdentityName}  {person.IdentityConfidence:P0}";
+            textBrush = _identityTextBrush;
+        }
+        else
+        {
+            label = "Unknown";
+            textBrush = _unknownTextBrush;
+        }
+
+        try
+        {
+            var ft = new FormattedText(
+                label,
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                _typeface, 12, textBrush,
+                _cachedPixelsPerDip > 0 ? _cachedPixelsPerDip : 1.0);
+
+            // Position just below the face bounding box, centered
+            var boxBottom = MapPixel(x + w / 2.0, y + h + 4, scale, offsetX, offsetY);
+            double textX = boxBottom.X - ft.Width / 2;
+            double textY = boxBottom.Y;
+
+            // Draw semi-transparent background behind text
+            double pad = 3;
+            dc.DrawRoundedRectangle(
+                _identityBgBrush, null,
+                new Rect(textX - pad, textY - pad / 2, ft.Width + pad * 2, ft.Height + pad),
+                3, 3);
+
+            dc.DrawText(ft, new Point(textX, textY));
+        }
+        catch { /* label not critical */ }
+    }
+
+    // ── Eye Location Crosshairs ──────────────────────────────
+
+    /// <summary>
+    /// Renders prominent crosshair markers at each eye center location with
+    /// coordinate labels. Eye location is THE primary telemetry output of HCEP.
+    /// Uses the eye contour centroid from FaceFrame (physical eye position,
+    /// NOT pupil gaze direction).
+    /// </summary>
+    private void DrawEyeLocations(DrawingContext dc, TrackedPerson person, FaceFrame face,
+        double scale, double offsetX, double offsetY)
+    {
+        var leftCenter = face.LeftEyeCenter2D;
+        var rightCenter = face.RightEyeCenter2D;
+
+        if (leftCenter != Vector2.Zero)
+            DrawEyeCrosshair(dc, leftCenter, "L", person.LeftEyePosition, scale, offsetX, offsetY);
+
+        if (rightCenter != Vector2.Zero)
+            DrawEyeCrosshair(dc, rightCenter, "R", person.RightEyePosition, scale, offsetX, offsetY);
+
+        // Draw inter-ocular distance line
+        if (leftCenter != Vector2.Zero && rightCenter != Vector2.Zero)
+        {
+            var ptL = MapPixel(leftCenter.X, leftCenter.Y, scale, offsetX, offsetY);
+            var ptR = MapPixel(rightCenter.X, rightCenter.Y, scale, offsetX, offsetY);
+            dc.DrawLine(_eyeCrosshairPen, ptL, ptR);
+        }
+    }
+
+    /// <summary>
+    /// Draws a single eye crosshair with label showing 3D camera-space coordinates.
+    /// </summary>
+    private void DrawEyeCrosshair(DrawingContext dc, Vector2 center2D, string label,
+        Vector3 pos3D, double scale, double offsetX, double offsetY)
+    {
+        var pt = MapPixel(center2D.X, center2D.Y, scale, offsetX, offsetY);
+        double armLen = 8 * scale;
+
+        // Crosshair arms
+        dc.DrawLine(_eyeCrosshairPen, new Point(pt.X - armLen, pt.Y), new Point(pt.X + armLen, pt.Y));
+        dc.DrawLine(_eyeCrosshairPen, new Point(pt.X, pt.Y - armLen), new Point(pt.X, pt.Y + armLen));
+
+        // Center dot
+        dc.DrawEllipse(_eyeCenterBrush, null, pt, 3 * scale, 3 * scale);
+
+        // Coordinate label (3D camera-space meters)
+        try
+        {
+            string coordText;
+            if (pos3D != default)
+                coordText = $"{label} ({pos3D.X:F3}, {pos3D.Y:F3}, {pos3D.Z:F2})";
+            else
+                coordText = label;
+
+            var ft = new FormattedText(
+                coordText,
+                CultureInfo.InvariantCulture,
+                FlowDirection.LeftToRight,
+                _typeface, 9, _eyeLabelBrush,
+                _cachedPixelsPerDip > 0 ? _cachedPixelsPerDip : 1.0);
+
+            // Position label above the crosshair
+            dc.DrawText(ft, new Point(pt.X - ft.Width / 2, pt.Y - armLen - ft.Height - 2));
+        }
+        catch { /* label not critical */ }
     }
 
     // ── Helpers ─────────────────────────────────────────────────

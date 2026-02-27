@@ -286,6 +286,81 @@ internal interface IFTFaceTracker
         ref uint pFaceCount);
 }
 
+// ── Support Structs for IFTModel ───────────────────────────────
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct FT_TRIANGLE
+{
+    public int First;
+    public int Second;
+    public int Third;
+}
+
+[StructLayout(LayoutKind.Sequential)]
+internal struct FT_POINT
+{
+    public int X;
+    public int Y;
+}
+
+// ── COM Interface: IFTModel ────────────────────────────────────
+//
+// MIDL_INTERFACE("1A00A7BD-C217-11E0-AC90-0024811441FD")
+// Provides access to the 3D face model: vertex count, triangles,
+// projected shape, and 3D shape.
+// Vtable after IUnknown (slots 3+):
+//   0: GetSUCount  1: GetAUCount  2: GetTriangles  3: GetVertexCount
+//   4: Get3DShape  5: GetProjectedShape
+
+[ComImport]
+[Guid("1A00A7BD-C217-11E0-AC90-0024811441FD")]
+[InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+internal interface IFTModel
+{
+    // ── Slot 0: GetSUCount ──
+    [PreserveSig]
+    uint GetSUCount();
+
+    // ── Slot 1: GetAUCount ──
+    [PreserveSig]
+    uint GetAUCount();
+
+    // ── Slot 2: GetTriangles ──
+    // Returns pointer to internal FT_TRIANGLE array (static topology, does not change).
+    [PreserveSig]
+    int GetTriangles(out IntPtr ppTriangles, out uint pTriangleCount);
+
+    // ── Slot 3: GetVertexCount ──
+    [PreserveSig]
+    uint GetVertexCount();
+
+    // ── Slot 4: Get3DShape ──
+    // Transforms the 3D model by SU/AU coefficients and pose.
+    [PreserveSig]
+    int Get3DShape(
+        IntPtr pSUCoefs, uint suCount,
+        IntPtr pAUCoefs, uint auCount,
+        float scale,
+        ref FT_VECTOR3D rotationXYZ,
+        ref FT_VECTOR3D translationXYZ,
+        IntPtr pVertices, uint vertexCount);
+
+    // ── Slot 5: GetProjectedShape ──
+    // Projects the 3D model vertices to 2D video-frame coordinates.
+    // Output is FT_VECTOR2D[] (8 bytes per vertex: float x, float y).
+    [PreserveSig]
+    int GetProjectedShape(
+        ref FT_CAMERA_CONFIG pCameraConfig,
+        float zoomFactor,
+        FT_POINT viewOffset,
+        IntPtr pSUCoefs, uint suCount,
+        IntPtr pAUCoefs, uint auCount,
+        float scale,
+        ref FT_VECTOR3D rotationXYZ,
+        ref FT_VECTOR3D translationXYZ,
+        IntPtr pVertices, uint vertexCount);
+}
+
 // ── Factory Function Delegates ─────────────────────────────────
 //
 // These are exported from FaceTrackLib.dll as __stdcall functions.

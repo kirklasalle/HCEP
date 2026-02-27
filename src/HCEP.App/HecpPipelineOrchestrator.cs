@@ -4,6 +4,8 @@
 // ──────────────────────────────────────────────────────────────
 
 using System.Collections.Immutable;
+using System.IO;
+using System.Numerics;
 using HCEP.Audio;
 using HCEP.Core.Enums;
 using HCEP.Core.Interfaces;
@@ -12,6 +14,7 @@ using HCEP.Intelligence;
 using HCEP.Kinect;
 using HCEP.Knowledge;
 using HCEP.Telemetry;
+using HCEP.Spatial;
 using HCEP.Vision;
 using Microsoft.Extensions.Logging;
 
@@ -31,6 +34,7 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
     private readonly PersonKnowledgeManager _personKnowledge;
     private readonly AgenticToolExecutor _toolExecutor;
     private readonly ILlmEngine _llmEngine;
+    private readonly IFaceRecognizer _faceRecognizer;
     private readonly ITelemetryService _telemetry;
     private readonly ILogger<HCEPPipelineOrchestrator> _logger;
     private readonly FpsCounter _fpsCounter = new();
@@ -47,6 +51,27 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
     private volatile HcepReading? _latestHcep;
     private readonly FpsCounter _hcepFpsCounter = new();
 
+    // ── Phase 6: True Gaze Avatar ───────────────────────────
+    // MVP defaults — Kinect centred horizontally, 120 mm above screen centre,
+    // 30 mm forward of the bezel.  24" monitor (1920×1080) physical dims.
+    private const float KinectOffsetXMm = 0f;
+    private const float KinectOffsetYMm = 120f;   // mm above screen centre
+    private const float KinectOffsetZMm = 30f;   // mm in front of bezel
+    private const float ScreenWidthMm = 530f;   // ~24" 16:9 panel
+    private const float ScreenHeightMm = 300f;
+
+    private readonly CalibrationMatrixCalculator _calibration = new(
+        kinectOffsetFromScreenCentreMm: new Vector3(KinectOffsetXMm, KinectOffsetYMm, KinectOffsetZMm),
+        screenWidthMm: ScreenWidthMm,
+        screenHeightMm: ScreenHeightMm);
+
+    private readonly MicroSaccadeController _saccade = new();
+
+    // ── Auto-fallback: full-body → seated mode ──────────────
+    private DateTimeOffset _lastPersonSeenAt = DateTimeOffset.MinValue;
+    private bool _autoFellBackToSeated;
+    private const double AutoFallbackSeconds = 5.0;
+
     public HCEPPipelineOrchestrator(
         ISensorSource sensor,
         SimulatedSensorSource fallbackSensor,
@@ -55,6 +80,7 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
         PersonKnowledgeManager personKnowledge,
         AgenticToolExecutor toolExecutor,
         ILlmEngine llmEngine,
+        IFaceRecognizer faceRecognizer,
         ITelemetryService telemetry,
         ILogger<HCEPPipelineOrchestrator> logger)
     {
@@ -65,6 +91,7 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
         _personKnowledge = personKnowledge;
         _toolExecutor = toolExecutor;
         _llmEngine = llmEngine;
+        _faceRecognizer = faceRecognizer;
         _telemetry = telemetry;
         _logger = logger;
     }
@@ -74,6 +101,40 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
     public bool IsRunning => _isRunning;
     public SceneSnapshot? LatestSnapshot => _latestSnapshot;
     public double CurrentFps => _hcepFpsCounter.Fps;
+
+    /// <summary>
+    /// Enroll the currently tracked face under the given name.
+    /// The enrollment runs on the next face recognition cycle (~1 sec).
+    /// </summary>
+    public void EnrollFace(string name)
+    {
+        _vision.PendingEnrollmentName = name;
+        _logger.LogInformation("Face enrollment requested for: {Name}", name);
+    }
+
+    /// <summary>Number of enrolled face identities.</summary>
+    public int EnrolledFaceCount => _faceRecognizer.EnrolledCount;
+
+    /// <summary>Whether the ArcFace model has been loaded successfully.</summary>
+    public bool IsArcFaceModelLoaded => _faceRecognizer is ArcFaceRecognizer arc && arc.IsModelLoaded;
+
+    /// <summary>
+    /// Resets the auto-fallback flag so the system can try full-body mode again.
+    /// Called when the user manually toggles back to full-body.
+    /// </summary>
+    public void ResetAutoFallback()
+    {
+        _autoFellBackToSeated = false;
+        _lastPersonSeenAt = DateTimeOffset.UtcNow; // give 5 more seconds before retrying fallback
+        _logger.LogInformation("Auto-fallback reset — trying full-body mode again");
+    }
+
+    /// <summary>
+    /// Fires when the orchestrator auto-switches between seated/full-body mode.
+    /// Boolean is true when seated mode was engaged.
+    /// </summary>
+    public event Action<bool>? SeatedModeChanged;
+
     public event Action<SceneSnapshot>? SnapshotReady;
     public event Action<SpeechResult>? SpeechReady;
     public event Action<ColorFrame>? ColorFrameReady;
@@ -87,6 +148,30 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
         _logger.LogInformation("Starting HCEP pipeline...");
 
         _cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        // ── Load ArcFace model (best-effort) ──────────────────
+        try
+        {
+            var modelDir = Path.Combine(AppContext.BaseDirectory, "models");
+            var modelPath = Path.Combine(modelDir, "arcface.onnx");
+            if (File.Exists(modelPath))
+            {
+                if (_faceRecognizer is ArcFaceRecognizer arcFace)
+                {
+                    arcFace.LoadModel(modelPath);
+                    _logger.LogInformation("ArcFace model loaded from {Path}", modelPath);
+                }
+            }
+            else
+            {
+                _logger.LogInformation("ArcFace model not found at {Path} — face recognition disabled. " +
+                    "Place arcface.onnx in the models/ folder to enable.", modelPath);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load ArcFace model — face recognition disabled");
+        }
 
         // Initialize sensor — fall back to simulated if real sensor is unavailable
         await _sensor.InitializeAsync(SensorStreamType.All, _cts.Token);
@@ -111,7 +196,11 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
                     count, written, face.IsTracked, face.HeadRotation.Y, face.HeadRotation.X);
         };
         _sensor.AudioFrameReady += audio => _audio.AudioInput.TryWrite(audio);
-        _sensor.ColorFrameReady += color => ColorFrameReady?.Invoke(color);
+        _sensor.ColorFrameReady += color =>
+        {
+            _vision.LatestColor = color;
+            ColorFrameReady?.Invoke(color);
+        };
         _sensor.DepthFrameReady += depth => DepthFrameReady?.Invoke(depth);
         _sensor.InfraredFrameReady += ir => InfraredFrameReady?.Invoke(ir);
         long skelFrameCount = 0;
@@ -156,7 +245,11 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
                         count, written, face.IsTracked);
             };
             _sensor.AudioFrameReady += audio => _audio.AudioInput.TryWrite(audio);
-            _sensor.ColorFrameReady += color => ColorFrameReady?.Invoke(color);
+            _sensor.ColorFrameReady += color =>
+            {
+                _vision.LatestColor = color;
+                ColorFrameReady?.Invoke(color);
+            };
             _sensor.DepthFrameReady += depth => DepthFrameReady?.Invoke(depth);
             _sensor.InfraredFrameReady += ir => InfraredFrameReady?.Invoke(ir);
             _sensor.SkeletonFrameReady += skel =>
@@ -259,26 +352,61 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
                 _fpsCounter.Tick();
                 frameNumber++;
 
+                // ── Phase 6: advance micro-saccade timer (loop runs at ~10 Hz)
+                _saccade.Update(0.1);
+
                 var hcep = _latestHcep;
                 var latestSkel = _latestSkeleton;
                 var latestFace = _latestFace;
+                var recognition = _vision.LatestRecognition;
 
                 // Build TrackedPerson from whatever data is available
                 TrackedPerson? person = null;
                 if (hcep is not null || latestFace is not null || latestSkel is not null)
                 {
+                    var headPos = hcep?.GazeOrigin
+                            ?? (latestSkel?.Joints?.ContainsKey(3) == true ? latestSkel.Joints[3] : default);
+
+                    // ── Eye Location Computation ──────────────────
+                    // Derive 3D camera-space positions for each eye from head position
+                    // and inter-ocular offset (~32mm half-distance), applying yaw rotation.
+                    var (leftEye, rightEye) = ComputeEyePositions(headPos, latestFace);
+
+                    // ── Phase 6: calibrated gaze + IK target ──────────
+                    Vector3 calibratedGaze = Vector3.Zero;
+                    Vector3? avatarIkTarget = null;
+
+                    if (hcep is not null)
+                    {
+                        // Dynamic parallax correction using live user depth (mm)
+                        float userDepthMm = hcep.GazeOrigin.Z * 1000f; // metres → mm
+                        calibratedGaze = _calibration.ApplyCalibration(
+                            hcep.GazeDirection, userDepthMm);
+                    }
+
+                    if (latestFace is not null && latestFace.IsTracked)
+                    {
+                        avatarIkTarget = _saccade.GetFocusPoint3D(latestFace);
+                    }
+
                     person = new TrackedPerson
                     {
                         TrackingId = hcep?.PersonId ?? latestSkel?.TrackingId ?? 0,
                         State = hcep is not null ? TrackingState.Tracked : TrackingState.PositionOnly,
                         LatestHcep = hcep,
-                        HeadPosition = hcep?.GazeOrigin
-                            ?? (latestSkel?.Joints?.ContainsKey(3) == true ? latestSkel.Joints[3] : default),
+                        IdentityName = recognition?.IdentityName,
+                        FaceEmbedding = recognition?.Embedding,
+                        IdentityConfidence = recognition?.Similarity ?? 0f,
+                        HeadPosition = headPos,
+                        LeftEyePosition = leftEye,
+                        RightEyePosition = rightEye,
                         LastSeen = hcep?.Timestamp ?? DateTimeOffset.UtcNow,
                         JointPositions = latestSkel?.Joints,
                         JointStates = latestSkel?.JointStates,
                         DistanceM = latestSkel?.Position.Z ?? hcep?.GazeOrigin.Z ?? 0,
                         Face = latestFace,
+                        CalibratedGazeDirection = calibratedGaze,
+                        AvatarIkTarget = avatarIkTarget,
                     };
 
                     // Knowledge Store integration (M1.2)
@@ -313,6 +441,37 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
                 _telemetry.RecordGauge("pipeline.fps", _hcepFpsCounter.Fps);
                 if (hcep is not null)
                     _telemetry.RecordTiming("pipeline.latency_ms", snapshot.PipelineLatency.TotalMilliseconds);
+
+                // ── Auto-fallback: full-body → seated if no detection ──
+                if (person is not null)
+                {
+                    _lastPersonSeenAt = DateTimeOffset.UtcNow;
+                    // Person detected — stay in current mode.
+                }
+                else if (!_sensor.SeatedMode
+                         && !_autoFellBackToSeated
+                         && _lastPersonSeenAt != DateTimeOffset.MinValue
+                         && (DateTimeOffset.UtcNow - _lastPersonSeenAt).TotalSeconds > AutoFallbackSeconds)
+                {
+                    _sensor.SeatedMode = true;
+                    _autoFellBackToSeated = true;
+                    _logger.LogWarning(
+                        "No person detected for {Sec}s in full-body mode — auto-switching to SEATED mode",
+                        AutoFallbackSeconds);
+                    SeatedModeChanged?.Invoke(true);
+                }
+                else if (!_sensor.SeatedMode
+                         && !_autoFellBackToSeated
+                         && _lastPersonSeenAt == DateTimeOffset.MinValue
+                         && frameNumber >= 50)
+                {
+                    _sensor.SeatedMode = true;
+                    _autoFellBackToSeated = true;
+                    _logger.LogWarning(
+                        "No person detected after {Frames} snapshots — auto-switching to SEATED mode",
+                        frameNumber);
+                    SeatedModeChanged?.Invoke(true);
+                }
 
                 SnapshotReady?.Invoke(snapshot);
 
@@ -414,5 +573,44 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
         {
             _logger.LogError(ex, "Speech loop error");
         }
+    }
+
+    // ── Eye Location Helpers ───────────────────────────────────
+
+    /// <summary>
+    /// Average adult inter-ocular half-distance in meters (~32mm from midline to each eye).
+    /// Total inter-pupillary distance ~63mm.
+    /// </summary>
+    private const float EyeHalfDistanceM = 0.032f;
+
+    /// <summary>
+    /// Computes 3D camera-space positions of both eyes from head position
+    /// and current face tracking data. Applies yaw rotation so eye positions
+    /// track correctly when the head turns.
+    /// </summary>
+    private static (Vector3 Left, Vector3 Right) ComputeEyePositions(
+        Vector3 headPos, FaceFrame? face)
+    {
+        if (headPos == default) return (default, default);
+
+        // Yaw angle from face tracking (degrees → radians)
+        float yawRad = (face?.HeadRotation.Y ?? 0f) * MathF.PI / 180f;
+        float cosY = MathF.Cos(yawRad);
+        float sinY = MathF.Sin(yawRad);
+
+        // Lateral offset rotated by yaw (X-Z plane)
+        // Left eye: -X in head space
+        var leftOffset = new Vector3(
+            -EyeHalfDistanceM * cosY,
+            0,
+            EyeHalfDistanceM * sinY);
+
+        // Right eye: +X in head space
+        var rightOffset = new Vector3(
+            EyeHalfDistanceM * cosY,
+            0,
+            -EyeHalfDistanceM * sinY);
+
+        return (headPos + leftOffset, headPos + rightOffset);
     }
 }

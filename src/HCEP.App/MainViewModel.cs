@@ -97,11 +97,48 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _colorStreamEnabled = true;
     [ObservableProperty] private bool _depthStreamEnabled = true;
     [ObservableProperty] private bool _showFullSkeleton = true;
+    [ObservableProperty] private string _enrollmentName = "";
+    [ObservableProperty] private string _recognizedIdentity = "—";
+    [ObservableProperty] private string _leftEyePosition = "—";
+    [ObservableProperty] private string _rightEyePosition = "—";
+    [ObservableProperty] private string _interOcularDistance = "—";
+
+    private bool _suppressSeatedModeToggle;
 
     partial void OnShowFullSkeletonChanged(bool value)
     {
-        try { _sensor.SeatedMode = !value; }
+        if (_suppressSeatedModeToggle) return;
+        try
+        {
+            _sensor.SeatedMode = !value;
+            // If manually switching back to full-body, reset the auto-fallback flag
+            if (value && _pipeline is HCEPPipelineOrchestrator orch)
+                orch.ResetAutoFallback();
+        }
         catch (Exception ex) { _logger.LogWarning(ex, "Failed to toggle skeleton mode"); }
+    }
+
+    /// <summary>
+    /// Called by the orchestrator when it auto-switches between seated/full-body mode.
+    /// Updates the UI toggle without re-triggering the sensor switch.
+    /// </summary>
+    private void OnSeatedModeChanged(bool isSeated)
+    {
+        _dispatcher.InvokeAsync(() =>
+        {
+            _suppressSeatedModeToggle = true;
+            try
+            {
+                ShowFullSkeleton = !isSeated;
+                StatusMessage = isSeated
+                    ? "Auto-switched to SEATED mode (closer range)"
+                    : "Switched to FULL BODY mode";
+            }
+            finally
+            {
+                _suppressSeatedModeToggle = false;
+            }
+        }, DispatcherPriority.Normal);
     }
 
     private WriteableBitmap? _videoFrame;
@@ -126,6 +163,10 @@ public partial class MainViewModel : ObservableObject
             _pipeline.ColorFrameReady += OnColorFrameReady;
             _pipeline.LlmResponseReady += OnLlmResponseReady;
 
+            // Subscribe to auto-fallback mode changes
+            if (_pipeline is HCEPPipelineOrchestrator orch)
+                orch.SeatedModeChanged += OnSeatedModeChanged;
+
             // Start metrics refresh timer (4 Hz)
             _metricsTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
             _metricsTimer.Tick += (_, _) => RefreshMetrics();
@@ -149,6 +190,8 @@ public partial class MainViewModel : ObservableObject
         _pipeline.SpeechReady -= OnSpeechReady;
         _pipeline.ColorFrameReady -= OnColorFrameReady;
         _pipeline.LlmResponseReady -= OnLlmResponseReady;
+        if (_pipeline is HCEPPipelineOrchestrator o)
+            o.SeatedModeChanged -= OnSeatedModeChanged;
 
         try { await _pipeline.StopAsync(); }
         catch (Exception ex) { _logger.LogWarning(ex, "Error during shutdown"); }
@@ -200,6 +243,31 @@ public partial class MainViewModel : ObservableObject
     private void ElevationDown()
     {
         ElevationAngle = Math.Max(ElevationAngle - 2, -27);
+    }
+
+    [RelayCommand]
+    private void EnrollFace()
+    {
+        if (string.IsNullOrWhiteSpace(EnrollmentName))
+        {
+            StatusMessage = "Enter a name to enroll";
+            return;
+        }
+
+        if (_pipeline is HCEPPipelineOrchestrator orchestrator)
+        {
+            if (!orchestrator.IsArcFaceModelLoaded)
+            {
+                StatusMessage = "Face recognition model not loaded — place arcface.onnx in models/ folder";
+                return;
+            }
+
+            var name = EnrollmentName.Trim();
+            orchestrator.EnrollFace(name);
+            StatusMessage = $"Enrolling face as '{name}'...";
+            _logger.LogInformation("Enrolling face: {Name}", name);
+            EnrollmentName = "";
+        }
     }
 
     [RelayCommand]
@@ -255,6 +323,36 @@ public partial class MainViewModel : ObservableObject
             }
 
             TrackedPersons = snapshot.Persons.Length;
+
+            // Update identity display
+            if (person is not null)
+            {
+                RecognizedIdentity = !string.IsNullOrEmpty(person.IdentityName)
+                    ? $"{person.IdentityName} ({person.IdentityConfidence:P0})"
+                    : "Unknown";
+
+                // ── Eye Location Telemetry (PRIMARY data) ──
+                if (person.LeftEyePosition != default)
+                    LeftEyePosition = $"({person.LeftEyePosition.X:F3}, {person.LeftEyePosition.Y:F3}, {person.LeftEyePosition.Z:F2})";
+                else
+                    LeftEyePosition = "—";
+
+                if (person.RightEyePosition != default)
+                    RightEyePosition = $"({person.RightEyePosition.X:F3}, {person.RightEyePosition.Y:F3}, {person.RightEyePosition.Z:F2})";
+                else
+                    RightEyePosition = "—";
+
+                InterOcularDistance = person.InterOcularDistanceM > 0
+                    ? $"{person.InterOcularDistanceM * 1000:F1} mm"
+                    : "—";
+            }
+            else
+            {
+                RecognizedIdentity = "—";
+                LeftEyePosition = "—";
+                RightEyePosition = "—";
+                InterOcularDistance = "—";
+            }
 
             // Update visualization panel
             LatestSnapshot = snapshot;

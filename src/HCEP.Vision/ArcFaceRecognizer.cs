@@ -118,6 +118,9 @@ public sealed class ArcFaceRecognizer : IFaceRecognizer, IDisposable
     /// <inheritdoc />
     public int EnrolledCount => _enrolledFaces.Count;
 
+    /// <inheritdoc />
+    public bool IsModelLoaded => _session is not null;
+
     public void Dispose()
     {
         _session?.Dispose();

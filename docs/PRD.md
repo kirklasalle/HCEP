@@ -42,15 +42,18 @@ No existing system classifies these patterns in real-time or uses them to modula
 
 ---
 
-## 3. Target Users
+## 3. Target Users & Expanded Use Cases
 
 | User Segment | Description |
 |---|---|
-| **Researchers** | HCI, psychology, cognitive science researchers studying eye contact |
-| **Therapists** | Clinical practitioners using gaze analysis for patient assessment |
-| **Developers** | Software engineers building eye-contact-aware applications |
-| **Enterprise** | Organizations wanting empathetic AI assistants |
+| **Autonomous Agents** | Intelligence systems (e.g., Nexus) requiring agentic access to hardware vision to "see" and interpret human states in real-time. |
+| **Robotics** | Physical humanoid/companion robots utilizing HCEP to achieve human-like visual acuity, natural gaze interaction, and joint attention. |
+| **AR / VR / Gaming** | NPC and avatar systems rendering true eye-contact geometry so characters look at each other and the player camera correctly, breaking the "dead eyes" barrier in spatial computing. |
+| **Researchers & Science** | Psychologists and cognitive scientists utilizing HCEP as a standard for automated human behavior/psychology readings (strictly constrained by ethical AI Laws). |
 | **Kirk LaSalle** | Primary stakeholder, HCEP theory inventor |
+
+### 3.1 Future Expansion: Advanced Detection
+While v0.1 establishes the foundational standard (face, gaze, Action Units), future iterations of HCEP will expand to **Full-Body Posture and Movement Detection** (kinesics and proxemics). This will allow the protocol to decode holistic human communication—merging eye contact patterns with body language, weight shifts, and spatial positioning.
 
 ---
 

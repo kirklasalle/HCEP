@@ -82,6 +82,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0"
@@ -157,7 +158,42 @@
                     </ToggleButton>
                 </StackPanel>
 
+                <!-- Face Enrollment -->
                 <StackPanel Grid.Column="5"
+                            Orientation="Horizontal"
+                            VerticalAlignment="Center"
+                            Margin="0,0,12,0"
+                            ToolTip="Enroll a new face identity — type a name and press Enroll while facing the camera">
+                    <TextBox Text="{Binding EnrollmentName, UpdateSourceTrigger=PropertyChanged}"
+                             Width="90"
+                             VerticalAlignment="Center"
+                             FontSize="10"
+                             Padding="4,2"
+                             Background="#22FFFFFF"
+                             Foreground="{StaticResource TextBrush}"
+                             BorderBrush="{StaticResource AccentBrush}"
+                             BorderThickness="1"
+                             ToolTip="Enter the name of the person to enroll"/>
+                    <Button Content="Enroll"
+                            Command="{Binding EnrollFaceCommand}"
+                            Padding="6,2"
+                            Margin="4,0,0,0"
+                            FontSize="10"
+                            Cursor="Hand"
+                            Background="{StaticResource SurfaceBrush}"
+                            Foreground="{StaticResource AccentBrush}"
+                            BorderBrush="{StaticResource AccentBrush}"
+                            BorderThickness="1"
+                            ToolTip="Enroll the currently tracked face under the entered name"/>
+                    <TextBlock Text="{Binding RecognizedIdentity}"
+                               FontSize="10"
+                               Foreground="{StaticResource PrimaryBrush}"
+                               VerticalAlignment="Center"
+                               Margin="8,0,0,0"
+                               ToolTip="Currently recognized face identity"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="6"
                             Orientation="Horizontal"
                             VerticalAlignment="Center"
                             ToolTip="Kinect sensor connection status indicator">
@@ -382,17 +418,17 @@
                                             VerticalAlignment="Center"
                                             HorizontalAlignment="Center">
                                     <Ellipse Width="3"
-                                            Height="3"
-                                            Fill="#60FFFFFF"
-                                            Margin="1.5,0"/>
+                                             Height="3"
+                                             Fill="#60FFFFFF"
+                                             Margin="1.5,0"/>
                                     <Ellipse Width="3"
-                                            Height="3"
-                                            Fill="#60FFFFFF"
-                                            Margin="1.5,0"/>
+                                             Height="3"
+                                             Fill="#60FFFFFF"
+                                             Margin="1.5,0"/>
                                     <Ellipse Width="3"
-                                            Height="3"
-                                            Fill="#60FFFFFF"
-                                            Margin="1.5,0"/>
+                                             Height="3"
+                                             Fill="#60FFFFFF"
+                                             Margin="1.5,0"/>
                                 </StackPanel>
                             </Border>
                         </ControlTemplate>
@@ -521,6 +557,54 @@
                                        Foreground="{StaticResource TextBrush}"
                                        FontSize="11"/>
                         </Grid>
+
+                        <!-- ── Eye Location Telemetry (PRIMARY) ── -->
+                        <Border Margin="0,6,0,0"
+                                BorderBrush="#4000D0FF"
+                                BorderThickness="1"
+                                CornerRadius="3"
+                                Padding="4">
+                            <StackPanel>
+                                <TextBlock Text="👁 EYE LOCATIONS"
+                                           FontSize="10"
+                                           FontWeight="Bold"
+                                           Foreground="#00C8FF"
+                                           Margin="0,0,0,4"/>
+                                <Grid Margin="0,1"
+                                      ToolTip="Left eye 3D position in camera space (X, Y, Z) meters">
+                                    <TextBlock Text="Left Eye"
+                                               Foreground="#00C8FF"
+                                               FontSize="10"/>
+                                    <TextBlock Text="{Binding LeftEyePosition}"
+                                               HorizontalAlignment="Right"
+                                               Foreground="#00C8FF"
+                                               FontSize="10"
+                                               FontFamily="Consolas"/>
+                                </Grid>
+                                <Grid Margin="0,1"
+                                      ToolTip="Right eye 3D position in camera space (X, Y, Z) meters">
+                                    <TextBlock Text="Right Eye"
+                                               Foreground="#00C8FF"
+                                               FontSize="10"/>
+                                    <TextBlock Text="{Binding RightEyePosition}"
+                                               HorizontalAlignment="Right"
+                                               Foreground="#00C8FF"
+                                               FontSize="10"
+                                               FontFamily="Consolas"/>
+                                </Grid>
+                                <Grid Margin="0,1"
+                                      ToolTip="Inter-ocular distance — distance between eye centers (avg adult ~63mm)">
+                                    <TextBlock Text="IOD"
+                                               Foreground="{StaticResource TextDimBrush}"
+                                               FontSize="10"/>
+                                    <TextBlock Text="{Binding InterOcularDistance}"
+                                               HorizontalAlignment="Right"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="10"
+                                               FontFamily="Consolas"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </Border>
 
@@ -541,17 +625,17 @@
                                             VerticalAlignment="Center"
                                             HorizontalAlignment="Center">
                                     <Ellipse Width="3"
-                                            Height="3"
-                                            Fill="#60FFFFFF"
-                                            Margin="1.5,0"/>
+                                             Height="3"
+                                             Fill="#60FFFFFF"
+                                             Margin="1.5,0"/>
                                     <Ellipse Width="3"
-                                            Height="3"
-                                            Fill="#60FFFFFF"
-                                            Margin="1.5,0"/>
+                                             Height="3"
+                                             Fill="#60FFFFFF"
+                                             Margin="1.5,0"/>
                                     <Ellipse Width="3"
-                                            Height="3"
-                                            Fill="#60FFFFFF"
-                                            Margin="1.5,0"/>
+                                             Height="3"
+                                             Fill="#60FFFFFF"
+                                             Margin="1.5,0"/>
                                 </StackPanel>
                             </Border>
                         </ControlTemplate>

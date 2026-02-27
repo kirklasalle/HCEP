@@ -38,6 +38,24 @@ public sealed class VisionPipeline : IAsyncDisposable
     /// </summary>
     public volatile SpeechResult? LatestSpeech;
 
+    /// <summary>
+    /// Latest color frame injected by the orchestrator for face crop extraction.
+    /// Set externally; consumed by the recognition loop.
+    /// </summary>
+    public volatile ColorFrame? LatestColor;
+
+    /// <summary>
+    /// Latest face recognition result (updated ~1 Hz when model is loaded).
+    /// Read by the orchestrator to populate TrackedPerson identity fields.
+    /// </summary>
+    public volatile FaceRecognitionResult? LatestRecognition;
+
+    /// <summary>
+    /// Enroll the next detected face under the given name.
+    /// Set externally by the UI; cleared after enrollment.
+    /// </summary>
+    public volatile string? PendingEnrollmentName;
+
     public VisionPipeline(
         IGazeEstimator gazeEstimator,
         IHcepAnalyzer hcepAnalyzer,
@@ -89,6 +107,7 @@ public sealed class VisionPipeline : IAsyncDisposable
     }
 
     private long _frameCount;
+    private long _recognitionFrameInterval = 30; // run recognition every ~1 sec at 30fps
 
     private async Task ProcessAsync(CancellationToken ct)
     {
@@ -124,6 +143,69 @@ public sealed class VisionPipeline : IAsyncDisposable
                 if (speech is not null)
                     LatestSpeech = null;
 
+                // ── Face Recognition (~1 Hz or on enrollment) ──
+                try
+                {
+                    var enrollName = PendingEnrollmentName;
+                    bool shouldRecognize = enrollName is not null
+                        || (_frameCount % _recognitionFrameInterval == 0);
+
+                    if (shouldRecognize && face.IsTracked)
+                    {
+                        var colorFrame = LatestColor;
+                        if (colorFrame?.PixelData is { Length: > 0 })
+                        {
+                            var crop = ExtractFaceCrop(colorFrame, face.FaceRect);
+                            if (crop is not null)
+                            {
+                                var (cropData, cropW, cropH) = crop.Value;
+                                var embedding = _faceRecognizer.GenerateEmbedding(cropData, cropW, cropH);
+
+                                if (embedding.Length > 0)
+                                {
+                                    // Enrollment request
+                                    if (enrollName is not null)
+                                    {
+                                        _faceRecognizer.Enroll(enrollName, embedding);
+                                        PendingEnrollmentName = null;
+                                        _logger.LogInformation("Enrolled face: {Name} (total enrolled: {Count})",
+                                            enrollName, _faceRecognizer.EnrolledCount);
+
+                                        LatestRecognition = new FaceRecognitionResult
+                                        {
+                                            IdentityName = enrollName,
+                                            Similarity = 1.0f,
+                                            Embedding = embedding,
+                                            Timestamp = DateTimeOffset.UtcNow,
+                                        };
+                                    }
+                                    else
+                                    {
+                                        // Match against enrolled faces
+                                        var match = _faceRecognizer.Match(embedding);
+                                        LatestRecognition = new FaceRecognitionResult
+                                        {
+                                            IdentityName = match?.Name,
+                                            Similarity = match?.Similarity ?? 0f,
+                                            Embedding = embedding,
+                                            Timestamp = DateTimeOffset.UtcNow,
+                                        };
+
+                                        if (_frameCount % 150 == 0)
+                                            _logger.LogInformation("  FaceRec: match={Name} sim={Sim:F3} enrolled={Count}",
+                                                match?.Name ?? "unknown", match?.Similarity ?? 0f, _faceRecognizer.EnrolledCount);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception rex)
+                {
+                    if (_frameCount <= 5)
+                        _logger.LogWarning(rex, "Face recognition error (frame {Frame})", _frameCount);
+                }
+
                 // Publish result
                 await _hcepOutput.Writer.WriteAsync(reading, ct);
 
@@ -137,5 +219,50 @@ public sealed class VisionPipeline : IAsyncDisposable
                 _telemetry.Increment("vision.errors");
             }
         }
+    }
+
+    /// <summary>
+    /// Extracts a face crop from the color frame using the face bounding rectangle.
+    /// Returns BGR24 pixel data suitable for ArcFaceRecognizer, or null if out of bounds.
+    /// Adds a 20% margin around the face rect for better recognition.
+    /// </summary>
+    private static (byte[] Data, int Width, int Height)? ExtractFaceCrop(
+        ColorFrame color, (int X, int Y, int Width, int Height) faceRect)
+    {
+        var (fx, fy, fw, fh) = faceRect;
+        if (fw <= 0 || fh <= 0) return null;
+
+        // Add 20% margin for better alignment coverage
+        int marginX = (int)(fw * 0.2);
+        int marginY = (int)(fh * 0.2);
+        int x0 = Math.Max(0, fx - marginX);
+        int y0 = Math.Max(0, fy - marginY);
+        int x1 = Math.Min(color.Width, fx + fw + marginX);
+        int y1 = Math.Min(color.Height, fy + fh + marginY);
+
+        int cropW = x1 - x0;
+        int cropH = y1 - y0;
+        if (cropW <= 4 || cropH <= 4) return null;
+
+        // Extract BGR24 from BGRA32 source
+        var bgrData = new byte[cropW * cropH * 3];
+        int srcStride = color.Width * color.BytesPerPixel;
+        int dstIdx = 0;
+
+        for (int row = y0; row < y1; row++)
+        {
+            int srcRowStart = row * srcStride + x0 * color.BytesPerPixel;
+            for (int col = 0; col < cropW; col++)
+            {
+                int srcIdx = srcRowStart + col * color.BytesPerPixel;
+                if (srcIdx + 2 >= color.PixelData.Length) continue;
+
+                bgrData[dstIdx++] = color.PixelData[srcIdx];     // B
+                bgrData[dstIdx++] = color.PixelData[srcIdx + 1]; // G
+                bgrData[dstIdx++] = color.PixelData[srcIdx + 2]; // R
+            }
+        }
+
+        return (bgrData, cropW, cropH);
     }
 }

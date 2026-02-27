@@ -217,32 +217,28 @@ This roadmap defines the phased path from the current alpha codebase (v0.1.0, 9 
 ## Phase 6 — Release (v1.0.0)
 
 **Timeline:** 1–2 weeks  
-**Goal:** First public/commercial release
+**Goal:** First public/commercial release with the "True Gaze" Avatar capability
 
 ### Milestones
 
-- [ ] **M6.1 — Documentation complete**
-  - PRD finalized
-  - User Guide polished
-  - Developer Guide reviewed
-  - API reference generated (XML docs → DocFX)
+- [ ] **M6.1 — The "True Gaze" Avatar (Absolute Goal & Mark of Success)**
+  - Implement the **Screen-to-Camera Calibration Matrix**: calculate the delta between the camera's optical axis and the avatar's screen position.
+  - Implement **Avatar Eye-Controller Logic**: map human eye-socket tracking to the avatar's IK rig.
+  - Implement **Micro-Saccades**: the avatar must look dynamically between the user's left and right eye sockets, not just a static center-face stare.
+  - Save the Calibration State for persistent "True Gaze" parallax correction.
 
-- [ ] **M6.2 — Licensing & packaging**
-  - License file (commercial)
-  - Installer / MSIX package
-  - Model file download script
-  - Prerequisites checklist
+- [ ] **M6.2 — Documentation & Packaging**
+  - PRD finalized and User Guide polished.
+  - Developer Guide reviewed.
+  - Installer / MSIX package and Model file download script.
 
 - [ ] **M6.3 — Release artifacts**
   - Tagged release (v1.0.0)
-  - Release notes
-  - Binary distribution
-  - Demo video
+  - Release notes, binary distribution, and demo video proving the True Gaze parallax fix.
 
 ### Acceptance Criteria
-- Clean install on fresh Windows 10/11 machine
-- End-to-end demo: walk up → recognized → conversation → HCEP modes → knowledge stored
-- All documentation reviewed and accurate
+- Clean install on fresh Windows 10/11 machine.
+- End-to-end demo: Avatar's eyes follow the user in real-time, correcting for the camera-to-screen parallax, and performing natural micro-saccades between the user's eye sockets.
 
 ---
 

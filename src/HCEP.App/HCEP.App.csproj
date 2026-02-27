@@ -21,4 +21,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="models\arcface.onnx" CopyToOutputDirectory="PreserveNewest" Link="models\arcface.onnx" />
+  </ItemGroup>
 </Project>

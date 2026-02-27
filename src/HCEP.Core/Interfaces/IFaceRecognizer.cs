@@ -41,4 +41,9 @@ public interface IFaceRecognizer
     /// Number of enrolled identities.
     /// </summary>
     int EnrolledCount { get; }
+
+    /// <summary>
+    /// Whether the recognition model has been loaded and is ready.
+    /// </summary>
+    bool IsModelLoaded { get; }
 }
