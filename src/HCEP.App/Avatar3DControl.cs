@@ -112,6 +112,13 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     private Point _rightEyeLocalPt;
     public Point LeftEyeScreenPos { get; private set; }
     public Point RightEyeScreenPos { get; private set; }
+
+    // ── Mesh eye-socket lock state (stable mesh-ID anchors) ───────────────────
+    private int[]? _leftEyeSocketMeshIds;
+    private int[]? _rightEyeSocketMeshIds;
+    private Point _leftEyeSocketSmoothed;
+    private Point _rightEyeSocketSmoothed;
+    private bool _eyeSocketSmoothingReady;
     // ── Construction ─────────────────────────────────────────────────────
     public Avatar3DControl()
     {
@@ -137,10 +144,20 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     /// </summary>
     public void SetMesh(Vector2[] vertices, (int First, int Second, int Third)[] triangles)
     {
+        bool topologyChanged = _vertices is null || _vertices.Length != vertices.Length;
+
         _vertices = vertices;
         _triangles = triangles.Select(t => (t.First, t.Second, t.Third)).ToArray();
         MeshVertexCount = vertices.Length;
         MeshTriangleCount = triangles.Length;
+
+        if (topologyChanged)
+        {
+            _leftEyeSocketMeshIds = null;
+            _rightEyeSocketMeshIds = null;
+            _eyeSocketSmoothingReady = false;
+        }
+
         ComputeBounds();
         InvalidateVisual();
     }
@@ -156,6 +173,9 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         _triangles = null;   // null = edge-chain fallback mode
         MeshVertexCount = 0;
         MeshTriangleCount = 0;
+        _leftEyeSocketMeshIds = null;
+        _rightEyeSocketMeshIds = null;
+        _eyeSocketSmoothingReady = false;
         ComputeBounds();
         InvalidateVisual();
     }
@@ -206,6 +226,9 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     {
         _vertices = null;
         _triangles = null;
+        _leftEyeSocketMeshIds = null;
+        _rightEyeSocketMeshIds = null;
+        _eyeSocketSmoothingReady = false;
         _gazePitch = 0;
         _gazeYaw = 0;
         InvalidateVisual();
@@ -350,77 +373,74 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         // registers as 40% of full travel — visually clear.
         if (hasMesh && _vertices is { Length: > 20 })
         {
-            Point MapMeshRaw(Vector2 v) => new(v.X * fitScale + offX, v.Y * fitScale + offY);
-
-            // Mesh-space expected eye centers (empirical Candide-3 proportions)
-            float expY = _meshTop + _meshHeight * 0.42f;
-            float expLeftX = _meshLeft + _meshWidth * 0.36f;
-            float expRightX = _meshLeft + _meshWidth * 0.64f;
-
-            static (double cx, double cy, double halfW, double halfH, int count) ClusterEye(
-                Vector2[] verts, Func<Vector2, Point> map, float ex, float ey)
+            // Seed lock once from live eye contour points (feature points), then keep
+            // those stable mesh vertex IDs as socket anchors across frames.
+            if ((_leftEyeSocketMeshIds is null || _rightEyeSocketMeshIds is null)
+                && _featurePoints is { Length: > 35 }
+                && TrySeedEyeSocketMeshIds(_vertices, _featurePoints, out var leftIds, out var rightIds))
             {
-                var candidates = verts
-                    .Where(v => v != Vector2.Zero)
-                    .Select(v => (v, d2: (v.X - ex) * (v.X - ex) + (v.Y - ey) * (v.Y - ey)))
-                    .OrderBy(t => t.d2)
-                    .Take(10)
-                    .ToArray();
-
-                if (candidates.Length == 0)
-                    return (double.NaN, double.NaN, 0, 0, 0);
-
-                double sx = 0, sy = 0;
-                double minX = double.MaxValue, maxX = double.MinValue;
-                double minY = double.MaxValue, maxY = double.MinValue;
-
-                foreach (var c in candidates)
-                {
-                    var p = map(c.v);
-                    sx += p.X; sy += p.Y;
-                    if (p.X < minX) minX = p.X;
-                    if (p.X > maxX) maxX = p.X;
-                    if (p.Y < minY) minY = p.Y;
-                    if (p.Y > maxY) maxY = p.Y;
-                }
-
-                return (
-                    sx / candidates.Length,
-                    sy / candidates.Length,
-                    Math.Max((maxX - minX) / 2.0, 6.0),
-                    Math.Max((maxY - minY) / 2.0, 4.0),
-                    candidates.Length);
+                _leftEyeSocketMeshIds = leftIds;
+                _rightEyeSocketMeshIds = rightIds;
+                _eyeSocketSmoothingReady = false;
             }
 
-            var (lcx, lcy, lHW, lHH, lN) = ClusterEye(_vertices, MapMeshRaw, expLeftX, expY);
-            var (rcx, rcy, rHW, rHH, rN) = ClusterEye(_vertices, MapMeshRaw, expRightX, expY);
+            Point MapMeshRaw(Vector2 v) => new(v.X * fitScale + offX, v.Y * fitScale + offY);
 
-            if (lN > 0 && rN > 0 && !double.IsNaN(lcx) && !double.IsNaN(rcx))
+            if (_leftEyeSocketMeshIds is { Length: > 0 } leftSocketIds
+                && _rightEyeSocketMeshIds is { Length: > 0 } rightSocketIds
+                && TryComputeSocket(_vertices, leftSocketIds, MapMeshRaw, out var leftSocket)
+                && TryComputeSocket(_vertices, rightSocketIds, MapMeshRaw, out var rightSocket))
             {
+                // Temporal smoothing to remove per-frame centroid jitter while keeping
+                // responsiveness; this is key for visual "lock" under lean/yaw.
+                const double Alpha = 0.32;
+                if (!_eyeSocketSmoothingReady)
+                {
+                    _leftEyeSocketSmoothed = new Point(leftSocket.Cx, leftSocket.Cy);
+                    _rightEyeSocketSmoothed = new Point(rightSocket.Cx, rightSocket.Cy);
+                    _eyeSocketSmoothingReady = true;
+                }
+                else
+                {
+                    _leftEyeSocketSmoothed = new Point(
+                        _leftEyeSocketSmoothed.X + (leftSocket.Cx - _leftEyeSocketSmoothed.X) * Alpha,
+                        _leftEyeSocketSmoothed.Y + (leftSocket.Cy - _leftEyeSocketSmoothed.Y) * Alpha);
+                    _rightEyeSocketSmoothed = new Point(
+                        _rightEyeSocketSmoothed.X + (rightSocket.Cx - _rightEyeSocketSmoothed.X) * Alpha,
+                        _rightEyeSocketSmoothed.Y + (rightSocket.Cy - _rightEyeSocketSmoothed.Y) * Alpha);
+                }
+
                 const double MaxGazeAngle = Math.PI / 9.0; // 20°
-                double normYaw = Math.Clamp(_gazeYaw, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
-                double normPitch = Math.Clamp(_gazePitch, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
 
-                const double Travel = 0.35; // smaller in mesh mode to stay inside sockets
-                double lTX = lHW * Travel, lTY = lHH * Travel;
-                double rTX = rHW * Travel, rTY = rHH * Travel;
+                // Eye-leads/head-follows: eyes take initial movement, then settle toward
+                // center as head yaw/pitch catches up.
+                double eyeRelativeYaw = _gazeYaw - (_headYawRad * 0.45);
+                double eyeRelativePitch = _gazePitch - (_headPitchRad * 0.35);
 
-                double conv = Math.Min(lHW, rHW) * 0.20 * Math.Clamp((1.2 - _gazeDistM) / 1.2, 0.0, 1.0);
+                double normYaw = Math.Clamp(eyeRelativeYaw, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
+                double normPitch = Math.Clamp(eyeRelativePitch, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
 
-                double lpx = lcx + normYaw * lTX + conv;
-                double lpy = lcy - normPitch * lTY;
-                double rpx = rcx + normYaw * rTX - conv;
-                double rpy = rcy - normPitch * rTY;
+                const double Travel = 0.55;
+                double lTX = leftSocket.HalfW * Travel, lTY = leftSocket.HalfH * Travel;
+                double rTX = rightSocket.HalfW * Travel, rTY = rightSocket.HalfH * Travel;
 
-                double pr = Math.Max(Math.Min(Math.Min(lHW, rHW) * 0.22, 10.0), 3.5);
+                double conv = Math.Min(leftSocket.HalfW, rightSocket.HalfW) * 0.18
+                              * Math.Clamp((1.2 - _gazeDistM) / 1.2, 0.0, 1.0);
+
+                double lpx = _leftEyeSocketSmoothed.X + normYaw * lTX + conv;
+                double lpy = _leftEyeSocketSmoothed.Y - normPitch * lTY;
+                double rpx = _rightEyeSocketSmoothed.X + normYaw * rTX - conv;
+                double rpy = _rightEyeSocketSmoothed.Y - normPitch * rTY;
+
+                double pr = Math.Max(Math.Min(Math.Min(leftSocket.HalfW, rightSocket.HalfW) * 0.24, 10.0), 3.6);
 
                 var pupilBrush = new SolidColorBrush(Color.FromArgb(255, 0, 220, 190));
                 pupilBrush.Freeze();
                 dc.DrawEllipse(pupilBrush, null, new Point(lpx, lpy), pr, pr);
                 dc.DrawEllipse(pupilBrush, null, new Point(rpx, rpy), pr, pr);
 
-                _leftEyeLocalPt = new Point(lcx, lcy);
-                _rightEyeLocalPt = new Point(rcx, rcy);
+                _leftEyeLocalPt = _leftEyeSocketSmoothed;
+                _rightEyeLocalPt = _rightEyeSocketSmoothed;
             }
         }
         else if (_featurePoints is { Length: > 35 })
@@ -551,5 +571,132 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
             _meshWidth = maxX - minX;
             _meshHeight = maxY - minY;
         }
+    }
+
+    private readonly struct SocketShape(double cx, double cy, double halfW, double halfH)
+    {
+        public double Cx { get; } = cx;
+        public double Cy { get; } = cy;
+        public double HalfW { get; } = halfW;
+        public double HalfH { get; } = halfH;
+    }
+
+    private static bool TryComputeSocket(
+        Vector2[] verts,
+        int[] ids,
+        Func<Vector2, Point> map,
+        out SocketShape socket)
+    {
+        double sx = 0, sy = 0;
+        double minX = double.MaxValue, maxX = double.MinValue;
+        double minY = double.MaxValue, maxY = double.MinValue;
+        int n = 0;
+
+        foreach (int id in ids)
+        {
+            if ((uint)id >= (uint)verts.Length) continue;
+            Vector2 v = verts[id];
+            if (v == Vector2.Zero) continue;
+            var p = map(v);
+            sx += p.X;
+            sy += p.Y;
+            if (p.X < minX) minX = p.X;
+            if (p.X > maxX) maxX = p.X;
+            if (p.Y < minY) minY = p.Y;
+            if (p.Y > maxY) maxY = p.Y;
+            n++;
+        }
+
+        if (n < 3)
+        {
+            socket = default;
+            return false;
+        }
+
+        socket = new SocketShape(
+            sx / n,
+            sy / n,
+            Math.Max((maxX - minX) / 2.0, 5.0),
+            Math.Max((maxY - minY) / 2.0, 3.5));
+        return true;
+    }
+
+    private bool TrySeedEyeSocketMeshIds(
+        Vector2[] meshVerts,
+        Vector2[] featurePoints,
+        out int[] leftIds,
+        out int[] rightIds)
+    {
+        leftIds = BuildSocketIds(meshVerts, featurePoints, [30, 31, 32, 33, 34, 35]);
+        rightIds = BuildSocketIds(meshVerts, featurePoints, [9, 10, 11, 12, 13, 14]);
+        return leftIds.Length >= 4 && rightIds.Length >= 4;
+    }
+
+    private int[] BuildSocketIds(Vector2[] meshVerts, Vector2[] featurePoints, int[] fpEyeIndices)
+    {
+        var seeds = new HashSet<int>();
+        var fpValid = new List<Vector2>(fpEyeIndices.Length);
+
+        foreach (int fpIdx in fpEyeIndices)
+        {
+            if ((uint)fpIdx >= (uint)featurePoints.Length) continue;
+            Vector2 fp = featurePoints[fpIdx];
+            if (fp == Vector2.Zero) continue;
+            fpValid.Add(fp);
+
+            float bestD2 = float.MaxValue;
+            int best = -1;
+            for (int i = 0; i < meshVerts.Length; i++)
+            {
+                Vector2 mv = meshVerts[i];
+                if (mv == Vector2.Zero) continue;
+                float dx = mv.X - fp.X;
+                float dy = mv.Y - fp.Y;
+                float d2 = dx * dx + dy * dy;
+                if (d2 < bestD2)
+                {
+                    bestD2 = d2;
+                    best = i;
+                }
+            }
+            if (best >= 0) seeds.Add(best);
+        }
+
+        if (seeds.Count == 0)
+            return [];
+
+        // Expand one triangle hop around seeds to capture full socket ring.
+        if (_triangles is { Length: > 0 })
+        {
+            var expanded = new HashSet<int>(seeds);
+            foreach (var (a, b, c) in _triangles)
+            {
+                if (seeds.Contains(a) || seeds.Contains(b) || seeds.Contains(c))
+                {
+                    expanded.Add(a);
+                    expanded.Add(b);
+                    expanded.Add(c);
+                }
+            }
+            seeds = expanded;
+        }
+
+        Vector2 center = Vector2.Zero;
+        if (fpValid.Count > 0)
+        {
+            foreach (var p in fpValid) center += p;
+            center /= fpValid.Count;
+        }
+
+        return seeds
+            .OrderBy(i =>
+            {
+                Vector2 mv = meshVerts[i];
+                float dx = mv.X - center.X;
+                float dy = mv.Y - center.Y;
+                return dx * dx + dy * dy;
+            })
+            .Take(18)
+            .ToArray();
     }
 }
