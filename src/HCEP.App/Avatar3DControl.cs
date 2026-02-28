@@ -330,8 +330,8 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         }
 
         // ── Gaze-driven pupils in eye sockets ────────────────────────────
-        // Right eye loop: fp indices [9,10,11,12,13,14]
-        // Left  eye loop: fp indices [30,31,32,33,34,35]
+        // In high-poly mesh mode, anchor pupils to mesh-derived eye regions.
+        // In fallback mode, use legacy feature-point eye loops.
         //
         // Pupil positioning
         // ─────────────────
@@ -348,7 +348,82 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         // MaxGazeAngle = 20° covers the practical gaze range before Kinect
         // tracking fidelity degrades.  Using 20° (vs 45°) means an 8° gaze
         // registers as 40% of full travel — visually clear.
-        if (_featurePoints is { Length: > 35 })
+        if (hasMesh && _vertices is { Length: > 20 })
+        {
+            Point MapMeshRaw(Vector2 v) => new(v.X * fitScale + offX, v.Y * fitScale + offY);
+
+            // Mesh-space expected eye centers (empirical Candide-3 proportions)
+            float expY = _meshTop + _meshHeight * 0.42f;
+            float expLeftX = _meshLeft + _meshWidth * 0.36f;
+            float expRightX = _meshLeft + _meshWidth * 0.64f;
+
+            static (double cx, double cy, double halfW, double halfH, int count) ClusterEye(
+                Vector2[] verts, Func<Vector2, Point> map, float ex, float ey)
+            {
+                var candidates = verts
+                    .Where(v => v != Vector2.Zero)
+                    .Select(v => (v, d2: (v.X - ex) * (v.X - ex) + (v.Y - ey) * (v.Y - ey)))
+                    .OrderBy(t => t.d2)
+                    .Take(10)
+                    .ToArray();
+
+                if (candidates.Length == 0)
+                    return (double.NaN, double.NaN, 0, 0, 0);
+
+                double sx = 0, sy = 0;
+                double minX = double.MaxValue, maxX = double.MinValue;
+                double minY = double.MaxValue, maxY = double.MinValue;
+
+                foreach (var c in candidates)
+                {
+                    var p = map(c.v);
+                    sx += p.X; sy += p.Y;
+                    if (p.X < minX) minX = p.X;
+                    if (p.X > maxX) maxX = p.X;
+                    if (p.Y < minY) minY = p.Y;
+                    if (p.Y > maxY) maxY = p.Y;
+                }
+
+                return (
+                    sx / candidates.Length,
+                    sy / candidates.Length,
+                    Math.Max((maxX - minX) / 2.0, 6.0),
+                    Math.Max((maxY - minY) / 2.0, 4.0),
+                    candidates.Length);
+            }
+
+            var (lcx, lcy, lHW, lHH, lN) = ClusterEye(_vertices, MapMeshRaw, expLeftX, expY);
+            var (rcx, rcy, rHW, rHH, rN) = ClusterEye(_vertices, MapMeshRaw, expRightX, expY);
+
+            if (lN > 0 && rN > 0 && !double.IsNaN(lcx) && !double.IsNaN(rcx))
+            {
+                const double MaxGazeAngle = Math.PI / 9.0; // 20°
+                double normYaw = Math.Clamp(_gazeYaw, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
+                double normPitch = Math.Clamp(_gazePitch, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
+
+                const double Travel = 0.35; // smaller in mesh mode to stay inside sockets
+                double lTX = lHW * Travel, lTY = lHH * Travel;
+                double rTX = rHW * Travel, rTY = rHH * Travel;
+
+                double conv = Math.Min(lHW, rHW) * 0.20 * Math.Clamp((1.2 - _gazeDistM) / 1.2, 0.0, 1.0);
+
+                double lpx = lcx + normYaw * lTX + conv;
+                double lpy = lcy - normPitch * lTY;
+                double rpx = rcx + normYaw * rTX - conv;
+                double rpy = rcy - normPitch * rTY;
+
+                double pr = Math.Max(Math.Min(Math.Min(lHW, rHW) * 0.22, 10.0), 3.5);
+
+                var pupilBrush = new SolidColorBrush(Color.FromArgb(255, 0, 220, 190));
+                pupilBrush.Freeze();
+                dc.DrawEllipse(pupilBrush, null, new Point(lpx, lpy), pr, pr);
+                dc.DrawEllipse(pupilBrush, null, new Point(rpx, rpy), pr, pr);
+
+                _leftEyeLocalPt = new Point(lcx, lcy);
+                _rightEyeLocalPt = new Point(rcx, rcy);
+            }
+        }
+        else if (_featurePoints is { Length: > 35 })
         {
             // MapFP: applies fit-to-bounds transform to a feature-point index.
             // Both FaceMeshVertices2D and FeaturePoints2D live in the same 640×480
