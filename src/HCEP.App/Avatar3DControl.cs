@@ -410,6 +410,23 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                         _rightEyeSocketSmoothed.Y + (rightSocket.Cy - _rightEyeSocketSmoothed.Y) * Alpha);
                 }
 
+                // Blend toward live eyelid feature-point centroids for tighter visual seating.
+                // Mesh IDs provide stability; feature loops provide immediate eyelid alignment.
+                Point leftAnchor = _leftEyeSocketSmoothed;
+                Point rightAnchor = _rightEyeSocketSmoothed;
+                if (_featurePoints is { Length: > 35 }
+                    && TryFeatureEyeCenter(_featurePoints, [30, 31, 32, 33, 34, 35], fitScale, offX, offY, out var fpLeft)
+                    && TryFeatureEyeCenter(_featurePoints, [9, 10, 11, 12, 13, 14], fitScale, offX, offY, out var fpRight))
+                {
+                    const double Blend = 0.45;
+                    leftAnchor = new Point(
+                        leftAnchor.X + (fpLeft.X - leftAnchor.X) * Blend,
+                        leftAnchor.Y + (fpLeft.Y - leftAnchor.Y) * Blend);
+                    rightAnchor = new Point(
+                        rightAnchor.X + (fpRight.X - rightAnchor.X) * Blend,
+                        rightAnchor.Y + (fpRight.Y - rightAnchor.Y) * Blend);
+                }
+
                 const double MaxGazeAngle = Math.PI / 9.0; // 20°
 
                 // Eye-leads/head-follows: eyes take initial movement, then settle toward
@@ -420,17 +437,21 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 double normYaw = Math.Clamp(eyeRelativeYaw, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
                 double normPitch = Math.Clamp(eyeRelativePitch, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
 
-                const double Travel = 0.55;
+                const double Travel = 0.48;
                 double lTX = leftSocket.HalfW * Travel, lTY = leftSocket.HalfH * Travel;
                 double rTX = rightSocket.HalfW * Travel, rTY = rightSocket.HalfH * Travel;
 
                 double conv = Math.Min(leftSocket.HalfW, rightSocket.HalfW) * 0.18
                               * Math.Clamp((1.2 - _gazeDistM) / 1.2, 0.0, 1.0);
 
-                double lpx = _leftEyeSocketSmoothed.X + normYaw * lTX + conv;
-                double lpy = _leftEyeSocketSmoothed.Y - normPitch * lTY;
-                double rpx = _rightEyeSocketSmoothed.X + normYaw * rTX - conv;
-                double rpy = _rightEyeSocketSmoothed.Y - normPitch * rTY;
+                // Slight downward seating bias keeps pupils inside wireframe eyelid loops.
+                double seatBiasYLeft = leftSocket.HalfH * 0.10;
+                double seatBiasYRight = rightSocket.HalfH * 0.10;
+
+                double lpx = leftAnchor.X + normYaw * lTX + conv;
+                double lpy = leftAnchor.Y - normPitch * lTY + seatBiasYLeft;
+                double rpx = rightAnchor.X + normYaw * rTX - conv;
+                double rpy = rightAnchor.Y - normPitch * rTY + seatBiasYRight;
 
                 double pr = Math.Max(Math.Min(Math.Min(leftSocket.HalfW, rightSocket.HalfW) * 0.24, 10.0), 3.6);
 
@@ -439,8 +460,8 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 dc.DrawEllipse(pupilBrush, null, new Point(lpx, lpy), pr, pr);
                 dc.DrawEllipse(pupilBrush, null, new Point(rpx, rpy), pr, pr);
 
-                _leftEyeLocalPt = _leftEyeSocketSmoothed;
-                _rightEyeLocalPt = _rightEyeSocketSmoothed;
+                _leftEyeLocalPt = leftAnchor;
+                _rightEyeLocalPt = rightAnchor;
             }
         }
         else if (_featurePoints is { Length: > 35 })
@@ -698,5 +719,35 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
             })
             .Take(18)
             .ToArray();
+    }
+
+    private static bool TryFeatureEyeCenter(
+        Vector2[] featurePoints,
+        int[] indices,
+        double fitScale,
+        double offX,
+        double offY,
+        out Point center)
+    {
+        double sx = 0, sy = 0;
+        int n = 0;
+        foreach (int i in indices)
+        {
+            if ((uint)i >= (uint)featurePoints.Length) continue;
+            Vector2 fp = featurePoints[i];
+            if (fp == Vector2.Zero) continue;
+            sx += fp.X * fitScale + offX;
+            sy += fp.Y * fitScale + offY;
+            n++;
+        }
+
+        if (n < 3)
+        {
+            center = default;
+            return false;
+        }
+
+        center = new Point(sx / n, sy / n);
+        return true;
     }
 }
