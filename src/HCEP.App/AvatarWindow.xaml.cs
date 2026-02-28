@@ -41,6 +41,8 @@ public partial class AvatarWindow : Window
     private IAvatarComponent _activeAvatar = null!;  // set in Window_Loaded
     private float _screenWidthPx;
     private float _screenHeightPx;
+    private Vector2[]? _lastMeshVerts;
+    private (int First, int Second, int Third)[]? _lastMeshTris;
 
     public AvatarWindow(HCEPPipelineOrchestrator orchestrator)
     {
@@ -170,6 +172,21 @@ public partial class AvatarWindow : Window
         {
             var verts = face.FaceMeshVertices2D;
             var tris = face.FaceMeshTriangles;
+            _lastMeshVerts = verts;
+            _lastMeshTris = tris;
+            Dispatcher.BeginInvoke(() =>
+            {
+                Avatar3D.SetMesh(verts, tris);
+                MeshStatusText.Text = $"{Avatar3D.MeshVertexCount}V";
+                MeshStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
+            });
+        }
+        else if (_lastMeshVerts is { Length: > 0 } && _lastMeshTris is { Length: > 0 })
+        {
+            // Keep rendering the last known good high-poly mesh if a frame misses.
+            // This prevents fallback FP overwrite/blanking while tracking reacquires.
+            var verts = _lastMeshVerts;
+            var tris = _lastMeshTris;
             Dispatcher.BeginInvoke(() =>
             {
                 Avatar3D.SetMesh(verts, tris);

@@ -1258,9 +1258,6 @@ public sealed class KinectSensorSource : ISensorSource
                 Marshal.StructureToPtr(headPoints[0], headPointsPtr, false);
                 Marshal.StructureToPtr(headPoints[1], headPointsPtr + Marshal.SizeOf<FT_VECTOR3D>(), false);
 
-                // Reset result before use
-                FtResultRaw.Reset(_faceResultPtr);
-
                 if (!_faceTrackingStarted)
                 {
                     hr = FtFaceTrackerRaw.StartTracking(_faceTrackerPtr, ref sensorData, IntPtr.Zero, headPointsPtr, _faceResultPtr);
@@ -1374,12 +1371,12 @@ public sealed class KinectSensorSource : ISensorSource
             // ── Unconditional trace: prove this code path is reached ──
             if (!_meshFirstDiagLogged)
             {
-                    _logger.LogInformation(
-                    "[MESH TRACE] ENTRY: faceTracker={FT} faceModel={FM} vertexCount={V} cachedTriangles={CT}",
-                    _faceTrackerPtr != IntPtr.Zero ? "OK" : "NULL",
-                    _faceModel != null ? "OK" : "NULL",
-                    _meshVertexCount,
-                    _cachedTriangles != null ? _cachedTriangles.Length.ToString() : "NULL");
+                _logger.LogInformation(
+                "[MESH TRACE] ENTRY: faceTracker={FT} faceModel={FM} vertexCount={V} cachedTriangles={CT}",
+                _faceTrackerPtr != IntPtr.Zero ? "OK" : "NULL",
+                _faceModel != null ? "OK" : "NULL",
+                _meshVertexCount,
+                _cachedTriangles != null ? _cachedTriangles.Length.ToString() : "NULL");
             }
 
             try
