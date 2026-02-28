@@ -414,17 +414,36 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 // Mesh IDs provide stability; feature loops provide immediate eyelid alignment.
                 Point leftAnchor = _leftEyeSocketSmoothed;
                 Point rightAnchor = _rightEyeSocketSmoothed;
+                double yawAbsNorm = Math.Clamp(Math.Abs(_headYawRad) / (Math.PI / 4.0), 0.0, 1.0);
                 if (_featurePoints is { Length: > 35 }
                     && TryFeatureEyeCenter(_featurePoints, [30, 31, 32, 33, 34, 35], fitScale, offX, offY, out var fpLeft)
                     && TryFeatureEyeCenter(_featurePoints, [9, 10, 11, 12, 13, 14], fitScale, offX, offY, out var fpRight))
                 {
-                    const double Blend = 0.45;
+                    // If locked sockets drift too far from eyelid contours, reseed IDs.
+                    // This keeps persistence while recovering from pose-driven lock drift.
+                    double driftL = Math.Sqrt((leftAnchor.X - fpLeft.X) * (leftAnchor.X - fpLeft.X)
+                                            + (leftAnchor.Y - fpLeft.Y) * (leftAnchor.Y - fpLeft.Y));
+                    double driftR = Math.Sqrt((rightAnchor.X - fpRight.X) * (rightAnchor.X - fpRight.X)
+                                            + (rightAnchor.Y - fpRight.Y) * (rightAnchor.Y - fpRight.Y));
+                    double driftThreshold = Math.Max(Math.Min(leftSocket.HalfW, rightSocket.HalfW) * 0.95, 10.0);
+                    if ((driftL > driftThreshold || driftR > driftThreshold)
+                        && TrySeedEyeSocketMeshIds(_vertices, _featurePoints, out var reseedLeft, out var reseedRight))
+                    {
+                        _leftEyeSocketMeshIds = reseedLeft;
+                        _rightEyeSocketMeshIds = reseedRight;
+                        _eyeSocketSmoothingReady = false;
+                        leftAnchor = fpLeft;
+                        rightAnchor = fpRight;
+                    }
+
+                    // Stronger feature influence at high yaw keeps pupils seated in sockets.
+                    double blend = 0.52 + (0.33 * yawAbsNorm);
                     leftAnchor = new Point(
-                        leftAnchor.X + (fpLeft.X - leftAnchor.X) * Blend,
-                        leftAnchor.Y + (fpLeft.Y - leftAnchor.Y) * Blend);
+                        leftAnchor.X + (fpLeft.X - leftAnchor.X) * blend,
+                        leftAnchor.Y + (fpLeft.Y - leftAnchor.Y) * blend);
                     rightAnchor = new Point(
-                        rightAnchor.X + (fpRight.X - rightAnchor.X) * Blend,
-                        rightAnchor.Y + (fpRight.Y - rightAnchor.Y) * Blend);
+                        rightAnchor.X + (fpRight.X - rightAnchor.X) * blend,
+                        rightAnchor.Y + (fpRight.Y - rightAnchor.Y) * blend);
                 }
 
                 const double MaxGazeAngle = Math.PI / 9.0; // 20°
@@ -447,11 +466,13 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 double rTX = rightSocket.HalfW * Travel, rTY = rightSocket.HalfH * Travel;
 
                 double conv = Math.Min(leftSocket.HalfW, rightSocket.HalfW) * 0.18
-                              * Math.Clamp((1.2 - _gazeDistM) / 1.2, 0.0, 1.0);
+                              * Math.Clamp((1.2 - _gazeDistM) / 1.2, 0.0, 1.0)
+                              * (1.0 - 0.60 * yawAbsNorm);
 
                 // Slight downward seating bias keeps pupils inside wireframe eyelid loops.
-                double seatBiasYLeft = leftSocket.HalfH * 0.10;
-                double seatBiasYRight = rightSocket.HalfH * 0.10;
+                // Increase with yaw because projected eyelids visually rise under turn.
+                double seatBiasYLeft = leftSocket.HalfH * (0.12 + 0.08 * yawAbsNorm);
+                double seatBiasYRight = rightSocket.HalfH * (0.12 + 0.08 * yawAbsNorm);
 
                 double lpx = leftAnchor.X + rotYaw * lTX + conv;
                 double lpy = leftAnchor.Y - rotPitch * lTY + seatBiasYLeft;
