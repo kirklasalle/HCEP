@@ -437,6 +437,11 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 double normYaw = Math.Clamp(eyeRelativeYaw, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
                 double normPitch = Math.Clamp(eyeRelativePitch, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
 
+                // Eyeball-like rotation mapping: use sin() so center response is smooth
+                // and extremes saturate naturally near socket limits.
+                double rotYaw = Math.Sin(normYaw * (Math.PI / 2.0));
+                double rotPitch = Math.Sin(normPitch * (Math.PI / 2.0));
+
                 const double Travel = 0.48;
                 double lTX = leftSocket.HalfW * Travel, lTY = leftSocket.HalfH * Travel;
                 double rTX = rightSocket.HalfW * Travel, rTY = rightSocket.HalfH * Travel;
@@ -448,10 +453,19 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 double seatBiasYLeft = leftSocket.HalfH * 0.10;
                 double seatBiasYRight = rightSocket.HalfH * 0.10;
 
-                double lpx = leftAnchor.X + normYaw * lTX + conv;
-                double lpy = leftAnchor.Y - normPitch * lTY + seatBiasYLeft;
-                double rpx = rightAnchor.X + normYaw * rTX - conv;
-                double rpy = rightAnchor.Y - normPitch * rTY + seatBiasYRight;
+                double lpx = leftAnchor.X + rotYaw * lTX + conv;
+                double lpy = leftAnchor.Y - rotPitch * lTY + seatBiasYLeft;
+                double rpx = rightAnchor.X + rotYaw * rTX - conv;
+                double rpy = rightAnchor.Y - rotPitch * rTY + seatBiasYRight;
+
+                // Hard separation safety: never allow both pupils to collapse into one eye.
+                double minSep = Math.Max(Math.Min(leftSocket.HalfW, rightSocket.HalfW) * 1.1, 6.0);
+                if (rpx - lpx < minSep)
+                {
+                    double cx = (lpx + rpx) / 2.0;
+                    lpx = cx - minSep / 2.0;
+                    rpx = cx + minSep / 2.0;
+                }
 
                 double pr = Math.Max(Math.Min(Math.Min(leftSocket.HalfW, rightSocket.HalfW) * 0.24, 10.0), 3.6);
 
@@ -648,12 +662,33 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         out int[] leftIds,
         out int[] rightIds)
     {
-        leftIds = BuildSocketIds(meshVerts, featurePoints, [30, 31, 32, 33, 34, 35]);
-        rightIds = BuildSocketIds(meshVerts, featurePoints, [9, 10, 11, 12, 13, 14]);
+        float centerX = ComputeMeshCenterX(meshVerts);
+
+        leftIds = BuildSocketIds(meshVerts, featurePoints, [30, 31, 32, 33, 34, 35], centerX, requireLeftSide: true);
+        rightIds = BuildSocketIds(meshVerts, featurePoints, [9, 10, 11, 12, 13, 14], centerX, requireLeftSide: false);
+
+        // Enforce disjoint sets for persistent dual-eye lock.
+        if (leftIds.Length > 0 && rightIds.Length > 0)
+        {
+            var leftSet = new HashSet<int>(leftIds);
+            rightIds = rightIds.Where(i => !leftSet.Contains(i)).ToArray();
+        }
+
+        // Fallback reseed by geometry if one side is weak.
+        if (leftIds.Length < 4)
+            leftIds = BuildSocketBySide(meshVerts, centerX, true);
+        if (rightIds.Length < 4)
+            rightIds = BuildSocketBySide(meshVerts, centerX, false);
+
         return leftIds.Length >= 4 && rightIds.Length >= 4;
     }
 
-    private int[] BuildSocketIds(Vector2[] meshVerts, Vector2[] featurePoints, int[] fpEyeIndices)
+    private int[] BuildSocketIds(
+        Vector2[] meshVerts,
+        Vector2[] featurePoints,
+        int[] fpEyeIndices,
+        float centerX,
+        bool requireLeftSide)
     {
         var seeds = new HashSet<int>();
         var fpValid = new List<Vector2>(fpEyeIndices.Length);
@@ -671,6 +706,17 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
             {
                 Vector2 mv = meshVerts[i];
                 if (mv == Vector2.Zero) continue;
+
+                // Side constraint prevents both eyes from snapping to same socket.
+                if (requireLeftSide)
+                {
+                    if (mv.X > centerX) continue;
+                }
+                else
+                {
+                    if (mv.X < centerX) continue;
+                }
+
                 float dx = mv.X - fp.X;
                 float dy = mv.Y - fp.Y;
                 float d2 = dx * dx + dy * dy;
@@ -718,6 +764,41 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 return dx * dx + dy * dy;
             })
             .Take(18)
+            .ToArray();
+    }
+
+    private static float ComputeMeshCenterX(Vector2[] meshVerts)
+    {
+        float sx = 0f;
+        int n = 0;
+        foreach (var v in meshVerts)
+        {
+            if (v == Vector2.Zero) continue;
+            sx += v.X;
+            n++;
+        }
+        return n > 0 ? sx / n : 320f;
+    }
+
+    private int[] BuildSocketBySide(Vector2[] meshVerts, float centerX, bool left)
+    {
+        float expY = _meshTop + _meshHeight * 0.42f;
+        float expX = left
+            ? _meshLeft + _meshWidth * 0.36f
+            : _meshLeft + _meshWidth * 0.64f;
+
+        return meshVerts
+            .Select((v, i) => (v, i))
+            .Where(t => t.v != Vector2.Zero)
+            .Where(t => left ? t.v.X <= centerX : t.v.X >= centerX)
+            .OrderBy(t =>
+            {
+                float dx = t.v.X - expX;
+                float dy = t.v.Y - expY;
+                return dx * dx + dy * dy;
+            })
+            .Take(14)
+            .Select(t => t.i)
             .ToArray();
     }
 
