@@ -36,6 +36,14 @@ All panel boundaries are drag-resizable via visible GridSplitters.
 
 ---
 
+## True Gaze™ Parallax Calibration
+
+To eliminate gaze skewing caused by off-axis sensor placement (such as mounting a webcam on top of a monitor bezel), HCEP implements a dynamic 3D coordinate co-registration. This shifts tracking perspective from the sensor's lens center back to the active user-avatar focal line of sight:
+
+![True Gaze Parallax Calibration](docs/images/parallax_calibration.svg)
+
+---
+
 ## Features
 
 ### Sensor Input & Hardware Fallback

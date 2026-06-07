@@ -1,0 +1,324 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="100%">
+    <defs>
+        <!-- Background Gradients -->
+        <radialGradient id="bg-grad" cx="50%" cy="50%" r="70%">
+            <stop offset="0%" stop-color="#111827" />
+            <stop offset="100%" stop-color="#070a13" />
+        </radialGradient>
+        
+        <!-- Glow Filters -->
+        <filter id="glow-teal" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+        
+        <filter id="glow-magenta" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+
+        <filter id="glow-blue" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+    </defs>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Outfit:wght@500;700&amp;display=swap');
+        
+        .title {
+            font-family: 'Outfit', 'Inter', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            fill: #f3f4f6;
+            letter-spacing: -0.02em;
+        }
+        
+        .subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            fill: #9ca3af;
+            font-weight: 500;
+        }
+        
+        .label {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            fill: #9ca3af;
+            font-weight: 600;
+        }
+
+        .hud-val {
+            font-family: monospace;
+            font-size: 11px;
+            fill: #38bdf8;
+            font-weight: bold;
+        }
+
+        /* Vector lines & styles */
+        .grid-line {
+            stroke: #1e293b;
+            stroke-width: 1;
+            stroke-dasharray: 4 4;
+        }
+
+        .user-outline {
+            stroke: #475569;
+            stroke-width: 2;
+            fill: #111827;
+            fill-opacity: 0.5;
+        }
+
+        .monitor-outline {
+            stroke: #475569;
+            stroke-width: 3;
+            fill: #1e293b;
+        }
+
+        .camera-beam {
+            stroke: #6366f1;
+            stroke-width: 1.5;
+            stroke-dasharray: 3 3;
+            opacity: 0.4;
+        }
+
+        /* Animation Keyframes */
+        @keyframes drawLine {
+            to {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        @keyframes scanEffect {
+            0%, 100% {
+                transform: translateY(0);
+                opacity: 0;
+            }
+            10%, 40% {
+                opacity: 0.8;
+            }
+            50% {
+                transform: translateY(240px);
+                opacity: 0.1;
+            }
+        }
+
+        @keyframes fadeState1 {
+            0%, 45%, 100% { opacity: 1; }
+            50%, 95% { opacity: 0; }
+        }
+
+        @keyframes fadeState2 {
+            0%, 45%, 100% { opacity: 0; }
+            50%, 95% { opacity: 1; }
+        }
+
+        @keyframes pulseDot {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.4); opacity: 1; }
+        }
+
+        /* SVG Element Classes linked to Keyframes */
+        .uncorrected-vector {
+            stroke: #f43f5e;
+            stroke-width: 2.5;
+            stroke-dasharray: 6 3;
+            stroke-dashoffset: 100;
+            animation: drawLine 4s linear infinite, fadeState1 8s infinite;
+        }
+
+        .corrected-vector {
+            stroke: #10b981;
+            stroke-width: 3;
+            stroke-dashoffset: 100;
+            animation: drawLine 4s linear infinite, fadeState2 8s infinite;
+        }
+
+        .state-1-text {
+            animation: fadeState1 8s infinite;
+        }
+
+        .state-2-text {
+            animation: fadeState2 8s infinite;
+        }
+
+        .scanner-bar {
+            fill: url(#scanner-grad);
+            animation: scanEffect 8s ease-in-out infinite;
+        }
+
+        .target-dot-uncorrected {
+            fill: #f43f5e;
+            animation: fadeState1 8s infinite;
+        }
+
+        .target-dot-corrected {
+            fill: #10b981;
+            animation: fadeState2 8s infinite;
+        }
+        
+        .pulse-gaze {
+            transform-origin: 180px 200px;
+            animation: pulseDot 2s ease-in-out infinite;
+        }
+    </style>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="url(#bg-grad)" rx="12" stroke="#1f2937" stroke-width="2" />
+
+    <!-- Grid Layout Lines -->
+    <g class="grid-layout">
+        <line x1="50" y1="50" x2="750" y2="50" class="grid-line" />
+        <line x1="50" y1="400" x2="750" y2="400" class="grid-line" />
+        <line x1="100" y1="50" x2="100" y2="400" class="grid-line" />
+        <line x1="480" y1="50" x2="480" y2="400" class="grid-line" />
+        <line x1="700" y1="50" x2="700" y2="400" class="grid-line" />
+    </g>
+
+    <!-- 1. Header -->
+    <text x="30" y="35" class="title">True Gaze™ Parallax Calibration</text>
+    <text x="300" y="35" class="subtitle">CALIBRATION PIPELINE LAYER 2 (SPATIAL CO-REGISTRATION)</text>
+    <rect x="700" y="20" width="70" height="20" rx="4" fill="#1e293b" stroke="#334155" />
+    <text x="735" y="33" font-family="monospace" font-size="10" fill="#10b981" font-weight="bold" text-anchor="middle">v1.0.0</text>
+
+    <!-- HUD Metrics Panel (Top-Right) -->
+    <g transform="translate(490, 65)">
+        <!-- Panel Background -->
+        <rect width="200" height="85" rx="6" fill="#0b0f19" fill-opacity="0.8" stroke="#1e293b" stroke-width="1.5"/>
+        
+        <!-- Metrics -->
+        <text x="15" y="20" class="label">PnP Head Offset:</text>
+        <text x="135" y="20" class="hud-val">Tz = 1.482m</text>
+
+        <text x="15" y="40" class="label">Camera Angle Skew:</text>
+        <text x="135" y="40" class="hud-val">θx = 18.54°</text>
+
+        <text x="15" y="60" class="label">Calibration Mode:</text>
+        <!-- Dynamic HUD Indicator -->
+        <g class="state-1-text">
+            <text x="135" y="60" font-family="monospace" font-size="11" fill="#f43f5e" font-weight="bold">RAW_PARALLAX</text>
+        </g>
+        <g class="state-2-text">
+            <text x="135" y="60" font-family="monospace" font-size="11" fill="#10b981" font-weight="bold">COGNITIVE_ALIGN</text>
+        </g>
+    </g>
+
+    <!-- 2. Profile User Figure (Left) -->
+    <g transform="translate(20, 40)">
+        <!-- User Outline -->
+        <path d="M 80 320 C 80 280, 100 240, 110 210 C 105 200, 95 190, 95 170 C 95 140, 115 110, 140 110 C 165 110, 180 130, 180 160 C 180 180, 175 195, 170 205 C 175 220, 185 240, 190 280 C 195 320, 200 320, 200 320 Z" class="user-outline" />
+        
+        <!-- Eyeball structure -->
+        <circle cx="160" cy="160" r="10" fill="#1e293b" stroke="#475569" stroke-width="1.5" />
+        <circle cx="164" cy="160" r="4" fill="#38bdf8" class="pulse-gaze" />
+        
+        <!-- Head Space Axis -->
+        <path d="M 160 160 L 160 110" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red)" />
+        <path d="M 160 160 L 210 160" stroke="#10b981" stroke-width="1.5" marker-end="url(#arrow-green)" />
+        <text x="155" y="100" font-family="monospace" font-size="9" fill="#ef4444">Y (Head)</text>
+        <text x="215" y="163" font-family="monospace" font-size="9" fill="#10b981">Z (Gaze)</text>
+    </g>
+
+    <!-- 3. Hardware Display Setup (Right) -->
+    <g transform="translate(620, 90)">
+        <!-- Monitor bezel -->
+        <rect x="50" y="20" width="20" height="240" rx="4" class="monitor-outline" />
+        <!-- Monitor base -->
+        <path d="M 40 260 L 80 260 L 90 280 L 30 280 Z" fill="#334155" stroke="#475569" stroke-width="1.5" />
+        <!-- Screen Active Area (Glassmorphic) -->
+        <rect x="47" y="25" width="4" height="230" fill="#38bdf8" fill-opacity="0.2" />
+        
+        <!-- Off-axis Camera (Mounted Top) -->
+        <rect x="35" y="0" width="20" height="20" rx="3" fill="#0f172a" stroke="#6366f1" stroke-width="1.5" />
+        <circle cx="45" cy="10" r="4" fill="#312e81" stroke="#38bdf8" stroke-width="1" />
+        <!-- Camera Beam -->
+        <line x1="35" y1="10" x2="-440" y2="110" class="camera-beam" />
+        <text x="25" y="-10" class="label" text-anchor="end">Kinect / Webcam Sensor (Off-Axis)</text>
+
+        <!-- Avatar Location Label -->
+        <circle cx="47" cy="120" r="6" fill="#38bdf8" filter="url(#glow-blue)"/>
+        <text x="35" y="124" class="label" text-anchor="end" fill="#38bdf8" font-weight="bold">WPF Avatar Window</text>
+    </g>
+
+    <!-- 4. Vectors and Projections (Central Scene) -->
+    <!-- Eyeball Center = (180, 200) -->
+    <!-- Camera Position = (655, 90) -->
+    <!-- Avatar Display Center = (667, 210) -->
+    <!-- Erroneous Screen Target (Uncorrected) = (667, 305) -->
+
+    <!-- Raw Camera Eye-Line (dashed blue reference) -->
+    <line x1="655" y1="90" x2="180" y2="200" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6"/>
+    <text x="400" y="130" class="label" fill="#38bdf8" transform="rotate(13, 400, 130)">Sensor Optical Vector</text>
+
+    <!-- UNCORRECTED SCENE STATE (Red) -->
+    <g>
+        <!-- Uncorrected Gaze Vector (skewed, looking down from camera POV) -->
+        <line x1="180" y1="200" x2="667" y2="305" class="uncorrected-vector" filter="url(#glow-magenta)" />
+        <circle cx="667" cy="305" r="5" class="target-dot-uncorrected" filter="url(#glow-magenta)" />
+        <path d="M 667 305 L 630 330 L 510 330" stroke="#f43f5e" stroke-width="1" fill="none" class="state-1-text" />
+        <text x="500" y="334" class="label" fill="#f43f5e" text-anchor="end" class="state-1-text">Raw Projection (Error = ~12.4cm offset)</text>
+    </g>
+
+    <!-- CORRECTED SCENE STATE (Teal/Green) -->
+    <g>
+        <!-- Corrected Gaze Vector (snapped straight to Avatar eyes) -->
+        <line x1="180" y1="200" x2="667" y2="210" class="corrected-vector" filter="url(#glow-teal)" />
+        <circle cx="667" cy="210" r="5" class="target-dot-corrected" filter="url(#glow-teal)" />
+        <path d="M 667 210 L 630 235 L 510 235" stroke="#10b981" stroke-width="1" fill="none" class="state-2-text" />
+        <text x="500" y="239" class="label" fill="#10b981" text-anchor="end" class="state-2-text">Calibrated True Gaze™ Vector (Error &lt; 0.5°)</text>
+    </g>
+
+    <!-- 5. Mathematical Annotations (Bottom Panel) -->
+    <rect x="30" y="355" width="430" height="75" rx="6" fill="#0b0f19" fill-opacity="0.9" stroke="#1e293b" stroke-width="1.5" />
+    
+    <!-- State 1 Description (Uncorrected) -->
+    <g class="state-1-text" transform="translate(45, 375)">
+        <text font-family="'Outfit', sans-serif" font-size="12" fill="#f43f5e" font-weight="bold">PROBLEM: PERSPECTIVE PARALLAX DISTORTION</text>
+        <text font-family="'Inter', sans-serif" font-size="10.5" fill="#9ca3af" x="0" y="20">Without calibration, the off-axis angle of the sensor skews the coordinate plane.</text>
+        <text font-family="'Inter', sans-serif" font-size="10.5" fill="#9ca3af" x="0" y="38">The avatar registers the user's forward focus as looking downward.</text>
+    </g>
+
+    <!-- State 2 Description (Corrected) -->
+    <g class="state-2-text" transform="translate(45, 375)">
+        <text font-family="'Outfit', sans-serif" font-size="12" fill="#10b981" font-weight="bold">SOLUTION: TRUE GAZE™ 3D CO-REGISTRATION</text>
+        <text font-family="'Inter', sans-serif" font-size="10.5" fill="#9ca3af" x="0" y="20">HCEP projects coordinates into virtual camera space relative to the avatar's screen bounds.</text>
+        <text font-family="'Inter', sans-serif" font-size="10.5" fill="#9ca3af" x="0" y="38">Yaw/pitch skews are solved, establishing direct, reciprocal eye contact.</text>
+    </g>
+
+    <!-- Dynamic Status Banner (Bottom-Right) -->
+    <g transform="translate(490, 355)">
+        <rect width="280" height="75" rx="6" fill="#0b0f19" fill-opacity="0.9" stroke="#1e293b" stroke-width="1.5"/>
+        <text x="140" y="24" font-family="'Outfit', sans-serif" font-size="11" fill="#9ca3af" font-weight="bold" text-anchor="middle">DYNAMIC Telemetry STatus</text>
+        
+        <!-- State 1 Status -->
+        <g class="state-1-text">
+            <rect x="25" y="35" width="230" height="26" rx="4" fill="#881337" fill-opacity="0.4" stroke="#f43f5e" stroke-width="1"/>
+            <text x="140" y="52" font-family="monospace" font-size="11" fill="#fda4af" font-weight="bold" text-anchor="middle">STATUS: Skewed Gaze (12.4cm)</text>
+        </g>
+        
+        <!-- State 2 Status -->
+        <g class="state-2-text">
+            <rect x="25" y="35" width="230" height="26" rx="4" fill="#064e3b" fill-opacity="0.4" stroke="#10b981" stroke-width="1"/>
+            <text x="140" y="52" font-family="monospace" font-size="11" fill="#a7f3d0" font-weight="bold" text-anchor="middle">STATUS: Connected (0.28cm)</text>
+        </g>
+    </g>
+
+    <!-- Marker Declarations for Vector Arrows -->
+    <defs>
+        <marker id="arrow-red" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#ef4444" />
+        </marker>
+        <marker id="arrow-green" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981" />
+        </marker>
+    </defs>
+</svg>
