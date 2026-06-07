@@ -1,0 +1,364 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="100%">
+    <defs>
+        <!-- Background Gradients -->
+        <radialGradient id="bg-grad" cx="50%" cy="50%" r="70%">
+            <stop offset="0%" stop-color="#111827" />
+            <stop offset="100%" stop-color="#070a13" />
+        </radialGradient>
+
+        <!-- Eye Cone Gradients -->
+        <linearGradient id="cone-left-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.3" />
+            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0" />
+        </linearGradient>
+
+        <!-- Glow Filters -->
+        <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="6" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+        <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+        <filter id="glow-magenta" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+    </defs>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Outfit:wght@500;700&amp;display=swap');
+
+        .title {
+            font-family: 'Outfit', 'Inter', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            fill: #f3f4f6;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            fill: #9ca3af;
+            font-weight: 500;
+        }
+
+        .label {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            fill: #9ca3af;
+            font-weight: 600;
+        }
+
+        .hud-header {
+            font-family: 'Outfit', sans-serif;
+            font-size: 12px;
+            fill: #f3f4f6;
+            font-weight: bold;
+        }
+
+        .hud-val {
+            font-family: monospace;
+            font-size: 11px;
+            fill: #38bdf8;
+            font-weight: bold;
+        }
+
+        /* Grid lines & Layout */
+        .grid-line {
+            stroke: #1e293b;
+            stroke-width: 1;
+            stroke-dasharray: 4 4;
+        }
+
+        /* Avatar face representation */
+        .face-oval {
+            stroke: #334155;
+            stroke-width: 1.5;
+            fill: #0f172a;
+            fill-opacity: 0.6;
+        }
+
+        .eye-socket {
+            stroke: #475569;
+            stroke-width: 1.5;
+            fill: #1e293b;
+        }
+
+        /* Animation Keyframes */
+        @keyframes reticleMove {
+            0%, 100% { transform: translate(520px, 130px); } /* LOGIC (Forehead) */
+            20%      { transform: translate(520px, 130px); }
+            25%      { transform: translate(520px, 190px); } /* SPIRIT (Mutual Eyes) */
+            45%      { transform: translate(520px, 190px); }
+            50%      { transform: translate(520px, 250px); } /* AFFECT (Social Triangle) */
+            70%      { transform: translate(520px, 250px); }
+            75%      { transform: translate(660px, 100px); } /* THINK (Averted gaze) */
+            95%      { transform: translate(660px, 100px); }
+        }
+
+        @keyframes leftPupil {
+            0%, 20%, 100% { transform: translate(143px, 172px); } /* Logic: Up-center */
+            25%, 45%      { transform: translate(146px, 178px); } /* Spirit: Direct center */
+            50%, 70%      { transform: translate(146px, 183px); } /* Affect: Down-center */
+            75%, 95%      { transform: translate(152px, 170px); } /* Think: Up-Right */
+        }
+
+        @keyframes rightPupil {
+            0%, 20%, 100% { transform: translate(243px, 172px); }
+            25%, 45%      { transform: translate(246px, 178px); }
+            50%, 70%      { transform: translate(246px, 183px); }
+            75%, 95%      { transform: translate(252px, 170px); }
+        }
+
+        /* Highlighting target grid cells based on gaze position */
+        @keyframes highlightLogic {
+            0%, 20%, 100% { fill: #3b82f6; fill-opacity: 0.35; stroke: #3b82f6; }
+            25%, 95%      { fill: #1e293b; fill-opacity: 0.2; stroke: #334155; }
+        }
+
+        @keyframes highlightSpirit {
+            25%, 45%      { fill: #10b981; fill-opacity: 0.35; stroke: #10b981; }
+            0%, 20%, 50%, 100% { fill: #1e293b; fill-opacity: 0.2; stroke: #334155; }
+        }
+
+        @keyframes highlightAffect {
+            50%, 70%      { fill: #ec4899; fill-opacity: 0.35; stroke: #ec4899; }
+            0%, 45%, 75%, 100% { fill: #1e293b; fill-opacity: 0.2; stroke: #334155; }
+        }
+
+        @keyframes highlightThink {
+            75%, 95%      { fill: #eab308; fill-opacity: 0.35; stroke: #eab308; }
+            0%, 70%, 100% { fill: #1e293b; fill-opacity: 0.2; stroke: #334155; }
+        }
+
+        /* Show/Hide Telemetry and labels matching active state */
+        @keyframes showLogic {
+            0%, 20%, 100% { opacity: 1; }
+            25%, 95%      { opacity: 0; }
+        }
+        @keyframes showSpirit {
+            25%, 45%      { opacity: 1; }
+            0%, 20%, 50%, 100% { opacity: 0; }
+        }
+        @keyframes showAffect {
+            50%, 70%      { opacity: 1; }
+            0%, 45%, 75%, 100% { opacity: 0; }
+        }
+        @keyframes showThink {
+            75%, 95%      { opacity: 1; }
+            0%, 70%, 100% { opacity: 0; }
+        }
+
+        @keyframes sweepBeamLeft {
+            0%, 20%, 100% { points: "146,178 520,130 520,150"; }
+            25%, 45%      { points: "146,178 520,190 520,210"; }
+            50%, 70%      { points: "146,178 520,250 520,270"; }
+            75%, 95%      { points: "146,178 660,100 660,120"; }
+        }
+        @keyframes sweepBeamRight {
+            0%, 20%, 100% { points: "246,178 520,130 520,150"; }
+            25%, 45%      { points: "246,178 520,190 520,210"; }
+            50%, 70%      { points: "246,178 520,250 520,270"; }
+            75%, 95%      { points: "246,178 660,100 660,120"; }
+        }
+
+        /* Classes linked to keyframes */
+        .gaze-target-reticle {
+            animation: reticleMove 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        .pupil-left {
+            animation: leftPupil 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        .pupil-right {
+            animation: rightPupil 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        .cell-logic {
+            animation: highlightLogic 12s infinite;
+        }
+
+        .cell-spirit {
+            animation: highlightSpirit 12s infinite;
+        }
+
+        .cell-affect {
+            animation: highlightAffect 12s infinite;
+        }
+
+        .cell-think {
+            animation: highlightThink 12s infinite;
+        }
+
+        .info-logic {
+            animation: showLogic 12s infinite;
+        }
+
+        .info-spirit {
+            animation: showSpirit 12s infinite;
+        }
+
+        .info-affect {
+            animation: showAffect 12s infinite;
+        }
+
+        .info-think {
+            animation: showThink 12s infinite;
+        }
+
+        .beam-left {
+            animation: sweepBeamLeft 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            fill: url(#cone-left-grad);
+        }
+
+        .beam-right {
+            animation: sweepBeamRight 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            fill: url(#cone-left-grad);
+        }
+    </style>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="url(#bg-grad)" rx="12" stroke="#1f2937" stroke-width="2" />
+
+    <!-- Layout Grid Lines -->
+    <g class="grid-layout">
+        <line x1="50" y1="50" x2="750" y2="50" class="grid-line" />
+        <line x1="50" y1="400" x2="750" y2="400" class="grid-line" />
+        <line x1="360" y1="50" x2="360" y2="400" class="grid-line" />
+    </g>
+
+    <!-- 1. Header -->
+    <text x="30" y="35" class="title">Cones of Vision &amp; 13 Gaze Regions</text>
+    <text x="365" y="35" class="subtitle">TELEMETRY PIPELINE LAYER 4 (COGNITIVE MODE INTERPRETATION)</text>
+    <rect x="700" y="20" width="70" height="20" rx="4" fill="#1e293b" stroke="#334155" />
+    <text x="735" y="33" font-family="monospace" font-size="10" fill="#10b981" font-weight="bold" text-anchor="middle">v1.0.0</text>
+
+    <!-- 2. Avatar/User Eye Rig (Left Column) -->
+    <g transform="translate(45, 40)">
+        <!-- Face Outline (Stylized) -->
+        <path d="M 80 160 C 80 90, 220 90, 220 160 C 220 220, 210 260, 150 290 C 90 260, 80 220, 80 160 Z" class="face-oval" />
+        
+        <!-- Left Eye Socket -->
+        <ellipse cx="135" cy="160" rx="22" ry="12" class="eye-socket" />
+        <!-- Right Eye Socket -->
+        <ellipse cx="165" cy="160" rx="22" ry="12" class="eye-socket" />
+        
+        <!-- Pupils (Animated translation) -->
+        <!-- Left Pupil Group -->
+        <g class="pupil-left">
+            <circle cx="0" cy="0" r="7" fill="#0284c7" />
+            <circle cx="1.5" cy="-1.5" r="2" fill="#ffffff" />
+        </g>
+        <!-- Right Pupil Group -->
+        <g class="pupil-right">
+            <circle cx="0" cy="0" r="7" fill="#0284c7" />
+            <circle cx="1.5" cy="-1.5" r="2" fill="#ffffff" />
+        </g>
+
+        <!-- Eye Contours (Lids) -->
+        <path d="M 110 160 Q 135 140 160 160" fill="none" stroke="#475569" stroke-width="1.5" />
+        <path d="M 110 160 Q 135 180 160 160" fill="none" stroke="#475569" stroke-width="1.5" />
+        <path d="M 140 160 Q 165 140 190 160" fill="none" stroke="#475569" stroke-width="1.5" />
+        <path d="M 140 160 Q 165 180 190 160" fill="none" stroke="#475569" stroke-width="1.5" />
+        
+        <text x="150" y="315" class="label" text-anchor="middle" fill="#38bdf8">Internal Gaze Telemetry Rig</text>
+    </g>
+
+    <!-- Cones of Vision Beams (Behind Reticle, emanating from eyes) -->
+    <!-- Left Eye Pupil Center is at ~180, 200. Right Eye is at ~210, 200. -->
+    <polygon class="beam-left" />
+    <polygon class="beam-right" />
+
+    <!-- 3. Gaze Target Grid (Right Column) -->
+    <!-- Mapped as 13-Region matrix over the user's face region -->
+    <g transform="translate(420, 80)">
+        <!-- Grid Outer Border -->
+        <rect width="280" height="240" rx="6" fill="#0b0f19" fill-opacity="0.5" stroke="#1e293b" stroke-width="1.5" />
+        
+        <!-- Grid Cells -->
+        <!-- Row 1: Forehead / Logic (Y: 20-80) -->
+        <rect x="20" y="20" width="240" height="60" rx="4" class="cell-logic" />
+        <text x="140" y="55" font-family="'Inter', sans-serif" font-size="10" fill="#9ca3af" font-weight="bold" text-anchor="middle" opacity="0.6">FOREHEAD (LOGIC / COGNITIVE)</text>
+
+        <!-- Row 2: Eyes / Spirit (Y: 90-150) -->
+        <rect x="20" y="90" width="240" height="60" rx="4" class="cell-spirit" />
+        <text x="140" y="125" font-family="'Inter', sans-serif" font-size="10" fill="#9ca3af" font-weight="bold" text-anchor="middle" opacity="0.6">EYE-CONTACT ZONE (SPIRIT / MUTUAL)</text>
+
+        <!-- Row 3: Mouth / Affect (Y: 160-220) -->
+        <rect x="20" y="160" width="240" height="60" rx="4" class="cell-affect" />
+        <text x="140" y="195" font-family="'Inter', sans-serif" font-size="10" fill="#9ca3af" font-weight="bold" text-anchor="middle" opacity="0.6">TRIANGLE ZONE (AFFECT / HEART)</text>
+
+        <!-- Screen Borders / Think (Out of grid bounds, top-right) -->
+        <rect x="245" y="-15" width="45" height="45" rx="4" class="cell-think" />
+        <text x="267" y="12" font-family="monospace" font-size="8" fill="#9ca3af" font-weight="bold" text-anchor="middle" opacity="0.8">THINK</text>
+
+        <!-- Target Reticle (Animated overlay) -->
+        <g class="gaze-target-reticle" filter="url(#glow-cyan)">
+            <!-- Reticle Crosshair -->
+            <circle cx="0" cy="0" r="10" fill="none" stroke="#22d3ee" stroke-width="2" />
+            <circle cx="0" cy="0" r="2" fill="#22d3ee" />
+            <line x1="-15" y1="0" x2="15" y2="0" stroke="#22d3ee" stroke-width="1.5" />
+            <line x1="0" y1="-15" x2="0" y2="15" stroke="#22d3ee" stroke-width="1.5" />
+        </g>
+    </g>
+
+    <!-- 4. Dynamic Analytics Footer (Modes) -->
+    <rect x="30" y="340" width="740" height="90" rx="8" fill="#0b0f19" fill-opacity="0.9" stroke="#1e293b" stroke-width="1.5" />
+
+    <!-- LOGIC STATE telemetry details -->
+    <g class="info-logic" transform="translate(50, 360)">
+        <text class="hud-header" fill="#3b82f6" font-size="14">ACTIVE MODE: LOGIC</text>
+        <text class="subtitle" x="0" y="22">Gaze localized on Forehead region. Focus: Information integration &amp; problem-solving.</text>
+        <text x="0" y="42" font-family="monospace" font-size="11" fill="#3b82f6">Saccades: Low Frequency (Steady) | Pupil Dilation: +12% | Attention Index: 92.4%</text>
+        <!-- HUD side card -->
+        <rect x="530" y="-8" width="140" height="48" rx="4" fill="#1e3a8a" fill-opacity="0.4" stroke="#3b82f6" stroke-width="1" />
+        <text x="600" y="12" font-family="'Outfit', sans-serif" font-size="10" fill="#93c5fd" font-weight="bold" text-anchor="middle">AI RESPONSE MODULATION</text>
+        <text x="600" y="30" font-family="'Inter', sans-serif" font-size="12" fill="#ffffff" font-weight="bold" text-anchor="middle">FACTUAL &amp; STRUCTURED</text>
+    </g>
+
+    <!-- SPIRIT STATE telemetry details -->
+    <g class="info-spirit" transform="translate(50, 360)">
+        <text class="hud-header" fill="#10b981" font-size="14">ACTIVE MODE: SPIRIT</text>
+        <text class="subtitle" x="0" y="22">Gaze localized on eyes. Focus: Active mutual rapport and deep interpersonal alignment.</text>
+        <text x="0" y="42" font-family="monospace" font-size="11" fill="#10b981">Saccades: Locked (Zero drift) | Mutual Contact: 98.2% | Alignment Vector: [0.04, -0.02, 1.0]</text>
+        <!-- HUD side card -->
+        <rect x="530" y="-8" width="140" height="48" rx="4" fill="#064e3b" fill-opacity="0.4" stroke="#10b981" stroke-width="1" />
+        <text x="600" y="12" font-family="'Outfit', sans-serif" font-size="10" fill="#a7f3d0" font-weight="bold" text-anchor="middle">AI RESPONSE MODULATION</text>
+        <text x="600" y="30" font-family="'Inter', sans-serif" font-size="12" fill="#ffffff" font-weight="bold" text-anchor="middle">DEEP &amp; AUTHENTIC</text>
+    </g>
+
+    <!-- AFFECT STATE telemetry details -->
+    <g class="info-affect" transform="translate(50, 360)">
+        <text class="hud-header" fill="#ec4899" font-size="14">ACTIVE MODE: AFFECT / HEART</text>
+        <text class="subtitle" x="0" y="22">Gaze cycling between eyes and mouth (Social Triangle). Focus: Emotional expression &amp; empathy.</text>
+        <text x="0" y="42" font-family="monospace" font-size="11" fill="#ec4899">Triangular cycling rate: 0.82 Hz | Valence Score: Positive (+0.65) | Empathy Lock: High</text>
+        <!-- HUD side card -->
+        <rect x="530" y="-8" width="140" height="48" rx="4" fill="#701a75" fill-opacity="0.4" stroke="#ec4899" stroke-width="1" />
+        <text x="600" y="12" font-family="'Outfit', sans-serif" font-size="10" fill="#fbcfe8" font-weight="bold" text-anchor="middle">AI RESPONSE MODULATION</text>
+        <text x="600" y="30" font-family="'Inter', sans-serif" font-size="12" fill="#ffffff" font-weight="bold" text-anchor="middle">EMPATHETIC &amp; WARM</text>
+    </g>
+
+    <!-- THINK STATE telemetry details -->
+    <g class="info-think" transform="translate(50, 360)">
+        <text class="hud-header" fill="#eab308" font-size="14">ACTIVE MODE: THINK</text>
+        <text class="subtitle" x="0" y="22">Gaze averted off-center / screen boundaries. Focus: Internal processing and memory retrieval.</text>
+        <text x="0" y="42" font-family="monospace" font-size="11" fill="#eab308">Aversion Angle: 22.4° | Cognitive Load: High (Vocal pause detected) | Processing State: ACTIVE</text>
+        <!-- HUD side card -->
+        <rect x="530" y="-8" width="140" height="48" rx="4" fill="#78350f" fill-opacity="0.4" stroke="#eab308" stroke-width="1" />
+        <text x="600" y="12" font-family="'Outfit', sans-serif" font-size="10" fill="#fef08a" font-weight="bold" text-anchor="middle">AI RESPONSE MODULATION</text>
+        <text x="600" y="30" font-family="'Inter', sans-serif" font-size="12" fill="#ffffff" font-weight="bold" text-anchor="middle">NON-INTRUSIVE / SILENT</text>
+    </g>
+</svg>

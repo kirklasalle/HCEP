@@ -284,6 +284,8 @@ The system classifies modes in real-time using:
 - **Facial Action Units** — muscle movements indicating emotion
 - **Temporal patterns** — mode stability and transition dynamics
 
+![Telemetry Cones of Vision & 13 Regions](docs/images/cones_of_vision.svg)
+
 This enables AI systems to respond not just to *what* people say, but to *how* they're communicating — adapting tone, depth, and style to match the human's current cognitive-emotional state.
 
 ---
