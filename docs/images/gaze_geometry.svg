@@ -1,0 +1,290 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="100%">
+    <defs>
+        <!-- Background Gradients -->
+        <radialGradient id="bg-grad" cx="50%" cy="50%" r="70%">
+            <stop offset="0%" stop-color="#111827" />
+            <stop offset="100%" stop-color="#070a13" />
+        </radialGradient>
+
+        <!-- Spherical Eyeball Shading -->
+        <radialGradient id="eyeball-shading" cx="40%" cy="40%" r="60%">
+            <stop offset="0%" stop-color="#1e293b" />
+            <stop offset="85%" stop-color="#0f172a" />
+            <stop offset="100%" stop-color="#020617" />
+        </radialGradient>
+
+        <!-- Glow Filters -->
+        <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+        <filter id="glow-orange" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+        <filter id="glow-purple" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="4" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+    </defs>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Outfit:wght@500;700&amp;display=swap');
+
+        .title {
+            font-family: 'Outfit', 'Inter', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            fill: #f3f4f6;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            fill: #9ca3af;
+            font-weight: 500;
+        }
+
+        .label {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            fill: #9ca3af;
+            font-weight: 600;
+        }
+
+        .math-tex {
+            font-family: 'Times New Roman', Times, serif;
+            font-style: italic;
+            font-size: 13px;
+            fill: #e2e8f0;
+        }
+
+        .math-bold {
+            font-weight: bold;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        /* Vector and Wireframe Styles */
+        .vector-line {
+            stroke-width: 2;
+            fill: none;
+        }
+        
+        .axis-line {
+            stroke-width: 1.5;
+            stroke-dasharray: 2 2;
+        }
+
+        .grid-line {
+            stroke: #1e293b;
+            stroke-width: 1;
+            stroke-dasharray: 4 4;
+        }
+
+        /* Animation timings and loops */
+        @keyframes stagePulse {
+            0%, 100% { opacity: 0.3; stroke-width: 1px; }
+            50%      { opacity: 1; stroke-width: 2px; }
+        }
+
+        @keyframes drawMathLine {
+            0%   { stroke-dashoffset: 200; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        @keyframes rotateYaw {
+            0%, 100% { transform: rotate(0deg); }
+            50%      { transform: rotate(-15deg); }
+        }
+
+        @keyframes pupilOffsetScan {
+            0%, 100% { transform: translate(0px, 0px); }
+            33%      { transform: translate(12px, -8px); }
+            66%      { transform: translate(-10px, 10px); }
+        }
+
+        @keyframes highlightEquation {
+            0%, 30%, 100% { opacity: 0.2; }
+            35%, 95%      { opacity: 1; }
+        }
+
+        /* Dynamic classes */
+        .pnp-active {
+            animation: stagePulse 3s ease-in-out infinite;
+        }
+        
+        .pnp-head-rotate {
+            transform-origin: 210px 220px;
+            animation: rotateYaw 6s ease-in-out infinite;
+        }
+
+        .pupil-offset-group {
+            animation: pupilOffsetScan 6s ease-in-out infinite;
+        }
+
+        .eq-stage-1 {
+            animation: stagePulse 4s infinite;
+        }
+        
+        .eq-stage-2 {
+            animation: highlightEquation 6s ease-in-out infinite;
+        }
+
+        .gaze-vector-arrow {
+            stroke: #10b981;
+            stroke-width: 3;
+            stroke-dasharray: 200;
+            stroke-dashoffset: 200;
+            animation: drawMathLine 3s ease-in-out infinite;
+        }
+    </style>
+
+    <!-- Background -->
+    <rect width="100%" height="100%" fill="url(#bg-grad)" rx="12" stroke="#1f2937" stroke-width="2" />
+
+    <!-- Layout Dividers -->
+    <g class="grid-layout">
+        <line x1="50" y1="50" x2="750" y2="50" class="grid-line" />
+        <line x1="50" y1="400" x2="750" y2="400" class="grid-line" />
+        <line x1="400" y1="50" x2="400" y2="400" class="grid-line" />
+    </g>
+
+    <!-- 1. Header -->
+    <text x="30" y="35" class="title">Gaze Estimation Triangulation Geometry</text>
+    <text x="405" y="35" class="subtitle">MATHEMATICAL ENGINE (THREE-STAGE SOLVER)</text>
+    <rect x="700" y="20" width="70" height="20" rx="4" fill="#1e293b" stroke="#334155" />
+    <text x="735" y="33" font-family="monospace" font-size="10" fill="#10b981" font-weight="bold" text-anchor="middle">v1.0.0</text>
+
+    <!-- 2. Left Panel: Stage 1 & 2 - PnP Head & Sockets -->
+    <g transform="translate(10, 30)">
+        <text x="30" y="60" font-family="'Outfit', sans-serif" font-size="13" fill="#38bdf8" font-weight="bold">STAGE 1: 3D HEAD POSE (EPnP + LM)</text>
+        
+        <!-- Camera focal point -->
+        <circle cx="50" cy="180" r="8" fill="#6366f1" filter="url(#glow-purple)" />
+        <text x="50" y="205" class="label" text-anchor="middle">Camera (C)</text>
+        
+        <!-- PnP head projection lines -->
+        <g class="pnp-active" opacity="0.6">
+            <line x1="50" y1="180" x2="210" y2="120" stroke="#6366f1" stroke-dasharray="3 3"/>
+            <line x1="50" y1="180" x2="210" y2="180" stroke="#6366f1" stroke-dasharray="3 3"/>
+            <line x1="50" y1="180" x2="210" y2="240" stroke="#6366f1" stroke-dasharray="3 3"/>
+        </g>
+
+        <!-- 3D Head Mesh representation (rotating group) -->
+        <g class="pnp-head-rotate" transform="translate(0, 0)">
+            <!-- Head Wireframe Outer bounding box -->
+            <path d="M 170 120 C 170 80, 250 80, 250 120 C 250 200, 240 250, 210 270 C 180 250, 170 200, 170 120 Z" fill="#0f172a" fill-opacity="0.4" stroke="#475569" stroke-width="1.5" />
+            <!-- Face Grid Mesh nodes -->
+            <path d="M 170 160 Q 210 180 250 160 M 170 200 Q 210 220 250 200 M 210 120 L 210 270" fill="none" stroke="#334155" stroke-width="1" />
+            
+            <!-- Left Socket Center (EL) -->
+            <circle cx="195" cy="160" r="5" fill="#f43f5e" />
+            <!-- Right Socket Center (ER) -->
+            <circle cx="225" cy="160" r="5" fill="#f43f5e" />
+            <!-- Inter-socket baseline line (d) -->
+            <line x1="195" y1="160" x2="225" y2="160" stroke="#f43f5e" stroke-width="1.5" />
+            <text x="210" y="152" font-family="monospace" font-size="9" fill="#f43f5e" text-anchor="middle">d</text>
+        </g>
+        
+        <!-- Extrinsic arrow -->
+        <path d="M 90 220 Q 130 250 170 230" fill="none" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow-purple)"/>
+        <text x="130" y="260" class="label" fill="#a855f7" text-anchor="middle">Solve Extrinsics [R | T]</text>
+        
+        <!-- Stage 2 Header -->
+        <text x="30" y="310" font-family="'Outfit', sans-serif" font-size="13" fill="#38bdf8" font-weight="bold">STAGE 2: EYE SOCKET ESTABLISHMENT</text>
+        <text x="30" y="328" class="subtitle">Extract 3D eyeball rotation centers relative to mesh space.</text>
+    </g>
+
+    <!-- 3. Right Panel: Stage 3 - Detailed Pupil Vector Projection -->
+    <g transform="translate(420, 60)">
+        <text x="20" y="30" font-family="'Outfit', sans-serif" font-size="13" fill="#38bdf8" font-weight="bold">STAGE 3: 3D EYE-IN-HEAD PARALLAX SOLVER</text>
+        
+        <!-- Detailed Eyeball Circle -->
+        <circle cx="180" cy="180" r="90" fill="url(#eyeball-shading)" stroke="#475569" stroke-width="2" />
+        <circle cx="180" cy="180" r="88" fill="none" stroke="#1e293b" stroke-width="1" />
+        
+        <!-- Eyeball coordinate center -->
+        <circle cx="180" cy="180" r="4" fill="#64748b" />
+        <text x="180" y="200" class="math-tex" text-anchor="middle">C<tspan font-size="9" dy="4">eye</tspan></text>
+        
+        <!-- Coordinate Axes for Eyeball -->
+        <line x1="180" y1="180" x2="180" y2="50" class="axis-line" stroke="#ef4444" />
+        <line x1="180" y1="180" x2="310" y2="180" class="axis-line" stroke="#10b981" />
+        <text x="192" y="62" font-family="monospace" font-size="9" fill="#ef4444">Y (Socket)</text>
+        <text x="300" y="195" font-family="monospace" font-size="9" fill="#10b981">Z (Optical)</text>
+
+        <!-- Pupil and Iris group (Animated Offset) -->
+        <g class="pupil-offset-group">
+            <!-- Iris contour -->
+            <ellipse cx="258" cy="138" rx="14" ry="24" fill="#0369a1" stroke="#38bdf8" stroke-width="1.5" transform="rotate(25, 258, 138)" />
+            <!-- Pupil contour -->
+            <ellipse cx="258" cy="138" rx="6" ry="12" fill="#020617" transform="rotate(25, 258, 138)" />
+            
+            <!-- Pupil vector displacement arrow (v) -->
+            <line x1="245" y1="180" x2="258" y2="138" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow-orange)" filter="url(#glow-orange)" />
+            <text x="260" y="170" font-family="monospace" font-size="11" fill="#f59e0b" font-weight="bold">v</text>
+
+            <!-- Gaze Vector (g) emanating from Pupil -->
+            <line x1="258" y1="138" x2="340" y2="96" class="gaze-vector-arrow" filter="url(#glow-green)" marker-end="url(#arrow-green)" />
+            <text x="315" y="105" font-family="monospace" font-size="12" fill="#10b981" font-weight="bold">g</text>
+        </g>
+        
+        <!-- Eyeball Radius R label -->
+        <line x1="180" y1="180" x2="116" y2="116" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="3 3" />
+        <text x="140" y="145" class="math-tex" fill="#94a3b8">R</text>
+
+        <!-- Equations at Bottom-Right -->
+        <g transform="translate(20, 290)">
+            <rect width="300" height="65" rx="4" fill="#070a13" stroke="#1e293b" stroke-width="1.2" />
+            <text x="20" y="24" class="math-tex" font-size="12.5">
+                Eyeball Geometry: 
+                <tspan fill="#f59e0b" font-weight="bold">v</tspan> = [Δx, Δy] relative to center
+            </text>
+            <text x="20" y="46" class="math-tex" font-size="12.5">
+                Gaze Vector: 
+                <tspan fill="#10b981" font-weight="bold">g</tspan> = [v<tspan font-size="9" dy="2">x</tspan><tspan font-size="12.5" dy="-2">, v</tspan><tspan font-size="9" dy="2">y</tspan><tspan font-size="12.5" dy="-2">, sqrt(R² - |v|²)]</tspan>
+            </text>
+        </g>
+    </g>
+
+    <!-- 4. Mathematical Equation Panel (Bottom Left) -->
+    <g transform="translate(30, 340)">
+        <rect width="360" height="90" rx="8" fill="#0b0f19" fill-opacity="0.9" stroke="#1e293b" stroke-width="1.5" />
+        <text x="20" y="24" font-family="'Outfit', sans-serif" font-size="12" fill="#38bdf8" font-weight="bold">THREE-STAGE MATRIX RESOLVER</text>
+        
+        <!-- Stage 1 Eq -->
+        <text x="20" y="48" class="math-tex" font-size="12">
+            1. Extrinsics: 
+            <tspan fill="#a855f7" class="math-bold">P</tspan><tspan font-size="9" dy="2">cam</tspan><tspan font-size="12" dy="-2"> = R</tspan><tspan font-size="9" dy="2">head</tspan><tspan font-size="12" dy="-2"> · </tspan><tspan fill="#38bdf8" class="math-bold">P</tspan><tspan font-size="9" dy="2">mesh</tspan><tspan font-size="12" dy="-2"> + T</tspan><tspan font-size="9" dy="2">head</tspan>
+        </text>
+        
+        <!-- Stage 2/3 Eq -->
+        <text x="20" y="70" class="math-tex" font-size="12">
+            2. Final Gaze: 
+            <tspan fill="#10b981" class="math-bold">G</tspan><tspan font-size="9" dy="2">world</tspan><tspan font-size="12" dy="-2"> = R</tspan><tspan font-size="9" dy="2">head</tspan><tspan font-size="12" dy="-2"> · </tspan><tspan fill="#10b981" class="math-bold">g</tspan><tspan font-size="12" dy="-2"> (Parallax Corrected)</tspan>
+        </text>
+    </g>
+
+    <!-- Marker Declarations for Vector Arrows -->
+    <defs>
+        <marker id="arrow-green" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#10b981" />
+        </marker>
+        <marker id="arrow-orange" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
+        </marker>
+        <marker id="arrow-purple" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#a855f7" />
+        </marker>
+    </defs>
+</svg>

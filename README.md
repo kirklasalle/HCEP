@@ -64,6 +64,8 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - Saccade detection using Main Sequence equation
 - **Empirical Accuracy:** Validated at 84.55% classification accuracy and Cohen's Kappa of 0.8084 (exceeding targets)
 
+![Three-Stage Gaze Triangulation Geometry](docs/images/gaze_geometry.svg)
+
 ### Plugin API & LLM Integrations
 
 - **Model Context Protocol (MCP):** Serves JSON-RPC tools list and HCEP state snapshots over `POST /mcp`
