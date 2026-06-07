@@ -159,6 +159,37 @@ public sealed class UksKnowledgeAdapter : IKnowledgeStore, IDisposable
     }
 
     /// <inheritdoc />
+    public void Erase(string subject)
+    {
+        _mirror.Erase(subject);
+
+        if (_uksAvailable)
+        {
+            try
+            {
+                if (_getOrAddThing is not null && _deleteThing is not null && _uksInstance is not null)
+                {
+                    var subjectThing = _getOrAddThing.Invoke(_uksInstance, [subject]);
+                    if (subjectThing is not null)
+                    {
+                        _deleteThing.Invoke(_uksInstance, [subjectThing]);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "UKS Erase failed for subject '{Subject}'", subject);
+            }
+        }
+    }
+
+    /// <inheritdoc />
+    public void PurgeExpired(TimeSpan maxAge)
+    {
+        _mirror.PurgeExpired(maxAge);
+    }
+
+    /// <inheritdoc />
     public string Summarize(string subject, int maxTokens = 200)
         => _mirror.Summarize(subject, maxTokens);
 

@@ -290,6 +290,22 @@ public partial class MainViewModel : ObservableObject
         _logger.LogInformation("Avatar window opened");
     }
 
+    private SettingsWindow? _settingsWindow;
+
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        if (_settingsWindow is { IsLoaded: true })
+        {
+            _settingsWindow.Activate();
+            return;
+        }
+        _settingsWindow = _services.GetRequiredService<SettingsWindow>();
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        _settingsWindow.Show();
+        _logger.LogInformation("Settings window opened");
+    }
+
     [RelayCommand]
     private void ExitApplication()
     {
@@ -326,6 +342,25 @@ public partial class MainViewModel : ObservableObject
             }
 
             var name = EnrollmentName.Trim();
+
+            // Biometric consent compliance dialog (S-04)
+            var consentResult = MessageBox.Show(
+                $"HCEP Biometric Enrollment Consent\n\n" +
+                $"To enroll '{name}', HCEP must capture and store facial feature vectors (embeddings).\n" +
+                $"This biometric data is encrypted on your local system using Windows DPAPI.\n" +
+                $"It will not be uploaded or shared without your explicit permission.\n\n" +
+                $"Do you consent to the collection, storage, and processing of this biometric data?",
+                "Biometric Data Consent Required",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (consentResult != MessageBoxResult.Yes)
+            {
+                StatusMessage = "Enrollment cancelled: Consent was not provided.";
+                _logger.LogWarning("Biometric enrollment for '{Name}' cancelled due to lack of consent.", name);
+                return;
+            }
+
             orchestrator.EnrollFace(name);
             StatusMessage = $"Enrolling face as '{name}'...";
             _logger.LogInformation("Enrolling face: {Name}", name);

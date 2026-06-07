@@ -8,5 +8,8 @@
     <ProjectReference Include="..\HCEP.Core\HCEP.Core.csproj" />
     <ProjectReference Include="..\HCEP.Telemetry\HCEP.Telemetry.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.8" />
+  </ItemGroup>
   <!-- UKS library (BrainSim III) MIT licensed - TODO: Add UKS.dll or source project once cloned -->
 </Project>

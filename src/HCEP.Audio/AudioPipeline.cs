@@ -56,6 +56,12 @@ public sealed class AudioPipeline : IAsyncDisposable
         return Task.CompletedTask;
     }
 
+    /// <summary>Loads the transcription model into the recognizer.</summary>
+    public Task LoadModelAsync(string modelPath, CancellationToken ct = default)
+    {
+        return _recognizer.LoadModelAsync(modelPath, ct);
+    }
+
     /// <summary>Stops the pipeline and flushes remaining audio.</summary>
     public async Task StopAsync()
     {

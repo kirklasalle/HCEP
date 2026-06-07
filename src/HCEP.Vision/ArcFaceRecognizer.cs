@@ -132,7 +132,7 @@ public sealed class ArcFaceRecognizer : IFaceRecognizer, IDisposable
     {
         var tensor = new DenseTensor<float>([1, 3, InputSize, InputSize]);
 
-        // Simple nearest-neighbor resize + normalize to [-1, 1]
+        // Bilinear interpolation resize + normalize to [-1, 1]
         float scaleX = (float)width / InputSize;
         float scaleY = (float)height / InputSize;
 
@@ -140,15 +140,39 @@ public sealed class ArcFaceRecognizer : IFaceRecognizer, IDisposable
         {
             for (int x = 0; x < InputSize; x++)
             {
-                int srcX = Math.Min((int)(x * scaleX), width - 1);
-                int srcY = Math.Min((int)(y * scaleY), height - 1);
-                int srcIdx = (srcY * width + srcX) * 3;
+                float srcXf = x * scaleX;
+                float srcYf = y * scaleY;
 
-                if (srcIdx + 2 < imageData.Length)
+                int x0 = Math.Min((int)srcXf, width - 1);
+                int y0 = Math.Min((int)srcYf, height - 1);
+                int x1 = Math.Min(x0 + 1, width - 1);
+                int y1 = Math.Min(y0 + 1, height - 1);
+
+                float fx = srcXf - x0;
+                float fy = srcYf - y0;
+
+                // Bilinear weights
+                float w00 = (1f - fx) * (1f - fy);
+                float w10 = fx * (1f - fy);
+                float w01 = (1f - fx) * fy;
+                float w11 = fx * fy;
+
+                int idx00 = (y0 * width + x0) * 3;
+                int idx10 = (y0 * width + x1) * 3;
+                int idx01 = (y1 * width + x0) * 3;
+                int idx11 = (y1 * width + x1) * 3;
+
+                for (int c = 0; c < 3; c++)
                 {
-                    tensor[0, 0, y, x] = (imageData[srcIdx + 2] / 255f - 0.5f) / 0.5f; // R
-                    tensor[0, 1, y, x] = (imageData[srcIdx + 1] / 255f - 0.5f) / 0.5f; // G
-                    tensor[0, 2, y, x] = (imageData[srcIdx + 0] / 255f - 0.5f) / 0.5f; // B
+                    // Source channel index (BGR input → RGB output: channel 0=R reads [+2], 1=G reads [+1], 2=B reads [+0])
+                    int srcC = 2 - c;
+                    float val = 0f;
+                    if (idx00 + srcC < imageData.Length) val += imageData[idx00 + srcC] * w00;
+                    if (idx10 + srcC < imageData.Length) val += imageData[idx10 + srcC] * w10;
+                    if (idx01 + srcC < imageData.Length) val += imageData[idx01 + srcC] * w01;
+                    if (idx11 + srcC < imageData.Length) val += imageData[idx11 + srcC] * w11;
+
+                    tensor[0, c, y, x] = (val / 255f - 0.5f) / 0.5f;
                 }
             }
         }

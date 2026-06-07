@@ -1,16 +1,16 @@
 # HCEP — Product Requirements Document (PRD)
 
 **Product Name:** HCEP — Human Communication Eye Protocol  
-**Version:** 0.1.0 (Alpha)  
+**Version:** 1.0.0 (Stable)  
 **Author:** Kirk LaSalle  
-**Date:** February 23, 2026  
-**Status:** Active Development  
+**Date:** June 6, 2026  
+**Status:** Released  
 
 ---
 
 ## 1. Executive Summary
 
-HCEP (Human Communication Eye Protocol) is a world-class, state-of-the-art real-time multi-modal perception platform that fuses Xbox 360 Kinect v1 sensor data with a hybrid LLM engine (local Ollama + cloud GPT-5-mini) to analyze and respond to human communication through eye contact patterns, facial expressions, and speech.
+HCEP (Human Communication Eye Protocol) is a world-class, state-of-the-art real-time multi-modal perception platform that fuses sensor data (Xbox 360 Kinect v1 or standard USB webcams) with a hybrid LLM engine (local Ollama + cloud GPT-5-mini) to analyze and respond to human communication through eye contact patterns, facial expressions, and speech.
 
 At its core, HCEP implements Kirk LaSalle's HCEP (Human Conversation Eye Points) theory — a novel 5-mode cognitive-emotional classification system that decodes the rich, unspoken language of eye contact during face-to-face conversation.
 
@@ -21,11 +21,12 @@ To build the first real-time system that understands *how* people communicate th
 ### 1.2 Mission
 
 Deliver a commercially viable Windows desktop platform that:
-- Tracks face, eyes, skeleton, and speech in real-time via Kinect v1
+- Tracks face, eyes, skeleton, and speech in real-time via Kinect v1 or standard USB webcams
 - Classifies the 5 HCEP modes (Logic, Affect, Spirit, Heart, Think)
 - Routes conversation to local or cloud LLMs based on cognitive-emotional context
 - Maintains persistent person-specific knowledge for ongoing relationships
 - Provides a production-quality WPF dashboard for live monitoring
+- Exposes integration SDKs for Unity, Unreal Engine, Python, and .NET agents
 
 ---
 

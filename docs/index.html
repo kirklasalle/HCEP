@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HCEP — Human Communication Eye Protocol SDK</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0b0f19;
+            --bg-secondary: #161f30;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.15);
+            --text-primary: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --success: #10b981;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --font-display: 'Outfit', sans-serif;
+            --font-sans: 'Inter', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .gradient-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 600px;
+            background: radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.25) 0%, rgba(11, 15, 25, 0) 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        header {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            background: linear-gradient(135deg, #a78bfa, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--accent);
+        }
+
+        nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            margin-left: 2rem;
+            transition: color 0.2s;
+            font-weight: 500;
+        }
+
+        nav a:hover {
+            color: var(--text-primary);
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 6rem;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 3rem 0 5rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .badge {
+            background-color: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            color: #a5b4fc;
+            padding: 0.35rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            font-family: var(--font-display);
+            font-size: 3.5rem;
+            line-height: 1.15;
+            font-weight: 700;
+            letter-spacing: -0.03em;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(to right, #ffffff, #d1d5db);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+            font-weight: 300;
+        }
+
+        .cta-group {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.8rem 1.8rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+            transform: translateY(-2px);
+        }
+
+        /* Interactive Simulator */
+        .simulator-section {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 3rem;
+            margin-bottom: 5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .simulator-grid {
+            display: grid;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 3rem;
+            align-items: center;
+        }
+
+        .sim-visualizer {
+            background-color: #0b0f19;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+
+        canvas {
+            background-color: #05070d;
+            border-radius: 8px;
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            cursor: crosshair;
+        }
+
+        .sim-info h3 {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .sim-info p {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            font-size: 1rem;
+        }
+
+        .toggle-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 0.25rem;
+            border-radius: 8px;
+            width: fit-content;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn.active {
+            background-color: var(--accent);
+            color: white;
+        }
+
+        .sim-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            font-family: var(--font-display);
+            color: var(--success);
+        }
+
+        /* Features */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 5rem;
+        }
+
+        .feature-card {
+            background-color: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-color);
+            padding: 2rem;
+            border-radius: 12px;
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            background-color: rgba(255, 255, 255, 0.04);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            background-color: var(--accent-glow);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            color: var(--accent);
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .feature-card h3 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* Code Showcase */
+        .code-section {
+            margin-bottom: 5rem;
+        }
+
+        .code-section h2 {
+            font-family: var(--font-display);
+            font-size: 2.2rem;
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .code-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .code-tab {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .code-tab.active {
+            background-color: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .code-container {
+            background-color: #05070d;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            max-height: 450px;
+        }
+
+        pre {
+            color: #d1d5db;
+        }
+
+        .keyword { color: #f472b6; }
+        .type { color: #60a5fa; }
+        .string { color: #34d399; }
+        .comment { color: #6b7280; }
+
+        footer {
+            border-top: 1px solid var(--border-color);
+            padding: 3rem 1.5rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .simulator-grid {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 2.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="gradient-bg"></div>
+    <header>
+        <div class="logo">
+            <div class="logo-dot"></div>
+            HCEP SDK
+        </div>
+        <nav>
+            <a href="#simulator">Interactive Demo</a>
+            <a href="#features">Features</a>
+            <a href="#code">SDK Reference</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="badge">Release v1.0.0 Stable</div>
+            <h1>Human Communication Eye Protocol</h1>
+            <p>High-fidelity, platform-agnostic gaze tracking, pupil parallax calibration, and cognitive state analysis designed for robotics, virtual avatars, and LLM orchestration.</p>
+            <div class="cta-group">
+                <a href="#code" class="btn btn-primary">Get Started</a>
+                <a href="https://github.com/kirklasalle/HCEP" class="btn btn-secondary">View Repository</a>
+            </div>
+        </section>
+
+        <section id="simulator" class="simulator-section">
+            <div class="simulator-grid">
+                <div class="sim-visualizer">
+                    <canvas id="parallaxCanvas" width="450" height="350"></canvas>
+                    <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary);">
+                        Move your mouse across the canvas to simulate physical face movements.
+                    </div>
+                </div>
+                <div class="sim-info">
+                    <h3>True Gaze™ Parallax Correction</h3>
+                    <p>Standard eye trackers assume direct coaxial alignment between the camera and the eyes, causing significant gaze direction error when users shift off-axis. HCEP solves this by computing physical pupil offsets relative to the eye socket center in 3D space.</p>
+                    
+                    <div class="toggle-group">
+                        <button id="toggleCorrection" class="toggle-btn active">Parallax Correction On</button>
+                        <button id="toggleRaw" class="toggle-btn">Raw Coordinates</button>
+                    </div>
+
+                    <div class="sim-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Estimated Gaze Angle Error</span>
+                            <span id="gazeError" class="stat-value">0.4°</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Parallax Target Offset</span>
+                            <span id="targetOffset" class="stat-value">0.12mm</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="features" class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">👁️</div>
+                <h3>True Gaze™ Geometry</h3>
+                <p>Calculates dynamic gaze parallax by combining 3D face mesh PnP solvers with absolute pupil position mapping, yielding sub-degree precision even with basic webcams.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3>LLM & MCP Protocols</h3>
+                <p>Native Model Context Protocol (MCP) server endpoints and OpenAI function schemas let models like Claude and GPT-4 query real-time attention vectors instantly.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🧠</div>
+                <h3>Cognitive Mode Analysis</h3>
+                <p>Translates spatial metrics, blink behavior, and speech transcripts into HCEP cognitive modalities: Logic, Affect, Spirit, Heart, and Think.</p>
+            </div>
+        </section>
+
+        <section id="code" class="code-section">
+            <h2>Integrate in Seconds</h2>
+            <div class="code-tabs">
+                <button class="code-tab active" onclick="switchTab('mcp')">MCP (JSON-RPC)</button>
+                <button class="code-tab" onclick="switchTab('python')">Python (LangChain)</button>
+                <button class="code-tab" onclick="switchTab('unity')">Unity (C#)</button>
+                <button class="code-tab" onclick="switchTab('unreal')">Unreal Engine (C++)</button>
+            </div>
+            
+            <div id="mcp-code" class="code-container">
+                <pre><code><span class="comment">// Request tools list over HCEP's MCP POST endpoint</span>
+POST /mcp HTTP/1.1
+Host: localhost:5000
+Content-Type: application/json
+
+{
+  <span class="keyword">"jsonrpc"</span>: <span class="string">"2.0"</span>,
+  <span class="keyword">"method"</span>: <span class="string">"tools/list"</span>,
+  <span class="keyword">"id"</span>: 1
+}
+
+<span class="comment">// Response:</span>
+{
+  <span class="keyword">"jsonrpc"</span>: <span class="string">"2.0"</span>,
+  <span class="keyword">"result"</span>: {
+    <span class="keyword">"tools"</span>: [
+      {
+        <span class="keyword">"name"</span>: <span class="string">"get_hcep_state"</span>,
+        <span class="keyword">"description"</span>: <span class="string">"Get the current multi-modal HCEP perception state..."</span>
+      }
+    ]
+  },
+  <span class="keyword">"id"</span>: 1
+}</code></pre>
+            </div>
+
+            <div id="python-code" class="code-container" style="display:none;">
+                <pre><code><span class="comment"># Import the native HCEP LangChain Tool</span>
+<span class="keyword">from</span> hcep_langchain <span class="keyword">import</span> HcepStateTool
+<span class="keyword">from</span> langchain.agents <span class="keyword">import</span> initialize_agent
+
+tool = HcepStateTool(base_url=<span class="string">"http://localhost:5000"</span>)
+agent = initialize_agent(
+    tools=[tool],
+    llm=chat_model,
+    agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION
+)
+
+<span class="comment"># Agent can now query state when user is looking at a specific window!</span>
+agent.run(<span class="string">"Is the user paying attention or distracted right now?"</span>)</code></pre>
+            </div>
+
+            <div id="unity-code" class="code-container" style="display:none;">
+                <pre><code><span class="comment">// Attach HcepGazeController to your 3D avatar rig</span>
+<span class="keyword">public class</span> <span class="type">HcepGazeController</span> : <span class="type">MonoBehaviour</span>
+{
+    <span class="keyword">public</span> <span class="type">Transform</span> leftEyeBone;
+    <span class="keyword">public</span> <span class="type">Transform</span> rightEyeBone;
+
+    <span class="keyword">void</span> Update()
+    {
+        <span class="comment">// Reads smooth tracking values fetched from WebSocket stream /ws/stream</span>
+        <span class="type">Quaternion</span> eyeRotation = <span class="type">Quaternion</span>.Euler(eyePitch, eyeYaw, 0f);
+        leftEyeBone.localRotation = eyeRotation;
+        rightEyeBone.localRotation = eyeRotation;
+    }
+}</code></pre>
+            </div>
+
+            <div id="unreal-code" class="code-container" style="display:none;">
+                <pre><code><span class="comment">// Include HcepGazeController.h inside your Unreal C++ Character / Actor class</span>
+<span class="keyword">void</span> AMyAvatarCharacter::Tick(<span class="keyword">float</span> DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    <span class="comment">// Retrieve current gaze target vectors smoothly interpolated by HCEP</span>
+    <span class="type">FVector</span> GazeVector = GazeControllerComponent->TargetGazeDirection;
+    <span class="type">FRotator</span> HeadRot = GazeControllerComponent->TargetHeadRotation;
+
+    <span class="comment">// Rotate eye socket bones and mesh transforms directly in C++ or Blueprint AnimGraph</span>
+    LeftEyeMesh->SetRelativeRotation(GazeVector.Rotation());
+    RightEyeMesh->SetRelativeRotation(GazeVector.Rotation());
+}</code></pre>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Copyright &copy; 2026 Kirk LaSalle. All rights reserved. Registered under commercial-proprietary license agreements.</p>
+    </footer>
+
+    <script>
+        // Tab switching
+        function switchTab(lang) {
+            document.querySelectorAll('.code-tab').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            document.getElementById('mcp-code').style.display = lang === 'mcp' ? 'block' : 'none';
+            document.getElementById('python-code').style.display = lang === 'python' ? 'block' : 'none';
+            document.getElementById('unity-code').style.display = lang === 'unity' ? 'block' : 'none';
+            document.getElementById('unreal-code').style.display = lang === 'unreal' ? 'block' : 'none';
+        }
+
+        // True Gaze Simulation Interactive Canvas
+        const canvas = document.getElementById('parallaxCanvas');
+        const ctx = canvas.getContext('2d');
+        const gazeErrorEl = document.getElementById('gazeError');
+        const targetOffsetEl = document.getElementById('targetOffset');
+        const toggleCorrection = document.getElementById('toggleCorrection');
+        const toggleRaw = document.getElementById('toggleRaw');
+
+        let correctionEnabled = true;
+        let mouseX = canvas.width / 2;
+        let mouseY = canvas.height / 2;
+
+        toggleCorrection.addEventListener('click', () => {
+            correctionEnabled = true;
+            toggleCorrection.classList.add('active');
+            toggleRaw.classList.remove('active');
+        });
+
+        toggleRaw.addEventListener('click', () => {
+            correctionEnabled = false;
+            toggleRaw.classList.add('active');
+            toggleCorrection.classList.remove('active');
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Camera Source indicator
+            const camX = canvas.width / 2;
+            const camY = 35;
+            ctx.beginPath();
+            ctx.arc(camX, camY, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#6366f1';
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '10px Inter';
+            ctx.fillText("Webcam / Sensor", camX - 45, camY - 15);
+
+            // Face position (simulated based on mouse)
+            const faceX = mouseX;
+            const faceY = Math.max(mouseY, 150); // Keep below camera
+
+            // Draw Face Boundary
+            ctx.beginPath();
+            ctx.arc(faceX, faceY, 55, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Sockets
+            const leftSocketX = faceX - 22;
+            const rightSocketX = faceX + 22;
+            const eyeY = faceY - 10;
+
+            ctx.beginPath();
+            ctx.arc(leftSocketX, eyeY, 12, 0, Math.PI * 2);
+            ctx.arc(rightSocketX, eyeY, 12, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.stroke();
+
+            // Calculate look target (screen center)
+            const targetX = canvas.width / 2;
+            const targetY = 0;
+
+            // Parallax offset
+            const offAxisDistance = faceX - camX;
+            const depth = faceY - camY;
+            const angleOffset = Math.atan2(offAxisDistance, depth);
+
+            let pupilLeftX, pupilRightX, pupilY;
+            let errorAngle = 0;
+
+            if (correctionEnabled) {
+                // True Gaze offsets pupils to compensate for angle
+                const compensation = Math.sin(angleOffset) * 6;
+                pupilLeftX = leftSocketX + compensation;
+                pupilRightX = rightSocketX + compensation;
+                pupilY = eyeY - 2;
+                errorAngle = Math.abs(angleOffset * 0.05) * (180 / Math.PI);
+            } else {
+                // Raw tracking center coordinates (skewed eyes)
+                pupilLeftX = leftSocketX;
+                pupilRightX = rightSocketX;
+                pupilY = eyeY;
+                errorAngle = Math.abs(angleOffset) * (180 / Math.PI);
+            }
+
+            // Draw Pupils
+            ctx.beginPath();
+            ctx.arc(pupilLeftX, pupilY, 4, 0, Math.PI * 2);
+            ctx.arc(pupilRightX, pupilY, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#10b981';
+            ctx.fill();
+
+            // Gaze rays pointing towards estimated target
+            ctx.beginPath();
+            ctx.moveTo(leftSocketX, eyeY);
+            ctx.lineTo(targetX, targetY);
+            ctx.moveTo(rightSocketX, eyeY);
+            ctx.lineTo(targetX, targetY);
+            ctx.strokeStyle = correctionEnabled ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)';
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Update stats
+            gazeErrorEl.innerText = errorAngle.toFixed(1) + "°";
+            gazeErrorEl.style.color = errorAngle < 1.5 ? '#10b981' : '#f59e0b';
+            targetOffsetEl.innerText = (Math.abs(offAxisDistance) * 0.03).toFixed(2) + "mm";
+
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+    </script>
+</body>
+</html>

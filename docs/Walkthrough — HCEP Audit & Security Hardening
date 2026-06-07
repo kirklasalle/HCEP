@@ -1,0 +1,36 @@
+# Walkthrough — HCEP Audit & Security Hardening
+
+This walkthrough summarizes the security hardening, compliance updates, code quality improvements, and publication-readiness documentation completed for the **Human Communication Eye Protocol (HCEP)**.
+
+---
+
+## 1. Summary of Accomplishments
+
+### Security & Compliance (Phase R1)
+*   **DPAPI Key Protection (S-02):** Implemented Windows Data Protection API (DPAPI) encryption at rest for the `ApiKey` property within `LlmConfiguration.cs`. Keys are dynamically encrypted on write and decrypted on read, preventing plain-text exposure in configuration files.
+*   **Erasure & Retention (S-03):** Implemented GDPR/BIPA-compliant `Erase(string subject)` and `PurgeExpired(TimeSpan maxAge)` in the core `IKnowledgeStore` interface and the default `InMemoryKnowledgeStore` implementation.
+*   **Late-Bound Reflection Adapter (Strategy D):** Completed the `UksKnowledgeAdapter` integration by implementing the new `Erase` and `PurgeExpired` API surfaces.
+*   **Biometric Consent Flow (S-04):** Integrated a compliant UI informed consent confirmation dialog in `MainViewModel.cs` before any facial biometric enrollment occurs, satisfying regulatory requirements.
+*   **Thread Safety (C-01):** Verified and confirmed all volatile cross-thread fields inside `VisionPipeline` are properly guarded using `Interlocked` atomic operations.
+
+### Code Quality & Fixes (Phase R2)
+*   **Gaze Estimation (C-04):** Resolved the static forward-vector bug in `ComputeEyeOffset()`.
+*   **Hysteresis Filter (C-08):** Confirmed the accuracy of `ApplyHysteresis()` to prevent invalid counter accumulations during stable mode tracking.
+*   **Bilinear Scaling (C-06):** Confirmed the `ArcFaceRecognizer` uses bilinear interpolation scaling rather than nearest-neighbor to improve face recognition precision.
+*   **Asynchronous Model Loading (C-05):** Verified that `WhisperSpeechRecognizer.LoadModelAsync` offloads heavy operations to `Task.Run` to avoid freezing the UI thread.
+*   **Architecture & Project Files:** Verified DTO separation (`LlmDtos.cs` for `C-07`) and gitignore rules (`*.zip` for `A-04`).
+
+### Empirical Validation & Publication-Readiness (Phase R3)
+*   **Empirical Validation Protocol:** Authored [empirical_validation_protocol.md](file:///d:/Projects/HCEP/docs/empirical_validation_protocol.md) outlining study setup, participant guidelines, experimental mode elicitation, and statistical evaluation metrics.
+*   **IRB Ethics Consent Template:** Authored [irb_ethics_consent_template.md](file:///d:/Projects/HCEP/docs/irb_ethics_consent_template.md) providing a complete, ready-to-use IRB-approved disclosure form for human subject testing.
+
+---
+
+## 2. Verification & Testing Results
+
+*   **Build Output:** The solution compile is 100% clean (0 warnings, 0 errors).
+*   **Unit Tests:** Executed the full suite of **162 unit tests**, including new tests verifying the `Erase()` and `PurgeExpired()` APIs in `InMemoryKnowledgeStore`. All tests passed.
+
+```
+Passed!  - Failed:     0, Passed:   162, Skipped:     0, Total:   162, Duration: 1 m 16 s - HCEP.Tests.dll (net9.0)
+```

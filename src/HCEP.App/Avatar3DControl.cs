@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Windows;
 using System.Windows.Media;
 using HCEP.Core.Models;
+using HCEP.Spatial;
 
 namespace HCEP.App;
 
@@ -109,8 +110,21 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     private float _trackedHeadYawRad;
     private float _trackedHeadPitchRad;
     private float _trackedHeadRollRad;
+    private float _bakedHeadYawRad;
+    private float _bakedHeadPitchRad;
+    private float _bakedHeadRollRad;
     private long _lastHeadPoseTicks;
     private bool _headPoseInitialized;
+
+    // ── Graceful float state ──────────────────────────────────────────────
+    // The wireframe head should appear to float gently and independently of
+    // the tracked person.  TrackingInfluence scales how much of the real
+    // Kinect head rotation bleeds into the display (4% = barely perceptible
+    // nudge on large turns).  FloatAmplitude is a master scale for the
+    // slow sinusoidal drift overlaid on top (1.0 = ~3–4° breathing movement).
+    private const float TrackingInfluence = 0.04f;
+    private const float FloatAmplitudeScale = 1.0f;
+    private long _floatOriginMs;
 
     // ── Mesh status (surfaced to AvatarWindow HUD) ───────────────────────
     public int MeshVertexCount { get; private set; }
@@ -139,9 +153,22 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     private long _nextMicroSaccadeMs;             // tick64 for next micro-jitter change
     private long _lastSaccadeUpdateMs;            // for framerate-independent smoothing
 
+    // ── Gaze-driven head turning (eye-contingent head rotation) ────────────
+    // When eyes exceed 80% of max gaze angle, head rotates proportionally
+    // to create the illusion of the avatar turning its head.
+    private GazeHeadFollower _gazeHeadFollower = null!;
+    private long _lastGazeHeadFollowerUpdateMs;    // for framerate-independent updates
+
     // ── Construction ─────────────────────────────────────────────────────
     public Avatar3DControl()
     {
+        _floatOriginMs = Environment.TickCount64;
+        _lastGazeHeadFollowerUpdateMs = Environment.TickCount64;
+
+        // Initialize the gaze head follower with mesh-mode max gaze angle (20°)
+        const float MaxGazeAngleRad = MathF.PI / 9.0f;  // 20 degrees
+        _gazeHeadFollower = new GazeHeadFollower(MaxGazeAngleRad);
+
         // Re-resolve screen coords whenever layout changes — same pattern as AvatarCoreControl.
         LayoutUpdated += (_, _) => UpdateEyeScreenCoordinates();
 
@@ -172,8 +199,13 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     /// Updates the wireframe mesh. Thread-safe: can be called from any thread;
     /// <c>InvalidateVisual</c> is marshalled to the UI dispatcher automatically by WPF.
     /// </summary>
-    public void SetMesh(Vector2[] vertices, (int First, int Second, int Third)[] triangles)
+    public void SetMesh(Vector2[] vertices, (int First, int Second, int Third)[] triangles, Vector3 bakedRotationDeg)
     {
+        const float Deg2Rad = MathF.PI / 180f;
+        _bakedHeadYawRad = bakedRotationDeg.Y * Deg2Rad;
+        _bakedHeadPitchRad = bakedRotationDeg.X * Deg2Rad;
+        _bakedHeadRollRad = bakedRotationDeg.Z * Deg2Rad;
+
         bool topologyChanged = _vertices is null || _vertices.Length != vertices.Length;
 
         _vertices = vertices;
@@ -195,8 +227,13 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     /// points when the full <c>GetProjectedShape</c> mesh is not yet available.
     /// Called from <c>AvatarWindow.OnSnapshotReady</c> when <c>FaceMeshVertices2D</c> is null.
     /// </summary>
-    public void SetFeaturePoints(Vector2[] points)
+    public void SetFeaturePoints(Vector2[] points, Vector3 bakedRotationDeg)
     {
+        const float Deg2Rad = MathF.PI / 180f;
+        _bakedHeadYawRad = bakedRotationDeg.Y * Deg2Rad;
+        _bakedHeadPitchRad = bakedRotationDeg.X * Deg2Rad;
+        _bakedHeadRollRad = bakedRotationDeg.Z * Deg2Rad;
+
         _vertices = points;
         _triangles = null;   // null = edge-chain fallback mode
         MeshVertexCount = 0;
@@ -239,9 +276,13 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     {
         const float Deg2Rad = MathF.PI / 180f;
 
-        float targetYaw = rotationDeg.Y * Deg2Rad;
-        float targetPitch = rotationDeg.X * Deg2Rad;
-        float targetRoll = rotationDeg.Z * Deg2Rad;
+        // Scale raw tracking down to TrackingInfluence fraction so the head
+        // remains nearly still — only a faint 4% ghost of the real rotation
+        // reaches the display pose.  The remainder of the motion is a
+        // graceful sinusoidal float applied in OnRender.
+        float targetYaw = rotationDeg.Y * Deg2Rad * TrackingInfluence;
+        float targetPitch = rotationDeg.X * Deg2Rad * TrackingInfluence;
+        float targetRoll = rotationDeg.Z * Deg2Rad * TrackingInfluence;
 
         _trackedHeadYawRad = targetYaw;
         _trackedHeadPitchRad = targetPitch;
@@ -262,10 +303,10 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         double dt = Math.Clamp((now - _lastHeadPoseTicks) / 1000.0, 0.0, 0.20);
         _lastHeadPoseTicks = now;
 
-        // Eye-first dynamics: allow more eye-only lead before head catches up,
-        // then follow more gradually for natural recentering.
+        // Very slow follow — even the 4% residual moves like molasses so
+        // tracking jitter is fully absorbed before reaching the display.
         const float EyeLeadDeadzoneRad = 5.0f * (MathF.PI / 180f);
-        const float HeadFollowTimeConstantSec = 0.28f;
+        const float HeadFollowTimeConstantSec = 12.0f;   // was 0.28 — now almost frozen
 
         float followAlpha = (float)(1.0 - Math.Exp(-dt / HeadFollowTimeConstantSec));
 
@@ -282,11 +323,15 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     void IAvatarComponent.SetGaze(float p, float y, float d) => SetGaze(p, y, d);
     void IAvatarComponent.ResetGaze()
     {
+        _gazeHeadFollower.Reset();
         _vertices = null;
         _triangles = null;
         _eyeSocketSmoothingReady = false;
         _gazePitch = 0;
         _gazeYaw = 0;
+        _bakedHeadYawRad = 0;
+        _bakedHeadPitchRad = 0;
+        _bakedHeadRollRad = 0;
         InvalidateVisual();
     }
 
@@ -294,6 +339,15 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 
     protected override void OnRender(DrawingContext dc)
     {
+        // ── Update gaze-driven head follower ────────────────────────────────
+        // This must happen before we use _headYawRad/_headPitchRad for rendering.
+        // We pass 0f, 0f for user head pose so the follower calculates its target
+        // purely relative to the camera gaze direction.
+        long now = Environment.TickCount64;
+        float elapsedMs = (float)Math.Clamp(now - _lastGazeHeadFollowerUpdateMs, 0, 200);
+        _lastGazeHeadFollowerUpdateMs = now;
+        _gazeHeadFollower.Update(elapsedMs, _gazeYaw, _gazePitch, 0f, 0f);
+
         // Transparent background — inherits dark window colour.
         dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, ActualWidth, ActualHeight));
 
@@ -345,19 +399,40 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         double meshCentreX = w / 2.0;
         double meshCentreY = h / 2.0;
 
-        double headYaw = _headYawRad;
-        double headPitch = _headPitchRad;
-        double headRoll = _headRollRad;
+        // ── Graceful float overlay ────────────────────────────────────────
+        // Three incommensurable sinusoidal periods (7.3 s, 11.1 s, 14.7 s)
+        // produce a slow, non-repeating breathing drift with ~3–4° amplitude.
+        // Phase offsets prevent yaw/pitch/roll from peaking simultaneously.
+        double _floatT = (Environment.TickCount64 - _floatOriginMs) / 1000.0;
+        double floatYaw = FloatAmplitudeScale * 0.055 * Math.Sin(2 * Math.PI * _floatT / 7.3);
+        double floatPitch = FloatAmplitudeScale * 0.040 * Math.Sin(2 * Math.PI * _floatT / 11.1 + 0.8);
+        double floatRoll = FloatAmplitudeScale * 0.018 * Math.Sin(2 * Math.PI * _floatT / 14.7 + 1.5);
 
-        double correctionYaw = hasMesh
-            ? Math.Clamp(headYaw - _trackedHeadYawRad, -Math.PI / 3, Math.PI / 3)
-            : headYaw;
-        double correctionPitch = hasMesh
-            ? Math.Clamp(headPitch - _trackedHeadPitchRad, -Math.PI / 4, Math.PI / 4)
-            : headPitch;
-        double correctionRoll = hasMesh
-            ? Math.Clamp(headRoll - _trackedHeadRollRad, -Math.PI / 4, Math.PI / 4)
-            : headRoll;
+        // ── Apply gaze-driven head rotation if active ──────────────────────
+        // If the gaze follower is active (eyes exceeded threshold), use its
+        // computed head rotation instead of Kinect tracking. This creates
+        // the illusion of the avatar turning its head to follow the eyes.
+        var gazeHeadPose = _gazeHeadFollower.GetTargetHeadPose();
+        double headYaw, headPitch, headRoll;
+
+        if (gazeHeadPose.IsActive)
+        {
+            // Gaze-driven mode: override Kinect tracking, use gaze-induced rotation
+            headYaw = gazeHeadPose.YawRad + floatYaw;
+            headPitch = gazeHeadPose.PitchRad + floatPitch;
+            headRoll = gazeHeadPose.RollRad + floatRoll;
+        }
+        else
+        {
+            // Normal mode: use Kinect tracking with graceful float
+            headYaw = _headYawRad + floatYaw;
+            headPitch = _headPitchRad + floatPitch;
+            headRoll = _headRollRad + floatRoll;
+        }
+
+        double correctionYaw = Math.Clamp(headYaw - _bakedHeadYawRad, -Math.PI / 3, Math.PI / 3);
+        double correctionPitch = Math.Clamp(headPitch - _bakedHeadPitchRad, -Math.PI / 4, Math.PI / 4);
+        double correctionRoll = Math.Clamp(headRoll - _bakedHeadRollRad, -Math.PI / 4, Math.PI / 4);
 
         bool applyHeadTransform = !hasMesh
             || Math.Abs(correctionYaw) > 0.0005
@@ -514,9 +589,10 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
             // ── Gaze computation ──────────────────────────────────────
 
             const double MaxGazeAngle = Math.PI / 9.0;
-            // Stronger head contribution to recenter eyes once head catches up.
-            double eyeRelativeYaw = _gazeYaw - (_headYawRad * 0.75);
-            double eyeRelativePitch = _gazePitch - (_headPitchRad * 0.55);
+            // Use the float-adjusted head pose so pupils remain naturally centred
+            // as the head drifts through its breathing cycle.
+            double eyeRelativeYaw = _gazeYaw - (headYaw * 0.75);
+            double eyeRelativePitch = _gazePitch - (headPitch * 0.55);
             double normYaw = Math.Clamp(eyeRelativeYaw, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
             double normPitch = Math.Clamp(eyeRelativePitch, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
 

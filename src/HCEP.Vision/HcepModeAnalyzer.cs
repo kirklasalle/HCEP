@@ -189,22 +189,46 @@ public sealed class HcepModeAnalyzer : IHcepAnalyzer
 
     // ── Helpers ────────────────────────────────────────────────
 
+    // ── Hysteresis State ────────────────────────────────────────
+    private HcepMode _pendingMode = HcepMode.Unknown;
+
     private HcepMode ApplyHysteresis(HcepMode candidate, float confidence)
     {
+        // Same mode as current — reset any pending transition, stay stable.
         if (candidate == _currentMode)
         {
-            _modeStabilityCount++;
+            _pendingMode = HcepMode.Unknown;
+            _modeStabilityCount = 0;
             return _currentMode;
         }
 
+        // New candidate with sufficient confidence — begin or continue counting.
         if (confidence >= ModeTransitionMinConfidence)
-            _modeStabilityCount++;
+        {
+            if (candidate == _pendingMode)
+            {
+                // Same new candidate as previous frame — accumulate.
+                _modeStabilityCount++;
+            }
+            else
+            {
+                // Different new candidate — restart counter for this candidate.
+                _pendingMode = candidate;
+                _modeStabilityCount = 1;
+            }
+        }
         else
+        {
+            // Low confidence — reset pending transition.
+            _pendingMode = HcepMode.Unknown;
             _modeStabilityCount = 0;
+        }
 
+        // Transition only after the new candidate has been stable for N consecutive frames.
         if (_modeStabilityCount >= ModeStabilityFrames)
         {
             _currentMode = candidate;
+            _pendingMode = HcepMode.Unknown;
             _modeStabilityCount = 0;
         }
 

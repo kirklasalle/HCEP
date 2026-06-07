@@ -1,9 +1,9 @@
 # HCEP — Developer Guide
 
 **Product:** HCEP — Human Communication Eye Protocol  
-**Version:** 0.1.0 (Alpha)  
+**Version:** 1.0.0 (Stable)  
 **Author:** Kirk LaSalle  
-**Last Updated:** February 23, 2026  
+**Last Updated:** June 6, 2026  
 
 ---
 
@@ -85,7 +85,7 @@ D:\Projects\HCEP\
 │   ├── HCEP.Intelligence/          # LLM engine, agentic tools, prompt bridge
 │   └── HCEP.App/                   # WPF application, DI host, orchestrator
 └── tests/
-    └── HCEP.Tests/                  # xUnit test project (102 tests)
+    └── HCEP.Tests/                  # xUnit test project (169 tests)
         ├── Spatial/                 # RayPlane, CoordinateMapper, PnP, ConfidenceCone tests
         ├── Knowledge/               # InMemoryStore, UKS adapter, PersonKnowledge tests
         ├── Intelligence/            # AgenticTools, PromptBridge, ToolDefinitions tests
@@ -175,7 +175,8 @@ dotnet test HCEP.sln --filter "FullyQualifiedName~Knowledge"
 | `Intelligence/` | 20 | Agentic tool executor, prompt bridge, tool definitions |
 | `Vision/` | 8 | HCEP mode analyzer state machine |
 | `Core/` | 24 | Models, enums, constants, anthropometrics |
-| **Total** | **102** | All passing |
+| `Integration/` | 67 | End-to-end API server, MCP endpoints, and pipeline execution |
+| **Total** | **169** | All passing |
 
 ### Writing New Tests
 
@@ -672,7 +673,7 @@ The agentic LLM loop in `HybridLlmEngine.CallOpenAiAsync()` runs up to 5 steps. 
 2. Install prerequisites (see [Building from Source](#3-building-from-source))
 3. Build and run tests to verify your setup
 4. Create a feature branch: `git checkout -b feature/my-feature`
-5. Make changes, add tests, ensure all 102+ tests pass
+5. Make changes, add tests, ensure all 169+ tests pass
 6. Submit a pull request
 
 ### Code Review Checklist
@@ -692,6 +693,26 @@ The agentic LLM loop in `HybridLlmEngine.CallOpenAiAsync()` runs up to 5 steps. 
 2. **Interface in Core, implementation in layer.** Every major capability is an interface in HCEP.Core with implementation in the appropriate project.
 3. **Test everything testable.** If a class has logic, it has tests. Sensor interaction and UI are excluded.
 4. **x64 only.** Don't try to make it AnyCPU — Kinect native DLLs are 64-bit.
+
+---
+
+## 13. Plugin API & SDK Reference
+
+To enable downstream clients (such as 3D game engines, robotics controllers, and external agent scripts) to interface with the HCEP runtime:
+
+### 13.1 Model Context Protocol (MCP) Server
+The HTTP server (registered in `PluginApiServer.cs`) exposes a JSON-RPC 2.0 endpoint at `POST /mcp` conforming to the Anthropics Model Context Protocol (MCP):
+*   **Discovery (`tools/list`):** Lists all available agent tools (e.g. `get_hcep_state`, `query_knowledge`).
+*   **Execution (`tools/call`):** Invokes tools dynamically, passing arguments to the `AgenticToolExecutor` and returning structured text snapshots.
+
+### 13.2 OpenAI Tool Schemas
+A dedicated endpoint at `GET /api/tools/openai` outputs valid JSON schemas for OpenAI function calling.
+
+### 13.3 Multi-Platform SDK Wrappers
+*   **Python (`sdk/python/`):** Contains `HcepStateTool` and `hcep_llamaindex` integration models to inject real-time gaze state into LangChain and LlamaIndex agent prompts.
+*   **C# (`sdk/csharp/`):** Exposes `HcepSemanticKernelPlugin` to map HCEP tools to Microsoft Semantic Kernel.
+*   **Unity (`sdk/unity/`):** Provides a MonoBehaviour component `HcepGazeController.cs` that parses live telemetry WebSockets (`ws://localhost:5000/ws/stream`) and applies real-time bone rotations to avatar rigs.
+*   **Unreal Engine (`sdk/unreal/`):** Features a native C++ `UActorComponent` driving character eyes and head sockets with configurable interpolation speeds.
 
 ---
 

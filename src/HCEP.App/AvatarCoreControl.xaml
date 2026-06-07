@@ -50,6 +50,51 @@
                     Background="Transparent"
                     ToolTip="Right eye socket — 3D sphere rendered in code-behind"/>
 
+            <!-- ── Eyelids (animated in code-behind) ───────────────────── -->
+            <!-- Left eye lids -->
+            <Rectangle x:Name="LeftUpperLid"
+                       Canvas.Left="73"
+                       Canvas.Top="90"
+                       Width="44"
+                       Height="0"
+                       RadiusX="22"
+                       RadiusY="22"
+                       Fill="#FFFFD700"
+                       Stroke="#FFCC9900"
+                       StrokeThickness="1"/>
+            <Rectangle x:Name="LeftLowerLid"
+                       Canvas.Left="73"
+                       Canvas.Top="134"
+                       Width="44"
+                       Height="0"
+                       RadiusX="22"
+                       RadiusY="22"
+                       Fill="#FFFFD700"
+                       Stroke="#FFCC9900"
+                       StrokeThickness="1"/>
+
+            <!-- Right eye lids -->
+            <Rectangle x:Name="RightUpperLid"
+                       Canvas.Left="163"
+                       Canvas.Top="90"
+                       Width="44"
+                       Height="0"
+                       RadiusX="22"
+                       RadiusY="22"
+                       Fill="#FFFFD700"
+                       Stroke="#FFCC9900"
+                       StrokeThickness="1"/>
+            <Rectangle x:Name="RightLowerLid"
+                       Canvas.Left="163"
+                       Canvas.Top="134"
+                       Width="44"
+                       Height="0"
+                       RadiusX="22"
+                       RadiusY="22"
+                       Fill="#FFFFD700"
+                       Stroke="#FFCC9900"
+                       StrokeThickness="1"/>
+
             <!-- ── Smile ─────────────────────────────────────────── -->
             <!--
             Arc from (78,172) to (202,172), rx=62, ry=42, sweep=1 (clockwise → curves down).

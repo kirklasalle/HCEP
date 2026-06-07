@@ -51,7 +51,228 @@ public static class PnPSolver
         // ── Extract Euler angles ───────────────────────────────
         var euler = RotationMatrixToEuler(R);
 
-        return (euler, t);
+        // ── Levenberg-Marquardt refinement ─────────────────────
+        var (refinedRot, refinedT) = RefinePose(objectPoints, normalized, euler, t);
+
+        return (refinedRot, refinedT);
+    }
+
+    private static (Vector3 Rotation, Vector3 Translation) RefinePose(
+        ReadOnlySpan<Vector3> obj,
+        ReadOnlySpan<Vector2> img,
+        Vector3 initialRot,
+        Vector3 initialT)
+    {
+        Vector3 rot = initialRot;
+        Vector3 t = initialT;
+        float lambda = 0.01f; // LM damping factor
+        int maxIterations = 20;
+        int n = obj.Length;
+
+        // Move stackalloc allocations out of the loop
+        Span<float> r = stackalloc float[n * 2];
+        Span<float> J = stackalloc float[n * 2 * 6];
+        Span<float> JtJ = stackalloc float[6 * 6];
+        Span<float> Jtr = stackalloc float[6];
+        Span<float> delta = stackalloc float[6];
+
+        for (int iter = 0; iter < maxIterations; iter++)
+        {
+            Matrix4x4 R = EulerToRotationMatrix(rot);
+            
+            // Compute residuals
+            float currentError = 0;
+            for (int i = 0; i < n; i++)
+            {
+                Vector2 proj = Project(obj[i], R, t);
+                r[i * 2] = proj.X - img[i].X;
+                r[i * 2 + 1] = proj.Y - img[i].Y;
+                currentError += r[i * 2] * r[i * 2] + r[i * 2 + 1] * r[i * 2 + 1];
+            }
+
+            // Build Jacobian J (size: 2N x 6)
+            // Parameters: 0:rx, 1:ry, 2:rz, 3:tx, 4:ty, 5:tz
+            float eps = 1e-3f;
+
+            for (int j = 0; j < 6; j++)
+            {
+                Vector3 perturbedRot = rot;
+                Vector3 perturbedT = t;
+
+                if (j < 3)
+                {
+                    if (j == 0) perturbedRot.X += eps;
+                    else if (j == 1) perturbedRot.Y += eps;
+                    else perturbedRot.Z += eps;
+                }
+                else
+                {
+                    if (j == 3) perturbedT.X += eps;
+                    else if (j == 4) perturbedT.Y += eps;
+                    else perturbedT.Z += eps;
+                }
+
+                Matrix4x4 Rp = EulerToRotationMatrix(perturbedRot);
+                for (int i = 0; i < n; i++)
+                {
+                    Vector2 projP = Project(obj[i], Rp, perturbedT);
+                    float rx = projP.X - img[i].X;
+                    float ry = projP.Y - img[i].Y;
+
+                    J[(i * 2) * 6 + j] = (rx - r[i * 2]) / eps;
+                    J[(i * 2 + 1) * 6 + j] = (ry - r[i * 2 + 1]) / eps;
+                }
+            }
+
+            // Compute J^T * J (6x6 matrix) and J^T * r (6x1 vector)
+            for (int row = 0; row < 6; row++)
+            {
+                for (int col = 0; col < 6; col++)
+                {
+                    float sum = 0;
+                    for (int i = 0; i < n * 2; i++)
+                    {
+                        sum += J[i * 6 + row] * J[i * 6 + col];
+                    }
+                    JtJ[row * 6 + col] = sum;
+                }
+
+                float sumTr = 0;
+                for (int i = 0; i < n * 2; i++)
+                {
+                    sumTr += J[i * 6 + row] * r[i];
+                }
+                Jtr[row] = sumTr;
+            }
+
+            // Apply LM damping to JtJ diagonal
+            for (int d = 0; d < 6; d++)
+            {
+                JtJ[d * 6 + d] += lambda;
+            }
+
+            // Solve (JtJ) * delta = -Jtr
+            if (!Solve6x6(JtJ, Jtr, delta))
+            {
+                break; // Singular matrix
+            }
+
+            // Propose new parameters
+            Vector3 nextRot = rot - new Vector3(delta[0], delta[1], delta[2]);
+            Vector3 nextT = t - new Vector3(delta[3], delta[4], delta[5]);
+
+            // Compute new error
+            Matrix4x4 Rnext = EulerToRotationMatrix(nextRot);
+            float nextError = 0;
+            for (int i = 0; i < n; i++)
+            {
+                Vector2 proj = Project(obj[i], Rnext, nextT);
+                float rx = proj.X - img[i].X;
+                float ry = proj.Y - img[i].Y;
+                nextError += rx * rx + ry * ry;
+            }
+
+            if (nextError < currentError)
+            {
+                rot = nextRot;
+                t = nextT;
+                lambda *= 0.1f; // Accept step, decrease damping
+                if (currentError - nextError < 1e-4f)
+                {
+                    break; // Converged
+                }
+            }
+            else
+            {
+                lambda *= 10f; // Reject step, increase damping
+            }
+        }
+
+        return (rot, t);
+    }
+
+    private static Vector2 Project(Vector3 objPt, Matrix4x4 R, Vector3 t)
+    {
+        Vector3 pPrime = Vector3.Transform(objPt, R) + t;
+        if (pPrime.Z < 0.001f) pPrime = new Vector3(pPrime.X, pPrime.Y, 0.001f);
+        return new Vector2(pPrime.X / pPrime.Z, pPrime.Y / pPrime.Z);
+    }
+
+    private static Matrix4x4 EulerToRotationMatrix(Vector3 euler)
+    {
+        float pitch = euler.X * MathF.PI / 180f;
+        float yaw = euler.Y * MathF.PI / 180f;
+        float roll = euler.Z * MathF.PI / 180f;
+
+        Matrix4x4 rx = Matrix4x4.CreateRotationX(pitch);
+        Matrix4x4 ry = Matrix4x4.CreateRotationY(yaw);
+        Matrix4x4 rz = Matrix4x4.CreateRotationZ(roll);
+
+        return rz * rx * ry;
+    }
+
+    private static bool Solve6x6(ReadOnlySpan<float> A, ReadOnlySpan<float> b, Span<float> x)
+    {
+        Span<float> m = stackalloc float[6 * 7];
+        for (int r = 0; r < 6; r++)
+        {
+            for (int c = 0; c < 6; c++)
+            {
+                m[r * 7 + c] = A[r * 6 + c];
+            }
+            m[r * 7 + 6] = b[r];
+        }
+
+        for (int i = 0; i < 6; i++)
+        {
+            int pivotRow = i;
+            float maxVal = Math.Abs(m[i * 7 + i]);
+            for (int r = i + 1; r < 6; r++)
+            {
+                float val = Math.Abs(m[r * 7 + i]);
+                if (val > maxVal)
+                {
+                    maxVal = val;
+                    pivotRow = r;
+                }
+            }
+
+            if (maxVal < 1e-9f)
+            {
+                return false;
+            }
+
+            if (pivotRow != i)
+            {
+                for (int col = 0; col < 7; col++)
+                {
+                    float temp = m[i * 7 + col];
+                    m[i * 7 + col] = m[pivotRow * 7 + col];
+                    m[pivotRow * 7 + col] = temp;
+                }
+            }
+
+            for (int r = i + 1; r < 6; r++)
+            {
+                float factor = m[r * 7 + i] / m[i * 7 + i];
+                for (int c = i; c < 7; c++)
+                {
+                    m[r * 7 + c] -= factor * m[i * 7 + c];
+                }
+            }
+        }
+
+        for (int i = 5; i >= 0; i--)
+        {
+            float sum = m[i * 7 + 6];
+            for (int col = i + 1; col < 6; col++)
+            {
+                sum -= m[i * 7 + col] * x[col];
+            }
+            x[i] = sum / m[i * 7 + i];
+        }
+
+        return true;
     }
 
     /// <summary>

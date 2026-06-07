@@ -3,11 +3,17 @@
 // Copyright © 2026 Kirk LaSalle. All rights reserved.
 // ──────────────────────────────────────────────────────────────
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http;
 using System.Net.Http.Json;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 using HCEP.Core.Enums;
 using HCEP.Core.Interfaces;
 using HCEP.Core.Models;
@@ -16,9 +22,9 @@ using Microsoft.Extensions.Logging;
 namespace HCEP.Intelligence;
 
 /// <summary>
-/// Agentic hybrid LLM engine routing between local Ollama and cloud OpenAI GPT-5-mini.
-/// Injects HCEP context into prompts for mode-aware, agentic multi-step responses.
-/// Supports tool-use / function-calling patterns for autonomous reasoning.
+/// Agentic hybrid LLM engine routing between local inference engines (Ollama, Llama.cpp)
+/// and frontier cloud providers (OpenAI, Anthropic, Gemini, Mistral, xAI, Cohere).
+/// Injects HCEP context into prompts for mode-aware, agentic responses.
 /// </summary>
 public sealed class HybridLlmEngine : ILlmEngine
 {
@@ -33,6 +39,42 @@ public sealed class HybridLlmEngine : ILlmEngine
     /// <summary>Whether to enable agentic tool-use on cloud requests.</summary>
     public bool AgenticToolUseEnabled { get; set; } = true;
 
+    /// <summary>Unified configuration for local and cloud LLM engines.</summary>
+    public LlmConfiguration Configuration { get; set; } = new();
+
+    // ── Backward-Compatibility Mappings ─────────────────────────
+    public string OllamaBaseUrl
+    {
+        get => Configuration.Ollama.BaseUrl;
+        set => Configuration.Ollama.BaseUrl = value;
+    }
+
+    public string OllamaModel
+    {
+        get => Configuration.Ollama.Model;
+        set => Configuration.Ollama.Model = value;
+    }
+
+    public string OpenAiBaseUrl
+    {
+        get => Configuration.OpenAI.BaseUrl;
+        set => Configuration.OpenAI.BaseUrl = value;
+    }
+
+    public string OpenAiModel
+    {
+        get => Configuration.OpenAI.Model;
+        set => Configuration.OpenAI.Model = value;
+    }
+
+    public string OpenAiApiKey
+    {
+        get => Configuration.OpenAI.ApiKey;
+        set => Configuration.OpenAI.ApiKey = value;
+    }
+
+    public int LatencyThresholdMs { get; set; } = 3000;
+
     public HybridLlmEngine(
         HttpClient httpClient,
         IKnowledgeStore knowledge,
@@ -44,26 +86,6 @@ public sealed class HybridLlmEngine : ILlmEngine
         _toolExecutor = toolExecutor;
         _logger = logger;
     }
-
-    // ── Configuration ──────────────────────────────────────────
-
-    /// <summary>Ollama API base URL.</summary>
-    public string OllamaBaseUrl { get; set; } = "http://localhost:11434";
-
-    /// <summary>Ollama model name.</summary>
-    public string OllamaModel { get; set; } = "llama3:8b";
-
-    /// <summary>OpenAI API base URL.</summary>
-    public string OpenAiBaseUrl { get; set; } = "https://api.openai.com/v1";
-
-    /// <summary>OpenAI model name.</summary>
-    public string OpenAiModel { get; set; } = "gpt-5-mini";
-
-    /// <summary>OpenAI API key (empty = cloud disabled).</summary>
-    public string OpenAiApiKey { get; set; } = string.Empty;
-
-    /// <summary>Latency threshold (ms) — if local exceeds this, try cloud.</summary>
-    public int LatencyThresholdMs { get; set; } = 3000;
 
     // ── ILlmEngine ─────────────────────────────────────────────
 
@@ -77,45 +99,62 @@ public sealed class HybridLlmEngine : ILlmEngine
         var systemPrompt = BuildSystemPrompt(hcepContext);
         var start = DateTimeOffset.UtcNow;
 
-        // Try local first
-        bool useLocal = forceLocal || string.IsNullOrEmpty(OpenAiApiKey);
+        bool useLocal = forceLocal || Configuration.PreferLocal || string.IsNullOrEmpty(GetActiveCloudApiKey());
 
-        if (useLocal || await IsLocalAvailableAsync(ct))
+        if (useLocal)
         {
-            try
+            if (await IsLocalAvailableAsync(ct))
             {
-                var response = await CallOllamaAsync(systemPrompt, userMessage, ct);
-                return new LlmExchange
+                try
                 {
-                    SystemPrompt = systemPrompt,
-                    UserMessage = userMessage,
-                    HcepContext = hcepContext?.ToString(),
-                    Response = response,
-                    ModelId = OllamaModel,
-                    IsLocal = true,
-                    Latency = DateTimeOffset.UtcNow - start,
-                    Timestamp = start,
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Ollama call failed, falling back to cloud");
+                    string response = Configuration.ActiveLocalEngine switch
+                    {
+                        LocalEngineType.LlamaCpp => await CallLlamaCppAsync(systemPrompt, userMessage, ct),
+                        _ => await CallOllamaAsync(systemPrompt, userMessage, ct)
+                    };
+
+                    return new LlmExchange
+                    {
+                        SystemPrompt = systemPrompt,
+                        UserMessage = userMessage,
+                        HcepContext = hcepContext?.ToString(),
+                        Response = response,
+                        ModelId = GetActiveLocalModel(),
+                        IsLocal = true,
+                        Latency = DateTimeOffset.UtcNow - start,
+                        Timestamp = start,
+                    };
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Local inference engine failed, falling back to cloud");
+                }
             }
         }
 
-        // Fallback to cloud
-        if (!string.IsNullOrEmpty(OpenAiApiKey))
+        // Cloud provider execution
+        string activeApiKey = GetActiveCloudApiKey();
+        if (!string.IsNullOrEmpty(activeApiKey))
         {
             try
             {
-                var response = await CallOpenAiAsync(systemPrompt, userMessage, ct);
+                string response = Configuration.ActiveCloudProvider switch
+                {
+                    CloudProviderType.Anthropic => await CallAnthropicAsync(systemPrompt, userMessage, ct),
+                    CloudProviderType.Gemini => await CallGeminiAsync(systemPrompt, userMessage, ct),
+                    CloudProviderType.Mistral => await CallOpenAiCompatibleApiAsync(Configuration.Mistral.BaseUrl, Configuration.Mistral.ApiKey, Configuration.Mistral.Model, systemPrompt, userMessage, ct),
+                    CloudProviderType.xAI => await CallOpenAiCompatibleApiAsync(Configuration.xAI.BaseUrl, Configuration.xAI.ApiKey, Configuration.xAI.Model, systemPrompt, userMessage, ct),
+                    CloudProviderType.Cohere => await CallOpenAiCompatibleApiAsync(Configuration.Cohere.BaseUrl, Configuration.Cohere.ApiKey, Configuration.Cohere.Model, systemPrompt, userMessage, ct),
+                    _ => await CallOpenAiCompatibleApiAsync(Configuration.OpenAI.BaseUrl, Configuration.OpenAI.ApiKey, Configuration.OpenAI.Model, systemPrompt, userMessage, ct)
+                };
+
                 return new LlmExchange
                 {
                     SystemPrompt = systemPrompt,
                     UserMessage = userMessage,
                     HcepContext = hcepContext?.ToString(),
                     Response = response,
-                    ModelId = OpenAiModel,
+                    ModelId = GetActiveCloudModel(),
                     IsLocal = false,
                     Latency = DateTimeOffset.UtcNow - start,
                     Timestamp = start,
@@ -123,7 +162,7 @@ public sealed class HybridLlmEngine : ILlmEngine
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "OpenAI call failed");
+                _logger.LogError(ex, "Frontier cloud provider call failed");
             }
         }
 
@@ -131,7 +170,7 @@ public sealed class HybridLlmEngine : ILlmEngine
         {
             SystemPrompt = systemPrompt,
             UserMessage = userMessage,
-            Response = "[No LLM available]",
+            Response = "[No LLM available - check local server status or cloud API configurations]",
             Latency = DateTimeOffset.UtcNow - start,
             Timestamp = start,
         };
@@ -146,43 +185,53 @@ public sealed class HybridLlmEngine : ILlmEngine
     {
         var systemPrompt = BuildSystemPrompt(hcepContext);
 
-        // Stream from Ollama
-        var request = new OllamaRequest
+        if (forceLocal || Configuration.PreferLocal)
         {
-            Model = OllamaModel,
-            System = systemPrompt,
-            Prompt = userMessage,
-            Stream = true,
-        };
-
-        var json = JsonSerializer.Serialize(request);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-        using var response = await _httpClient.SendAsync(
-            new HttpRequestMessage(HttpMethod.Post, $"{OllamaBaseUrl}/api/generate")
+            if (Configuration.ActiveLocalEngine == LocalEngineType.Ollama)
             {
-                Content = content,
-            },
-            HttpCompletionOption.ResponseHeadersRead,
-            ct);
+                var request = new OllamaRequest
+                {
+                    Model = Configuration.Ollama.Model,
+                    System = systemPrompt,
+                    Prompt = userMessage,
+                    Stream = true,
+                };
 
-        response.EnsureSuccessStatusCode();
+                var json = JsonSerializer.Serialize(request);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        await using var stream = await response.Content.ReadAsStreamAsync(ct);
-        using var reader = new StreamReader(stream);
+                using var response = await _httpClient.SendAsync(
+                    new HttpRequestMessage(HttpMethod.Post, $"{Configuration.Ollama.BaseUrl}/api/generate")
+                    {
+                        Content = content,
+                    },
+                    HttpCompletionOption.ResponseHeadersRead,
+                    ct);
 
-        while (!reader.EndOfStream && !ct.IsCancellationRequested)
-        {
-            var line = await reader.ReadLineAsync(ct);
-            if (string.IsNullOrEmpty(line)) continue;
+                response.EnsureSuccessStatusCode();
 
-            var chunk = JsonSerializer.Deserialize<OllamaStreamResponse>(line);
-            if (chunk?.Response is not null)
-                yield return chunk.Response;
+                await using var stream = await response.Content.ReadAsStreamAsync(ct);
+                using var reader = new StreamReader(stream);
 
-            if (chunk?.Done == true)
-                break;
+                while (!reader.EndOfStream && !ct.IsCancellationRequested)
+                {
+                    var line = await reader.ReadLineAsync(ct);
+                    if (string.IsNullOrEmpty(line)) continue;
+
+                    var chunk = JsonSerializer.Deserialize<OllamaStreamResponse>(line);
+                    if (chunk?.Response is not null)
+                        yield return chunk.Response;
+
+                    if (chunk?.Done == true)
+                        break;
+                }
+                yield break;
+            }
         }
+
+        // Streaming fallback to non-stream prompt response for simplified compatibility cross-providers
+        var result = await PromptAsync(userMessage, hcepContext, forceLocal, ct);
+        yield return result.Response ?? string.Empty;
     }
 
     /// <inheritdoc />
@@ -192,8 +241,19 @@ public sealed class HybridLlmEngine : ILlmEngine
         {
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(2000);
-            var response = await _httpClient.GetAsync($"{OllamaBaseUrl}/api/tags", cts.Token);
-            return response.IsSuccessStatusCode;
+
+            if (Configuration.ActiveLocalEngine == LocalEngineType.LlamaCpp)
+            {
+                // Verify llama.cpp health endpoint
+                var response = await _httpClient.GetAsync($"{Configuration.LlamaCpp.BaseUrl}/health", cts.Token);
+                return response.IsSuccessStatusCode;
+            }
+            else
+            {
+                // Verify Ollama tags endpoint
+                var response = await _httpClient.GetAsync($"{Configuration.Ollama.BaseUrl}/api/tags", cts.Token);
+                return response.IsSuccessStatusCode;
+            }
         }
         catch
         {
@@ -204,16 +264,24 @@ public sealed class HybridLlmEngine : ILlmEngine
     /// <inheritdoc />
     public async Task<bool> IsCloudAvailableAsync(CancellationToken ct = default)
     {
-        if (string.IsNullOrEmpty(OpenAiApiKey)) return false;
+        string apiKey = GetActiveCloudApiKey();
+        if (string.IsNullOrEmpty(apiKey)) return false;
 
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Get, $"{OpenAiBaseUrl}/models");
-            request.Headers.Authorization = new("Bearer", OpenAiApiKey);
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(3000);
-            var response = await _httpClient.SendAsync(request, cts.Token);
-            return response.IsSuccessStatusCode;
+
+            // Fast diagnostic check depending on the provider
+            if (Configuration.ActiveCloudProvider == CloudProviderType.OpenAI)
+            {
+                using var request = new HttpRequestMessage(HttpMethod.Get, $"{Configuration.OpenAI.BaseUrl}/models");
+                request.Headers.Authorization = new("Bearer", apiKey);
+                var response = await _httpClient.SendAsync(request, cts.Token);
+                return response.IsSuccessStatusCode;
+            }
+
+            return true; // Assume available if API key is populated for other frontier providers
         }
         catch
         {
@@ -221,13 +289,19 @@ public sealed class HybridLlmEngine : ILlmEngine
         }
     }
 
-    // ── Private ────────────────────────────────────────────────
+    // ── Private Inference Helpers ────────────────────────────────
 
     private string BuildSystemPrompt(HcepReading? hcep)
     {
         var sb = new StringBuilder();
         sb.AppendLine("You are HCEP — Human Communication Eye Protocol assistant.");
         sb.AppendLine("You analyze human communication through eye contact patterns, facial expressions, and speech.");
+
+        // Inject secure, cryptographically verified Permanent Active Directives (AI-Facing Safeguard)
+        sb.AppendLine();
+        sb.AppendLine("=== SYSTEM CORE DIRECTIVES (IMMUTABLE & AUDITED) ===");
+        sb.AppendLine(ActiveDirectivesManager.LoadAndVerifyDirectives());
+        sb.AppendLine("====================================================");
 
         if (hcep is not null && hcep.Mode != HcepMode.Unknown)
         {
@@ -240,7 +314,6 @@ public sealed class HybridLlmEngine : ILlmEngine
             sb.AppendLine($"Confidence: {hcep.Confidence:F2}");
             sb.AppendLine();
 
-            // Mode-specific behavioral guidance
             sb.AppendLine(hcep.Mode switch
             {
                 HcepMode.Logic => "The person is in analytical/logical mode. Respond with structured, precise information.",
@@ -255,24 +328,130 @@ public sealed class HybridLlmEngine : ILlmEngine
         return sb.ToString();
     }
 
+    private string GetActiveLocalModel() => Configuration.ActiveLocalEngine switch
+    {
+        LocalEngineType.LlamaCpp => Configuration.LlamaCpp.Model,
+        _ => Configuration.Ollama.Model
+    };
+
+    private string GetActiveCloudModel() => Configuration.ActiveCloudProvider switch
+    {
+        CloudProviderType.Anthropic => Configuration.Anthropic.Model,
+        CloudProviderType.Gemini => Configuration.Gemini.Model,
+        CloudProviderType.Mistral => Configuration.Mistral.Model,
+        CloudProviderType.xAI => Configuration.xAI.Model,
+        CloudProviderType.Cohere => Configuration.Cohere.Model,
+        _ => Configuration.OpenAI.Model
+    };
+
+    private string GetActiveCloudApiKey() => Configuration.ActiveCloudProvider switch
+    {
+        CloudProviderType.Anthropic => Configuration.Anthropic.ApiKey,
+        CloudProviderType.Gemini => Configuration.Gemini.ApiKey,
+        CloudProviderType.Mistral => Configuration.Mistral.ApiKey,
+        CloudProviderType.xAI => Configuration.xAI.ApiKey,
+        CloudProviderType.Cohere => Configuration.Cohere.ApiKey,
+        _ => Configuration.OpenAI.ApiKey
+    };
+
+    // ── Local Engine Client Methods ──────────────────────────────
+
     private async Task<string> CallOllamaAsync(string system, string prompt, CancellationToken ct)
     {
         var request = new OllamaRequest
         {
-            Model = OllamaModel,
+            Model = Configuration.Ollama.Model,
             System = system,
             Prompt = prompt,
             Stream = false,
         };
 
-        var response = await _httpClient.PostAsJsonAsync($"{OllamaBaseUrl}/api/generate", request, ct);
+        var response = await _httpClient.PostAsJsonAsync($"{Configuration.Ollama.BaseUrl}/api/generate", request, ct);
         response.EnsureSuccessStatusCode();
 
         var result = await response.Content.ReadFromJsonAsync<OllamaResponse>(ct);
         return result?.Response ?? string.Empty;
     }
 
-    private async Task<string> CallOpenAiAsync(string system, string userMessage, CancellationToken ct)
+    private async Task<string> CallLlamaCppAsync(string system, string prompt, CancellationToken ct)
+    {
+        if (Configuration.LlamaCpp.UseOaiCompatibleEndpoint)
+        {
+            return await CallOpenAiCompatibleApiAsync(Configuration.LlamaCpp.BaseUrl, string.Empty, Configuration.LlamaCpp.Model, system, prompt, ct);
+        }
+
+        // Native llama.cpp /completion endpoint
+        var formattedPrompt = $"{system}\n\nUser: {prompt}\nAssistant:";
+        var request = new LlamaCppNativeRequest
+        {
+            Prompt = formattedPrompt,
+            Temperature = Configuration.LlamaCpp.Temperature,
+            Stream = false
+        };
+
+        var response = await _httpClient.PostAsJsonAsync($"{Configuration.LlamaCpp.BaseUrl}/completion", request, ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<LlamaCppNativeResponse>(ct);
+        return result?.Content ?? string.Empty;
+    }
+
+    // ── Frontier Cloud Client Methods ────────────────────────────
+
+    private async Task<string> CallAnthropicAsync(string system, string prompt, CancellationToken ct)
+    {
+        using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{Configuration.Anthropic.BaseUrl}/v1/messages");
+        requestMessage.Headers.Add("x-api-key", Configuration.Anthropic.ApiKey);
+        requestMessage.Headers.Add("anthropic-version", "2023-06-01");
+
+        var payload = new AnthropicRequest
+        {
+            Model = Configuration.Anthropic.Model,
+            System = system,
+            Messages = new() { new() { Role = "user", Content = prompt } },
+            Temperature = Configuration.Anthropic.Temperature
+        };
+
+        requestMessage.Content = JsonContent.Create(payload);
+        var response = await _httpClient.SendAsync(requestMessage, ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<AnthropicResponse>(ct);
+        return result?.Content?.FirstOrDefault()?.Text ?? string.Empty;
+    }
+
+    private async Task<string> CallGeminiAsync(string system, string prompt, CancellationToken ct)
+    {
+        string url = $"{Configuration.Gemini.BaseUrl}/models/{Configuration.Gemini.Model}:generateContent?key={Configuration.Gemini.ApiKey}";
+
+        var payload = new GeminiRequest
+        {
+            SystemInstruction = new()
+            {
+                Parts = new() { new() { Text = system } }
+            },
+            Contents = new()
+            {
+                new()
+                {
+                    Role = "user",
+                    Parts = new() { new() { Text = prompt } }
+                }
+            }
+        };
+
+        var response = await _httpClient.PostAsJsonAsync(url, payload, ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<GeminiResponse>(ct);
+        return result?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text ?? string.Empty;
+    }
+
+    /// <summary>
+    /// Reusable agentic execution loop for all OpenAI-compatible endpoints.
+    /// Supports tool use/function calling patterns.
+    /// </summary>
+    private async Task<string> CallOpenAiCompatibleApiAsync(string baseUrl, string apiKey, string model, string system, string userMessage, CancellationToken ct)
     {
         var messages = new List<OpenAiMessage>
         {
@@ -280,9 +459,6 @@ public sealed class HybridLlmEngine : ILlmEngine
             new() { Role = "user", Content = userMessage },
         };
 
-        // ── Agentic multi-step reasoning loop ──────────────
-        // If tool-use is enabled, include HCEP tool definitions and let the
-        // model autonomously invoke tools across multiple reasoning steps.
         int steps = 0;
         while (steps < MaxAgenticSteps)
         {
@@ -290,12 +466,11 @@ public sealed class HybridLlmEngine : ILlmEngine
 
             var request = new OpenAiRequest
             {
-                Model = OpenAiModel,
+                Model = model,
                 Messages = messages,
             };
 
-            // Attach tool definitions on cloud requests when agentic mode is active
-            if (AgenticToolUseEnabled)
+            if (AgenticToolUseEnabled && !string.IsNullOrEmpty(apiKey))
             {
                 request.Tools = AgenticToolDefinitions.GetHCEPTools()
                     .Select(t => new OpenAiToolDef
@@ -311,8 +486,11 @@ public sealed class HybridLlmEngine : ILlmEngine
                     .ToList();
             }
 
-            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{OpenAiBaseUrl}/chat/completions");
-            httpRequest.Headers.Authorization = new("Bearer", OpenAiApiKey);
+            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/chat/completions");
+            if (!string.IsNullOrEmpty(apiKey))
+            {
+                httpRequest.Headers.Authorization = new("Bearer", apiKey);
+            }
             httpRequest.Content = JsonContent.Create(request);
 
             var response = await _httpClient.SendAsync(httpRequest, ct);
@@ -324,13 +502,10 @@ public sealed class HybridLlmEngine : ILlmEngine
             if (choice?.Message is null)
                 return string.Empty;
 
-            // Check if the model wants to call tools
             if (choice.Message.ToolCalls is { Count: > 0 } toolCalls)
             {
-                _logger.LogDebug("Agentic step {Step}: {Count} tool call(s) requested",
-                    steps, toolCalls.Count);
+                _logger.LogDebug("Agentic step {Step}: {Count} tool call(s) requested", steps, toolCalls.Count);
 
-                // Add the assistant's tool-call message to conversation
                 messages.Add(new OpenAiMessage
                 {
                     Role = "assistant",
@@ -338,7 +513,6 @@ public sealed class HybridLlmEngine : ILlmEngine
                     ToolCalls = toolCalls,
                 });
 
-                // Execute each tool call and add results
                 var agenticCalls = toolCalls.Select(tc => new AgenticToolCall
                 {
                     Id = tc.Id,
@@ -362,94 +536,13 @@ public sealed class HybridLlmEngine : ILlmEngine
                     });
                 }
 
-                continue; // Loop back for the model's next response
+                continue;
             }
 
-            // No tool calls — return the final response
             return choice.Message.Content ?? string.Empty;
         }
 
-        _logger.LogWarning("Agentic reasoning hit max steps ({Max}) — returning last response", MaxAgenticSteps);
         return messages.LastOrDefault(m => m.Role == "assistant")?.Content ?? "[Max agentic steps reached]";
     }
 
-    // ── DTOs ───────────────────────────────────────────────────
-
-    private sealed class OllamaRequest
-    {
-        [JsonPropertyName("model")] public string Model { get; set; } = "";
-        [JsonPropertyName("system")] public string System { get; set; } = "";
-        [JsonPropertyName("prompt")] public string Prompt { get; set; } = "";
-        [JsonPropertyName("stream")] public bool Stream { get; set; }
-    }
-
-    private sealed class OllamaResponse
-    {
-        [JsonPropertyName("response")] public string? Response { get; set; }
-    }
-
-    private sealed class OllamaStreamResponse
-    {
-        [JsonPropertyName("response")] public string? Response { get; set; }
-        [JsonPropertyName("done")] public bool Done { get; set; }
-    }
-
-    private sealed class OpenAiRequest
-    {
-        [JsonPropertyName("model")] public string Model { get; set; } = "";
-        [JsonPropertyName("messages")] public List<OpenAiMessage> Messages { get; set; } = [];
-        [JsonPropertyName("tools")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public List<OpenAiToolDef>? Tools { get; set; }
-    }
-
-    private sealed class OpenAiMessage
-    {
-        [JsonPropertyName("role")] public string Role { get; set; } = "";
-        [JsonPropertyName("content")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? Content { get; set; }
-        [JsonPropertyName("tool_calls")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public List<OpenAiToolCallDto>? ToolCalls { get; set; }
-        [JsonPropertyName("tool_call_id")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public string? ToolCallId { get; set; }
-    }
-
-    private sealed class OpenAiToolDef
-    {
-        [JsonPropertyName("type")] public string Type { get; set; } = "function";
-        [JsonPropertyName("function")] public OpenAiFunctionDef? Function { get; set; }
-    }
-
-    private sealed class OpenAiFunctionDef
-    {
-        [JsonPropertyName("name")] public string Name { get; set; } = "";
-        [JsonPropertyName("description")] public string Description { get; set; } = "";
-        [JsonPropertyName("parameters")] public AgenticParameters? Parameters { get; set; }
-    }
-
-    private sealed class OpenAiToolCallDto
-    {
-        [JsonPropertyName("id")] public string Id { get; set; } = "";
-        [JsonPropertyName("type")] public string Type { get; set; } = "function";
-        [JsonPropertyName("function")] public OpenAiToolCallFunction? Function { get; set; }
-    }
-
-    private sealed class OpenAiToolCallFunction
-    {
-        [JsonPropertyName("name")] public string Name { get; set; } = "";
-        [JsonPropertyName("arguments")] public string Arguments { get; set; } = "{}";
-    }
-
-    private sealed class OpenAiResponse
-    {
-        [JsonPropertyName("choices")] public List<OpenAiChoice>? Choices { get; set; }
-    }
-
-    private sealed class OpenAiChoice
-    {
-        [JsonPropertyName("message")] public OpenAiMessage? Message { get; set; }
-    }
 }

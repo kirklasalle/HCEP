@@ -5,6 +5,7 @@
     <Description>Core models, enums, interfaces, and contracts for the HCEP platform.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="10.0.8" />
     <PackageReference Include="System.Threading.Channels" Version="9.0.0" />
   </ItemGroup>
 </Project>

@@ -44,6 +44,7 @@ public partial class AvatarWindow : Window
     private float _screenHeightPx;
     private Vector2[]? _lastMeshVerts;
     private (int First, int Second, int Third)[]? _lastMeshTris;
+    private Vector3 _lastMeshBakedRot;
 
     public AvatarWindow(HCEPPipelineOrchestrator orchestrator)
     {
@@ -162,15 +163,18 @@ public partial class AvatarWindow : Window
         if (face is { IsTracked: true, FeaturePoints2D.Length: > 0 })
         {
             Avatar3D.UpdateEyeData(face.FeaturePoints2D);
-            // Pass zero head pose so the avatars run their head rotation and float autonomously,
-            // rather than mimicking the tracked user's head rotations.
-            Avatar3D.SetHeadPose(System.Numerics.Vector3.Zero);
-            Avatar.SetHeadPose(System.Numerics.Vector3.Zero);
+            // Pass user's actual head rotation so the avatars can compute eye-relative gaze
+            // and cancel out the user's rotation for the mesh rendering.
+            Avatar3D.SetHeadPose(face.HeadRotation);
+            Avatar.SetHeadPose(face.HeadRotation);
         }
 
         // 3D wireframe: push live neutral mesh or feature-point fallback
         if (!_is3DMode) return;
         if (face is null) return;
+
+        bool isNeutral = face.NeutralFaceMeshVertices2D != null;
+        var bakedRotation = isNeutral ? System.Numerics.Vector3.Zero : face.HeadRotation;
 
         var neutralOrLiveVerts = face.NeutralFaceMeshVertices2D ?? face.FaceMeshVertices2D;
         if (neutralOrLiveVerts is { Length: > 0 } && face.FaceMeshTriangles is { Length: > 0 })
@@ -178,9 +182,10 @@ public partial class AvatarWindow : Window
             var tris = face.FaceMeshTriangles;
             _lastMeshVerts = neutralOrLiveVerts;
             _lastMeshTris = tris;
+            _lastMeshBakedRot = bakedRotation;
             Dispatcher.BeginInvoke(() =>
             {
-                Avatar3D.SetMesh(neutralOrLiveVerts, tris);
+                Avatar3D.SetMesh(neutralOrLiveVerts, tris, bakedRotation);
                 MeshStatusText.Text = $"{Avatar3D.MeshVertexCount}V";
                 MeshStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
             });
@@ -191,9 +196,10 @@ public partial class AvatarWindow : Window
             // This prevents fallback FP overwrite/blanking while tracking reacquires.
             var verts = _lastMeshVerts;
             var tris = _lastMeshTris;
+            var cachedRot = _lastMeshBakedRot;
             Dispatcher.BeginInvoke(() =>
             {
-                Avatar3D.SetMesh(verts, tris);
+                Avatar3D.SetMesh(verts, tris, cachedRot);
                 MeshStatusText.Text = $"{Avatar3D.MeshVertexCount}V";
                 MeshStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
             });
@@ -202,11 +208,12 @@ public partial class AvatarWindow : Window
         {
             // Full mesh not yet available — show 87-point landmark fallback
             var pts = face.FeaturePoints2D;
+            var bakedRot = face.HeadRotation;
             // Include HRESULT in HUD so the failure reason is immediately visible.
             string hrLabel = face.MeshHr != 0 ? $"0x{face.MeshHr:X8}" : "FP";
             Dispatcher.BeginInvoke(() =>
             {
-                Avatar3D.SetFeaturePoints(pts);
+                Avatar3D.SetFeaturePoints(pts, bakedRot);
                 MeshStatusText.Text = hrLabel;
                 MeshStatusText.Foreground = face.MeshHr != 0
                     ? System.Windows.Media.Brushes.Red

@@ -6,6 +6,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using HCEP.Spatial;
 
 namespace HCEP.App;
 
@@ -64,7 +65,19 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
     private double _normPitch;
     private double _userDistM = 1.5;
 
-    // ── Micro-saccade engine state ────────────────────────────
+    // ── Head pose and rotation state ──────────────────────────────────────────
+    // Head pose from Kinect tracking (pitch/yaw/roll in radians)
+    private double _headYawRad = 0.0;
+    private double _headPitchRad = 0.0;
+    private double _headRollRad = 0.0;
+
+    // ── Gaze-driven head turning (eye-contingent head rotation) ───────────────
+    // When eyes exceed 80% of max gaze angle, head rotates proportionally
+    // to create the illusion of the avatar turning its head.
+    private GazeHeadFollower _gazeHeadFollower = null!;
+    private long _lastGazeHeadFollowerUpdateMs;    // for framerate-independent updates
+
+    // ── Micro-saccade engine state ─────────────────────────────────────────
     private static readonly Random _saccadeRng = new();
     private bool _saccadeTargetLeft = true;
     private long _nextSaccadeMs;
@@ -73,6 +86,20 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
     private double _microSmoothedX, _microSmoothedY;
     private long _nextMicroSaccadeMs;
     private long _lastSaccadeUpdateMs;
+
+    // ── Blink / eyelid engine state ───────────────────────────
+    private enum BlinkState { Idle, Closing, Opening }
+    private BlinkState _blinkState = BlinkState.Idle;
+    private long _nextBlinkMs;
+    private long _blinkStateStartMs;
+    private bool _blinkInitialized;
+    private double _blinkAmount;
+
+    private const double BlinkCloseMs = 70.0;
+    private const double BlinkOpenMs = 95.0;
+    private const double LidMaxCoverPx = 22.5; // ~half of 44px socket
+    private const double UpperBaseCoverPx = 8.8; // 20% of 44px socket
+    private const double LowerBaseCoverPx = 2.2; // 5% of 44px socket
 
     // ── Drawing visuals for each eye ──────────────────────────
     private DrawingVisual _leftEyeVisual = new();
@@ -88,6 +115,11 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
     public AvatarCoreControl()
     {
         InitializeComponent();
+
+        // Initialize the gaze head follower with 2D-mode max gaze angle (45°)
+        const float MaxRad = (float)MaxGazeAngleRad;  // Math.PI / 4.0
+        _gazeHeadFollower = new GazeHeadFollower(MaxRad);
+        _lastGazeHeadFollowerUpdateMs = Environment.TickCount64;
 
         // Add drawing visuals to the eye host canvases
         LeftEyeHost.Loaded += (_, _) =>
@@ -134,10 +166,19 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
         _userDistM = userDistanceM;
     }
 
+    public void SetHeadPose(System.Numerics.Vector3 rotationDeg)
+    {
+        const float Deg2Rad = MathF.PI / 180f;
+        _headYawRad = rotationDeg.Y * Deg2Rad;
+        _headPitchRad = rotationDeg.X * Deg2Rad;
+        _headRollRad = rotationDeg.Z * Deg2Rad;
+    }
+
     public void ResetGaze()
     {
         _normYaw = 0;
         _normPitch = 0;
+        _gazeHeadFollower.Reset();
     }
 
     // IAvatarComponent
@@ -150,6 +191,21 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
     {
         if (!IsLoaded) return;
 
+        // ── Update gaze-driven head follower ────────────────────────────────
+        // This must happen before we use headYaw/headPitch for rendering.
+        // We pass 0f, 0f for user head pose so the follower calculates its target
+        // purely relative to the camera gaze direction.
+        long now = Environment.TickCount64;
+        float elapsedMs = (float)Math.Clamp(now - _lastGazeHeadFollowerUpdateMs, 0, 200);
+        _lastGazeHeadFollowerUpdateMs = now;
+        _gazeHeadFollower.Update(elapsedMs, (float)(_normYaw * MaxGazeAngleRad), (float)(_normPitch * MaxGazeAngleRad), 0f, 0f);
+
+        // ── Determine active head pose ──────────────────────────────────────────
+        // The head turning is driven by the gaze follower autonomously to track/follow the user.
+        var gazeHeadPose = _gazeHeadFollower.GetTargetHeadPose();
+        double headYaw = gazeHeadPose.YawRad;
+        double headPitch = gazeHeadPose.PitchRad;
+
         var (saccYaw, saccPitch) = UpdateSaccade();
         double nYaw = Clamp(_normYaw + saccYaw, -1.0, 1.0);
         double nPitch = Clamp(_normPitch + saccPitch, -1.0, 1.0);
@@ -157,23 +213,87 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
         double rotYaw = Math.Sin(nYaw * (Math.PI / 2.0));
         double rotPitch = Math.Sin(nPitch * (Math.PI / 2.0));
 
-        // Convergence
+        double blink = UpdateBlink();
+        ApplyEyelids(blink, nPitch);
+
+        // ── Apply 2D plane movement in 3D space ─────────────────────────────────────────
+        // The happy face is a 2D plane that translates and rotates in 3D:
+        // - YAW (left/right): Plane rotates around Y axis + translates horizontally
+        // - PITCH (up/down): Plane rotates around X axis + translates vertically
+        // - Z-depth: Slight forward/backward movement to enhance 3D illusion
+        // This creates true 3D motion without jiggling or distortion.
+
+        // Clamp rotation angles to reasonable ranges (more conservative)
+        double yawClamped = Math.Clamp(headYaw, -Math.PI / 6, Math.PI / 6);      // ±30° (was ±60°)
+        double pitchClamped = Math.Clamp(headPitch, -Math.PI / 7, Math.PI / 7);  // ±26° (was ±45°)
+
+        // Translation in 2D canvas space (X and Y movement) - very subtle
+        // As the head yaws, the whole face slides left/right (minimal)
+        double translateX = Math.Sin(yawClamped) * 20.0;  // Max ±20 pixels at extreme yaw (was 60)
+        // As the head pitches, the whole face slides up/down (minimal)
+        double translateY = -Math.Sin(pitchClamped) * 15.0;  // Max ±15 pixels at extreme pitch (was 40)
+
+        // Slight Z-depth effect: face comes forward slightly when looking center, back when extreme
+        // This is subtle but enhances the 3D illusion
+        double depthScale = 1.0 - (Math.Abs(yawClamped) + Math.Abs(pitchClamped)) * 0.03;
+        depthScale = Math.Clamp(depthScale, 0.97, 1.0);  // Max 3% size change (was 5%)
+
+        // Build unified transform for entire 2D plane (ALL elements move together)
+        var unifiedPlaneTransform = new TransformGroup();
+
+        // 1. Scale for depth effect (subtle, keeps face recognizable)
+        unifiedPlaneTransform.Children.Add(new ScaleTransform(depthScale, depthScale, 140, 140));
+
+        // 2. Rotation around center (all three axes simulated via 2D transforms)
+        //    Yaw: pure rotation around face center
+        if (Math.Abs(yawClamped) > 0.001)
+        {
+            unifiedPlaneTransform.Children.Add(new RotateTransform(yawClamped * 180.0 / Math.PI, 140, 140));
+        }
+        //    Pitch: rotation + slight vertical squash for perspective (very subtle)
+        if (Math.Abs(pitchClamped) > 0.001)
+        {
+            // Apply minimal pitch squash to show 3D tilt (not full squishing)
+            double pitchScale = Math.Cos(pitchClamped);  // ranges from 1.0 to ~0.92 at ±45°
+            pitchScale = Math.Clamp(pitchScale, 0.85, 1.0);  // Limit to maintain visibility
+            unifiedPlaneTransform.Children.Add(new ScaleTransform(1.0, pitchScale, 140, 140));
+        }
+
+        // 3. Translation in X and Y (actual plane movement in 3D)
+        if (Math.Abs(translateX) > 0.1 || Math.Abs(translateY) > 0.1)
+        {
+            unifiedPlaneTransform.Children.Add(new TranslateTransform(translateX, translateY));
+        }
+
+        // ── APPLY TRANSFORM TO ROOT CANVAS ────────────────────────────────────────────────
+        // This ensures ALL face elements (face circle, eyelids, eyes, smile) move together
+        // as a unified 2D plane. Individual animations (blink, pupil movement) still work
+        // within this rotated/translated coordinate space.
+        RootCanvas.RenderTransform = unifiedPlaneTransform;
+
+        // ── Eye rendering (within rotated coordinate space) ────────────────────────────────
+        // Eyes are positioned at their fixed socket locations on the canvas
+        // The RootCanvas transform automatically applies to them
+        // Pupil movement still happens within the eye socket in this rotated space
+
+        // Convergence (eyes angle inward based on distance)
         double conv = EyeRadius * 0.18 * Clamp((1.2 - _userDistM) / 1.2, 0.0, 1.0);
 
-        // Pupil travel
+        // Pupil travel within socket
         const double Travel = 0.48;
         double travel = EyeRadius * Travel;
 
+        // Pupils move within their sockets based on gaze direction
         double leftPupilX = LeftSocketCentreLocal.X + rotYaw * travel + conv;
         double leftPupilY = LeftSocketCentreLocal.Y - rotPitch * travel;
         double rightPupilX = RightSocketCentreLocal.X + rotYaw * travel - conv;
         double rightPupilY = RightSocketCentreLocal.Y - rotPitch * travel;
 
-        // Render left eye sphere into the canvas
-        RenderEyeOnCanvas(LeftEyeHost, LeftSocketCentreLocal.X - 73, LeftSocketCentreLocal.Y - 90,
-                          leftPupilX - 73, leftPupilY - 90, EyeRadius, rotYaw, rotPitch);
-        RenderEyeOnCanvas(RightEyeHost, RightSocketCentreLocal.X - 163, RightSocketCentreLocal.Y - 90,
-                          rightPupilX - 163, rightPupilY - 90, EyeRadius, rotYaw, rotPitch);
+        // Render eyes into their socket canvases (pupils move within the rotated canvas)
+        RenderEyeOnCanvas(LeftEyeHost, LeftSocketCentreLocal.X - 22, LeftSocketCentreLocal.Y - 22,
+                          leftPupilX - 22, leftPupilY - 22, EyeRadius, rotYaw, rotPitch);
+        RenderEyeOnCanvas(RightEyeHost, RightSocketCentreLocal.X - 22, RightSocketCentreLocal.Y - 22,
+                          rightPupilX - 22, rightPupilY - 22, EyeRadius, rotYaw, rotPitch);
     }
 
     private void RenderEyeOnCanvas(Canvas host, double cx, double cy,
@@ -302,6 +422,89 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
         _microSmoothedY += (_microTargetY - _microSmoothedY) * microAlpha;
 
         return (_saccadeSmoothedYaw + _microSmoothedX, _microSmoothedY);
+    }
+
+    private double UpdateBlink()
+    {
+        long now = Environment.TickCount64;
+
+        if (!_blinkInitialized)
+        {
+            _blinkInitialized = true;
+            _nextBlinkMs = now + 1800 + _saccadeRng.Next(2200); // 1.8–4.0 s first blink
+        }
+
+        switch (_blinkState)
+        {
+            case BlinkState.Idle:
+                _blinkAmount = 0.0;
+                if (now >= _nextBlinkMs)
+                {
+                    _blinkState = BlinkState.Closing;
+                    _blinkStateStartMs = now;
+                }
+                break;
+
+            case BlinkState.Closing:
+                {
+                    double t = Clamp((now - _blinkStateStartMs) / BlinkCloseMs, 0.0, 1.0);
+                    _blinkAmount = t;
+                    if (t >= 1.0)
+                    {
+                        _blinkState = BlinkState.Opening;
+                        _blinkStateStartMs = now;
+                    }
+                    break;
+                }
+
+            case BlinkState.Opening:
+                {
+                    double t = Clamp((now - _blinkStateStartMs) / BlinkOpenMs, 0.0, 1.0);
+                    _blinkAmount = 1.0 - t;
+                    if (t >= 1.0)
+                    {
+                        _blinkAmount = 0.0;
+                        _blinkState = BlinkState.Idle;
+                        _nextBlinkMs = now + 2200 + _saccadeRng.Next(3600); // 2.2–5.8 s
+                    }
+                    break;
+                }
+        }
+
+        return _blinkAmount;
+    }
+
+    private void ApplyEyelids(double blink, double normPitch)
+    {
+        double t = Clamp(blink, 0.0, 1.0);
+        double upperCover = UpperBaseCoverPx + t * (LidMaxCoverPx - UpperBaseCoverPx);
+        double lowerCover = LowerBaseCoverPx + t * (LidMaxCoverPx - LowerBaseCoverPx);
+
+        // Subtle eyelid follow:
+        //   normPitch > 0 (look up)   -> lids open slightly (less cover)
+        //   normPitch < 0 (look down) -> lids close slightly (more cover)
+        double pitch = Clamp(normPitch, -1.0, 1.0);
+        double upperFollow = -pitch * 2.2; // upper lid reacts a bit more
+        double lowerFollow = -pitch * 1.2; // lower lid reacts gently
+
+        upperCover = Clamp(upperCover + upperFollow, 0.0, LidMaxCoverPx);
+        lowerCover = Clamp(lowerCover + lowerFollow, 0.0, LidMaxCoverPx);
+
+        LeftUpperLid.Height = upperCover;
+        RightUpperLid.Height = upperCover;
+
+        LeftLowerLid.Height = lowerCover;
+        RightLowerLid.Height = lowerCover;
+
+        Canvas.SetTop(LeftLowerLid, 134.0 - lowerCover);
+        Canvas.SetTop(RightLowerLid, 134.0 - lowerCover);
+    }
+
+    public void TriggerBlink()
+    {
+        long now = Environment.TickCount64;
+        _blinkState = BlinkState.Closing;
+        _blinkStateStartMs = now;
     }
 
     // ── Helpers ───────────────────────────────────────────────

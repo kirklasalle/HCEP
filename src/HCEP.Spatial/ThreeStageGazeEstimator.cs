@@ -141,17 +141,69 @@ public sealed class ThreeStageGazeEstimator : IGazeEstimator
         if (face.FeaturePoints3D.Length < 74)
             return new Vector3(0, 0, 1); // Default forward
 
-        // Compute eye direction from pupil positions relative to eye corners
+        // Compute eye-in-head direction from actual pupil displacement.
+        //
+        // Strategy: The eye contour centroid approximates the eye socket center.
+        // The pupil position relative to this centroid reveals where the eye
+        // is actually looking within the orbit. We average both eyes for the
+        // cyclopean eye-in-head offset.
+        //
+        // Feature point indices (Kinect v1 FaceTrackLib):
+        //   Left eye contour:  30-35   Left pupil:  69
+        //   Right eye contour: 9-14    Right pupil: 73
+
         Vector3 leftPupil = face.LeftPupil3D;
         Vector3 rightPupil = face.RightPupil3D;
-        Vector3 cyclopean = face.CyclopeanPoint3D;
 
-        // Eye gaze direction ≈ vector from eye socket center to pupil
-        // We approximate socket center as slightly behind the cyclopean point
-        Vector3 socketCenter = cyclopean - new Vector3(0, 0, Anthropometrics.EyeDepthMm);
-        Vector3 eyeDir = Vector3.Normalize(cyclopean - socketCenter);
+        // Compute left eye socket center from contour points (indices 30-35)
+        Vector3 leftSocketCenter = Vector3.Zero;
+        int leftCount = 0;
+        for (int i = 30; i <= 35 && i < face.FeaturePoints3D.Length; i++)
+        {
+            Vector3 pt = face.FeaturePoints3D[i];
+            if (pt != Vector3.Zero)
+            {
+                leftSocketCenter += pt;
+                leftCount++;
+            }
+        }
 
-        return eyeDir;
+        // Compute right eye socket center from contour points (indices 9-14)
+        Vector3 rightSocketCenter = Vector3.Zero;
+        int rightCount = 0;
+        for (int i = 9; i <= 14 && i < face.FeaturePoints3D.Length; i++)
+        {
+            Vector3 pt = face.FeaturePoints3D[i];
+            if (pt != Vector3.Zero)
+            {
+                rightSocketCenter += pt;
+                rightCount++;
+            }
+        }
+
+        if (leftCount == 0 || rightCount == 0)
+            return new Vector3(0, 0, 1); // Fallback if contour points missing
+
+        leftSocketCenter /= leftCount;
+        rightSocketCenter /= rightCount;
+
+        // Pupil displacement relative to socket center (in mm, head-relative coords).
+        // This is the actual eye-in-head rotation signal.
+        Vector3 leftOffset = leftPupil - leftSocketCenter;
+        Vector3 rightOffset = rightPupil - rightSocketCenter;
+
+        // Average both eyes for cyclopean eye-in-head direction
+        Vector3 meanOffset = (leftOffset + rightOffset) * 0.5f;
+
+        // Project into a forward-looking direction: the offset is lateral/vertical
+        // displacement; the dominant forward component is the eye depth.
+        Vector3 eyeDir = new Vector3(
+            meanOffset.X,
+            meanOffset.Y,
+            Anthropometrics.EyeDepthMm);  // Forward component = orbital depth
+
+        float len = eyeDir.Length();
+        return len > 1e-6f ? eyeDir / len : new Vector3(0, 0, 1);
     }
 
     private static float ComputeConeAngle(Vector3 origin, Vector3 intersection)

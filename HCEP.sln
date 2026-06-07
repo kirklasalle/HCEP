@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -28,6 +28,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HCEP.Tests", "tests\HCEP.Tests\HCEP.Tests.csproj", "{D3D77432-C4B4-40BD-BFF2-FFC3572006AC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HCEP.Kinect.Bridge", "src\HCEP.Kinect.Bridge\HCEP.Kinect.Bridge.csproj", "{23F94A6F-E870-410B-84B3-008E0B58DA17}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HCEP.Plugin.Api", "src\HCEP.Plugin.Api\HCEP.Plugin.Api.csproj", "{30D93C0B-7315-4A58-9355-7A3149998F1E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -171,6 +173,18 @@ Global
 		{23F94A6F-E870-410B-84B3-008E0B58DA17}.Release|x64.Build.0 = Release|Any CPU
 		{23F94A6F-E870-410B-84B3-008E0B58DA17}.Release|x86.ActiveCfg = Release|Any CPU
 		{23F94A6F-E870-410B-84B3-008E0B58DA17}.Release|x86.Build.0 = Release|Any CPU
+		{30D93C0B-7315-4A58-9355-7A3149998F1E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{30D93C0B-7315-4A58-9355-7A3149998F1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{30D93C0B-7315-4A58-9355-7A3149998F1E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{30D93C0B-7315-4A58-9355-7A3149998F1E}.Debug|x64.Build.0 = Debug|Any CPU
+		{30D93C0B-7315-4A58-9355-7A3149998F1E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{30D93C0B-7315-4A58-9355-7A3149998F1E}.Debug|x86.Build.0 = Debug|Any CPU
+		{30D93C0B-7315-4A58-9355-7A3149998F1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{30D93C0B-7315-4A58-9355-7A3149998F1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{30D93C0B-7315-4A58-9355-7A3149998F1E}.Release|x64.ActiveCfg = Release|Any CPU
+		{30D93C0B-7315-4A58-9355-7A3149998F1E}.Release|x64.Build.0 = Release|Any CPU
+		{30D93C0B-7315-4A58-9355-7A3149998F1E}.Release|x86.ActiveCfg = Release|Any CPU
+		{30D93C0B-7315-4A58-9355-7A3149998F1E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -187,5 +201,6 @@ Global
 		{A9FAB8D1-3D88-484A-BAE7-157AFAC52D4F} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{D3D77432-C4B4-40BD-BFF2-FFC3572006AC} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{23F94A6F-E870-410B-84B3-008E0B58DA17} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{30D93C0B-7315-4A58-9355-7A3149998F1E} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal

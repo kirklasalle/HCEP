@@ -19,7 +19,13 @@ if errorlevel 1 (
 echo [OK] Build succeeded.
 echo.
 echo [*] Clearing logs...
+del /q "%~dp0logs\*" 2>nul
 del /q "%LOCALAPPDATA%\HCEP\Logs\*" 2>nul
+
+echo [*] Setting trace logging environment...
+set HCEP_LOG_LEVEL=Trace
+set HCEP_LOG_DIR=%~dp0logs
+
 echo [*] Launching Avatar window...
 echo.
 dotnet run --project src/HCEP.App -- --window avatar

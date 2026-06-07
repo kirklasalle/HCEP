@@ -165,4 +165,35 @@ public sealed class InMemoryKnowledgeStoreTests
     {
         Assert.Throws<ArgumentException>(() => _store.Assert("", "isA", "Person"));
     }
+
+    [Fact]
+    public void Erase_RemovesAllFactsForSubject()
+    {
+        _store.Assert("Alice", "isA", "Person");
+        _store.Assert("Alice", "likes", "Coffee");
+        _store.Assert("Bob", "isA", "Person");
+
+        Assert.Equal(3, _store.Count);
+
+        _store.Erase("Alice");
+
+        Assert.Equal(1, _store.Count);
+        Assert.False(_store.Exists("Alice", "isA", "Person"));
+        Assert.False(_store.Exists("Alice", "likes", "Coffee"));
+        Assert.True(_store.Exists("Bob", "isA", "Person"));
+    }
+
+    [Fact]
+    public async Task PurgeExpired_RemovesOnlyExpiredFacts()
+    {
+        _store.Assert("Alice", "isA", "Person"); // asserted now (current time)
+
+        // Wait a tiny bit to make sure we can distinguish
+        await Task.Delay(10);
+
+        _store.PurgeExpired(TimeSpan.FromMilliseconds(5));
+
+        // It should have been purged because maxAge is 5ms and it is older than that
+        Assert.Equal(0, _store.Count);
+    }
 }

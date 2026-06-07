@@ -36,25 +36,45 @@ public sealed class VisionPipeline : IAsyncDisposable
     /// Latest speech result injected by the orchestrator from the audio pipeline.
     /// Set externally so the HCEP analyzer can incorporate speech activity.
     /// </summary>
-    public volatile SpeechResult? LatestSpeech;
+    private SpeechResult? _latestSpeech;
+    public SpeechResult? LatestSpeech
+    {
+        get => Interlocked.CompareExchange(ref _latestSpeech, null!, null!);
+        set => Interlocked.Exchange(ref _latestSpeech, value);
+    }
 
     /// <summary>
     /// Latest color frame injected by the orchestrator for face crop extraction.
     /// Set externally; consumed by the recognition loop.
     /// </summary>
-    public volatile ColorFrame? LatestColor;
+    private ColorFrame? _latestColor;
+    public ColorFrame? LatestColor
+    {
+        get => Interlocked.CompareExchange(ref _latestColor, null!, null!);
+        set => Interlocked.Exchange(ref _latestColor, value);
+    }
 
     /// <summary>
     /// Latest face recognition result (updated ~1 Hz when model is loaded).
     /// Read by the orchestrator to populate TrackedPerson identity fields.
     /// </summary>
-    public volatile FaceRecognitionResult? LatestRecognition;
+    private FaceRecognitionResult? _latestRecognition;
+    public FaceRecognitionResult? LatestRecognition
+    {
+        get => Interlocked.CompareExchange(ref _latestRecognition, null!, null!);
+        set => Interlocked.Exchange(ref _latestRecognition, value);
+    }
 
     /// <summary>
     /// Enroll the next detected face under the given name.
     /// Set externally by the UI; cleared after enrollment.
     /// </summary>
-    public volatile string? PendingEnrollmentName;
+    private string? _pendingEnrollmentName;
+    public string? PendingEnrollmentName
+    {
+        get => Interlocked.CompareExchange(ref _pendingEnrollmentName, null!, null!);
+        set => Interlocked.Exchange(ref _pendingEnrollmentName, value);
+    }
 
     public VisionPipeline(
         IGazeEstimator gazeEstimator,

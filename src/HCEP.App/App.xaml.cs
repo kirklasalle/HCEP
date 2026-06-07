@@ -14,6 +14,7 @@ using HCEP.Knowledge;
 using HCEP.Spatial;
 using HCEP.Telemetry;
 using HCEP.Vision;
+using HCEP.Plugin.Api;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -38,7 +39,14 @@ public partial class App : Application
             .ConfigureServices((ctx, services) =>
             {
                 // -- Logging ------------------------------------
-                var loggerFactory = LoggingConfiguration.CreateLoggerFactory();
+                var minLogLevel = LogLevel.Information;
+                string? logLevelEnv = Environment.GetEnvironmentVariable("HCEP_LOG_LEVEL");
+                if (!string.IsNullOrEmpty(logLevelEnv) && Enum.TryParse<LogLevel>(logLevelEnv, true, out var parsedLevel))
+                {
+                    minLogLevel = parsedLevel;
+                }
+                string? logDirEnv = Environment.GetEnvironmentVariable("HCEP_LOG_DIR");
+                var loggerFactory = LoggingConfiguration.CreateLoggerFactory(logDirectory: logDirEnv, minimumLevel: minLogLevel);
                 services.AddSingleton(loggerFactory);
                 services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
 
@@ -46,15 +54,39 @@ public partial class App : Application
                 services.AddSingleton<ITelemetryService, HCEPTelemetryService>();
 
                 // -- Sensor -------------------------------------
-                // Use simulated source when Kinect SDK not available
-                // Always register SimulatedSensorSource as fallback
+                // Register all available sources
                 services.AddSingleton<SimulatedSensorSource>();
-
+                services.AddSingleton<WebcamSensorSource>();
                 if (KinectSdkAvailable())
-                    services.AddSingleton<ISensorSource, KinectSensorSource>();
-                else
-                    services.AddSingleton<ISensorSource>(sp =>
-                        sp.GetRequiredService<SimulatedSensorSource>());
+                {
+                    services.AddSingleton<KinectSensorSource>();
+                }
+
+                services.AddSingleton<ISensorSource>(sp =>
+                {
+                    string? sensorTypeEnv = Environment.GetEnvironmentVariable("HCEP_SENSOR_TYPE");
+                    if (!string.IsNullOrEmpty(sensorTypeEnv))
+                    {
+                        if (sensorTypeEnv.Equals("Kinect", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return KinectSdkAvailable()
+                                ? sp.GetRequiredService<KinectSensorSource>()
+                                : sp.GetRequiredService<WebcamSensorSource>(); // Fallback if Kinect SDK not installed
+                        }
+                        if (sensorTypeEnv.Equals("Webcam", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return sp.GetRequiredService<WebcamSensorSource>();
+                        }
+                        return sp.GetRequiredService<SimulatedSensorSource>();
+                    }
+
+                    // Default auto-detection path: Kinect -> Webcam -> Simulated
+                    if (KinectSdkAvailable())
+                    {
+                        return sp.GetRequiredService<KinectSensorSource>();
+                    }
+                    return sp.GetRequiredService<WebcamSensorSource>();
+                });
 
                 // -- Spatial ------------------------------------
                 services.AddSingleton<IGazeEstimator, ThreeStageGazeEstimator>();
@@ -81,6 +113,9 @@ public partial class App : Application
                 services.AddSingleton<IPipelineOrchestrator>(sp =>
                     sp.GetRequiredService<HCEPPipelineOrchestrator>());
 
+                // -- Plugin API Server --------------------------
+                services.AddHostedService<PluginApiServer>();
+
                 // -- UI -----------------------------------------
                 services.AddTransient<MainViewModel>();
                 services.AddTransient<MainWindow>();
@@ -90,6 +125,7 @@ public partial class App : Application
                 services.AddTransient<KinectVideoWindow>();
                 services.AddTransient<CalibrationWindow>();
                 services.AddTransient<AvatarWindow>();
+                services.AddTransient<SettingsWindow>();
             })
             .Build();
 

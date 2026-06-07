@@ -1,12 +1,12 @@
 # HCEP — Human Communication Eye Protocol
 
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-102%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-169%20passing-brightgreen)]()
 [![.NET](https://img.shields.io/badge/.NET-9.0-512BD4)]()
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6)]()
 [![License](https://img.shields.io/badge/license-Proprietary-red)]()
 
-**HCEP** is a real-time multi-modal perception platform that fuses Xbox 360 Kinect v1 sensor data with a hybrid LLM engine to analyze human communication through eye contact patterns, facial expressions, body tracking, and speech.
+**HCEP** is a real-time multi-modal perception platform that fuses sensor input (Kinect v1 or standard USB webcams) with a hybrid LLM engine to analyze human communication through eye contact patterns, facial expressions, body tracking, and speech.
 
 It implements Kirk LaSalle's **HCEP (Human Conversation Eye Points)** theory — a novel 5-mode cognitive-emotional classification system that decodes the unspoken language of eye contact during face-to-face conversation.
 
@@ -28,7 +28,7 @@ It implements Kirk LaSalle's **HCEP (Human Conversation Eye Points)** theory —
 
 The HCEP dashboard provides a real-time 3-column layout with live sensor feed, gaze/face visualization, and AI assistant:
 
-- **Left**: Live Kinect RGB video with skeleton wireframe overlay (20-joint full body or 10-joint seated), face bounding box, and 87-point facial feature wireframe
+- **Left**: Live Kinect/Webcam RGB video with skeleton wireframe overlay (20-joint full body or 10-joint seated), face bounding box, and 87-point facial feature wireframe
 - **Center**: HCEP mode classification, gaze/cognitive/valence state, face schematic with gaze crosshair, action unit bars, head pose, and speech log
 - **Right**: Pipeline metrics (FPS, latency, tracked persons) and LLM chat assistant
 
@@ -38,22 +38,33 @@ All panel boundaries are drag-resizable via visible GridSplitters.
 
 ## Features
 
-### Sensor Input (Kinect v1)
+### Sensor Input & Hardware Fallback
+
 - 30fps color, depth, skeleton, face, and audio streams
 - Full-body (20-joint) and seated (10-joint) skeleton tracking with runtime toggle
+- **Webcam Sensor Source:** Native fallback to standard OpenCV USB webcams or simulated developer input when specialized hardware is absent
 - 87+ 2D/3D facial feature points per frame
 - 6 Action Units (lip raise, jaw lower, lip corner, brow lower, brow raise, outer brow raise)
 - 4-microphone beam-formed audio array with source angle
-- Auto-fallback to simulated sensor when no Kinect is connected
 
-### Gaze Estimation
-- 3-stage pipeline: PnP Head Pose → Eye-in-Head Rotation → Hybrid Fusion
-- SolvePnP from 6 canonical face landmarks
-- Eye-in-head rotation from pupil feature point deltas (indices 69, 73)
+### Gaze Estimation & Correction
+
+- 3-stage pipeline: PnP Head Pose (with Levenberg-Marquardt optimizer) → Eye-in-Head Rotation → Hybrid Fusion
+- **True Gaze™ Parallax Correction:** Calibrates gaze yaw/pitch relative to 3D socket centers to resolve camera off-axis perspective skews
 - Confidence cone gaze target classification (13 regions)
-- Temporal smoothing with exponential moving average
+- Temporal smoothing with exponential moving average and hysteresis threshold gating
+- Saccade detection using Main Sequence equation
+- **Empirical Accuracy:** Validated at 84.55% classification accuracy and Cohen's Kappa of 0.8084 (exceeding targets)
+
+### Plugin API & LLM Integrations
+
+- **Model Context Protocol (MCP):** Serves JSON-RPC tools list and HCEP state snapshots over `POST /mcp`
+- **OpenAI Function Calling:** Auto-generates GPT-4/o1 tool invocation schemas at `/api/tools/openai`
+- **SDK Integrations:** Built-in wrappers for LangChain, LlamaIndex, Semantic Kernel, Unity (C#), and Unreal Engine (C++)
+- **Enterprise-Grade Compliance:** AES-256 equivalent DPAPI key storage, GDPR user erasure, and UI biometrics consent dialogs
 
 ### HCEP Analysis
+
 - Real-time 5-mode classification (LOGIC, AFFECT, SPIRIT, HEART, THINK)
 - Temporal hysteresis (5-frame stability, ~170ms at 30fps)
 - 12 cognitive state classifications
@@ -61,6 +72,7 @@ All panel boundaries are drag-resizable via visible GridSplitters.
 - Social Triangle detection for AFFECT mode
 
 ### Video Overlays
+
 - Full-body skeleton wireframe (green solid lines for tracked, dashed for inferred joints)
 - Automatic sitting/standing detection with posture label
 - Face bounding box (yellow rectangle)
@@ -69,28 +81,33 @@ All panel boundaries are drag-resizable via visible GridSplitters.
 - Pinhole camera projection (fx=fy=525, cx=320, cy=240)
 
 ### Face & Identity
+
 - ArcFace ONNX 512-dimensional face embedding extraction
 - Cosine similarity identity matching (>0.6 threshold)
 - Persistent identity enrollment and recognition across sessions
 
 ### Speech Recognition
+
 - Whisper.net on-device speech-to-text (ggml-base.en model)
 - Energy-based voice activity detection
 - Real-time transcript display
 
 ### Intelligence Layer
+
 - **Hybrid LLM**: Local Ollama (llama3:8b) + Cloud GPT-5-mini
 - HCEP-aware system prompts that modulate AI behavior per mode
 - Automatic local/cloud routing (THINK/LOGIC → local, SPIRIT/AFFECT/HEART → cloud)
 - 5-step agentic reasoning loop with tools: `query_knowledge`, `get_hcep_state`, `store_knowledge`, `summarize_person`, `analyze_gaze_pattern`
 
 ### Knowledge & Memory
+
 - Per-person knowledge accumulation (sightings, utterances, exchanges)
 - Strategy D: UKS (BrainSim III) hybrid adapter with auto-fallback to in-memory store
 - JSON persistence across sessions
 - Natural-language summarization for LLM context injection
 
 ### Dashboard UI (WPF)
+
 - Dark-themed 3-column resizable layout
 - Live RGB video with skeleton/face overlays
 - Real-time face schematic with gaze crosshair and region dots
@@ -253,6 +270,7 @@ The app auto-detects Kinect availability. If no sensor is found, it silently fal
 Kirk LaSalle's **Human Conversation Eye Points (HCEP)** theory posits that eye contact patterns during face-to-face conversation reveal five distinct communication modes that people naturally cycle through. These modes encode cognitive state, emotional valence, and communicative intent — information that is invisible to speech-only analysis.
 
 The system classifies modes in real-time using:
+
 - **Gaze region** — where the person is looking (13 classified targets)
 - **Gaze dynamics** — saccade patterns, fixation duration, social triangle cycling
 - **Facial Action Units** — muscle movements indicating emotion

@@ -25,6 +25,7 @@
     <ProjectReference Include="..\..\src\HCEP.Telemetry\HCEP.Telemetry.csproj" />
     <ProjectReference Include="..\..\src\HCEP.Kinect\HCEP.Kinect.csproj" />
     <ProjectReference Include="..\..\src\HCEP.Audio\HCEP.Audio.csproj" />
+    <ProjectReference Include="..\..\src\HCEP.Plugin.Api\HCEP.Plugin.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>

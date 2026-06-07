@@ -37,6 +37,16 @@ public interface IKnowledgeStore
     bool Retract(string subject, string relation, string obj);
 
     /// <summary>
+    /// Erases all facts associated with a subject (GDPR Right to be Forgotten / compliance).
+    /// </summary>
+    void Erase(string subject);
+
+    /// <summary>
+    /// Purges all facts older than the specified retention age.
+    /// </summary>
+    void PurgeExpired(TimeSpan maxAge);
+
+    /// <summary>
     /// Gets a natural-language summary of knowledge about a subject
     /// suitable for LLM context injection.
     /// </summary>

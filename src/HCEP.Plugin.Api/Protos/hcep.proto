@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option csharp_namespace = "HCEP.Plugin.Api.Grpc";
+
+package hcep.v1;
+
+service HcepPluginService {
+  rpc GetState(GetStateRequest) returns (HcepStateResponse);
+  rpc StreamState(StreamStateRequest) returns (stream HcepStateResponse);
+}
+
+message GetStateRequest {}
+
+message StreamStateRequest {}
+
+message HcepStateResponse {
+  string timestamp = 1;
+  int64 frame_number = 2;
+  bool person_detected = 3;
+  int32 tracking_id = 4;
+  string hcep_mode = 5;
+  double confidence = 6;
+  string region = 7;
+  
+  // Head Translation (mm)
+  double head_trans_x = 8;
+  double head_trans_y = 9;
+  double head_trans_z = 10;
+
+  // Head Rotation (degrees)
+  double head_rot_pitch = 11;
+  double head_rot_yaw = 12;
+  double head_rot_roll = 13;
+
+  // Gaze Direction
+  double gaze_dir_x = 14;
+  double gaze_dir_y = 15;
+  double gaze_dir_z = 16;
+  
+  string identity_name = 17;
+  double identity_confidence = 18;
+}

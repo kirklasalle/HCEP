@@ -1,9 +1,9 @@
 # HCEP — User Guide
 
 **Product:** HCEP — Human Communication Eye Points
-**Version:** 0.1.0 (Alpha)  
+**Version:** 1.0.0 (Stable)  
 **Author:** Kirk LaSalle  
-**Last Updated:** February 23, 2026  
+**Last Updated:** June 6, 2026  
 
 ---
 
@@ -25,7 +25,7 @@
 
 ## 1. Introduction
 
-HCEP (Human Communication Eye Points) is a desktop application that watches your face through an Xbox 360 Kinect sensor and understands *how* you're communicating — not just what you say, but what your eyes reveal about your cognitive and emotional state.
+HCEP (Human Communication Eye Points) is a desktop application that watches your face through an Xbox 360 Kinect sensor or standard USB webcam and understands *how* you're communicating — not just what you say, but what your eyes reveal about your cognitive and emotional state.
 
 HCEP implements Kirk LaSalle's HCEP (Human Communication Eye Points) theory: a classification of five fundamental communication modes that people naturally cycle through during face-to-face conversation — **Logic, Affect, Spirit, Heart,** and **Think**.
 

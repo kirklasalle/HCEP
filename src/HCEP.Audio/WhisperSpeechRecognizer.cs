@@ -48,11 +48,14 @@ public sealed class WhisperSpeechRecognizer : ISpeechRecognizer
 
         try
         {
-            _factory = WhisperFactory.FromPath(modelPath);
-            _processor = _factory.CreateBuilder()
-                .WithLanguage("en")
-                .WithThreads(Environment.ProcessorCount / 2)
-                .Build();
+            await Task.Run(() =>
+            {
+                _factory = WhisperFactory.FromPath(modelPath);
+                _processor = _factory.CreateBuilder()
+                    .WithLanguage("en")
+                    .WithThreads(Environment.ProcessorCount / 2)
+                    .Build();
+            }, ct);
 
             _isReady = true;
             _logger.LogInformation("Whisper model loaded from {Path}", modelPath);
@@ -62,8 +65,6 @@ public sealed class WhisperSpeechRecognizer : ISpeechRecognizer
             _logger.LogError(ex, "Failed to load Whisper model");
             _isReady = false;
         }
-
-        await Task.CompletedTask;
     }
 
     /// <inheritdoc />

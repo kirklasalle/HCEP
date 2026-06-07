@@ -1,0 +1,240 @@
+<Window x:Class="HCEP.App.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="HCEP — AI &amp; Happyface Settings"
+        Height="540"
+        Width="640"
+        Background="{StaticResource BackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Background" Value="#252540"/>
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="5,3"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#252540"/>
+            <Setter Property="Foreground" Value="Black"/>
+            <Setter Property="Padding" Value="5,3"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="HeaderTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <ContentPresenter Content="{TemplateBinding Content}" Margin="10,5"/>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <TextBlock Grid.Row="0"
+                   Text="⚙ HCEP AI Configuration &amp; Settings"
+                   FontSize="18"
+                   FontWeight="Bold"
+                   Foreground="{StaticResource PrimaryBrush}"
+                   Margin="0,0,0,15"/>
+
+        <!-- Tabbed Settings Content -->
+        <TabControl Grid.Row="1"
+                    Background="{StaticResource SurfaceBrush}"
+                    BorderThickness="0"
+                    Margin="0,0,0,15">
+            
+            <!-- Local AI Engine Settings -->
+            <TabItem Header="Local Engines">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="15">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Selection -->
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Active Local Engine" FontWeight="Bold" Margin="0,5"/>
+                        <ComboBox Grid.Row="0" Grid.Column="1" x:Name="LocalEngineCombo" Margin="0,5">
+                            <ComboBoxItem Content="Ollama"/>
+                            <ComboBoxItem Content="LlamaCpp"/>
+                        </ComboBox>
+
+                        <!-- Ollama Section -->
+                        <Border Grid.Row="1" Grid.ColumnSpan="2" BorderBrush="#3A3A5A" BorderThickness="0,0,0,1" Margin="0,15,0,10"/>
+                        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="Ollama Service Configurations" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,5"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Ollama Base URL:" Margin="0,5"/>
+                        <TextBox Grid.Row="3" Grid.Column="1" x:Name="OllamaUrlText" Margin="0,5"/>
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Ollama Model:" Margin="0,5"/>
+                        <TextBox Grid.Row="4" Grid.Column="1" x:Name="OllamaModelText" Margin="0,5"/>
+
+                        <!-- LlamaCpp Section -->
+                        <Border Grid.Row="5" Grid.ColumnSpan="2" BorderBrush="#3A3A5A" BorderThickness="0,0,0,1" Margin="0,15,0,10"/>
+                        <TextBlock Grid.Row="6" Grid.ColumnSpan="2" Text="Llama.cpp Service Configurations" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,5"/>
+
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Llama.cpp Base URL:" Margin="0,5"/>
+                        <TextBox Grid.Row="7" Grid.Column="1" x:Name="LlamaCppUrlText" Margin="0,5"/>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Frontier Cloud Provider Settings -->
+            <TabItem Header="Frontier Cloud">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="15">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Selection -->
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Active Cloud Provider" FontWeight="Bold" Margin="0,5"/>
+                        <ComboBox Grid.Row="0" Grid.Column="1" x:Name="CloudProviderCombo" Margin="0,5">
+                            <ComboBoxItem Content="OpenAI"/>
+                            <ComboBoxItem Content="Anthropic"/>
+                            <ComboBoxItem Content="Gemini"/>
+                            <ComboBoxItem Content="Mistral"/>
+                            <ComboBoxItem Content="xAI"/>
+                            <ComboBoxItem Content="Cohere"/>
+                        </ComboBox>
+
+                        <Border Grid.Row="1" Grid.ColumnSpan="2" BorderBrush="#3A3A5A" BorderThickness="0,0,0,1" Margin="0,15,0,10"/>
+                        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="Active Provider Authentication &amp; Model" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,5"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Cloud Model Name:" Margin="0,5"/>
+                        <TextBox Grid.Row="3" Grid.Column="1" x:Name="CloudModelText" Margin="0,5"/>
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="API Key:" Margin="0,5"/>
+                        <TextBox Grid.Row="4" Grid.Column="1" x:Name="CloudApiKeyText" Margin="0,5"/>
+
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Custom Base URL:" Margin="0,5"/>
+                        <TextBox Grid.Row="5" Grid.Column="1" x:Name="CloudUrlText" Margin="0,5" ToolTip="Leave blank for provider default endpoint"/>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- Happyface & Mirroring Settings -->
+            <TabItem Header="Happyface / Emulation">
+                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="15">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Routing Rules -->
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Prefer Local Engines (SLM)" FontWeight="Bold" Margin="0,5"/>
+                        <CheckBox Grid.Row="0" Grid.Column="1" x:Name="PreferLocalCheck" Content="Route requests locally when possible" Margin="0,5"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Enable Tool Use (Agentic)" FontWeight="Bold" Margin="0,5"/>
+                        <CheckBox Grid.Row="1" Grid.Column="1" x:Name="AgenticToolCheck" Content="Allow LLM to call local HCEP tools" Margin="0,5"/>
+
+                        <!-- Emulation weight -->
+                        <Border Grid.Row="2" Grid.ColumnSpan="2" BorderBrush="#3A3A5A" BorderThickness="0,0,0,1" Margin="0,15,0,10"/>
+                        
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Somatic Emulation Weight" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,5"/>
+                        <Grid Grid.Row="3" Grid.Column="1" Margin="0,5">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="40"/>
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0" x:Name="EmuWeightSlider" Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding ElementName=EmuWeightSlider, Path=Value, StringFormat={}{0:F2}}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Reflection Delay (ms)" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,5"/>
+                        <Grid Grid.Row="4" Grid.Column="1" Margin="0,5">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="40"/>
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0" x:Name="DelaySlider" Minimum="50" Maximum="1000" TickFrequency="25" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1" Text="{Binding ElementName=DelaySlider, Path=Value, StringFormat={}{0:F0}}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        </Grid>
+
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Somatic Blink Sync" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,5"/>
+                        <CheckBox Grid.Row="5" Grid.Column="1" x:Name="SyncBlinksCheck" Content="Synchronize Happyface eye blinks with user" Margin="0,5"/>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <!-- Actions -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+            <Button Content="Save Settings"
+                    Click="Save_Click"
+                    Background="{StaticResource PrimaryBrush}"
+                    Foreground="White"
+                    BorderThickness="0"
+                    Padding="15,6"
+                    Margin="0,0,10,0"
+                    Cursor="Hand"
+                    FontWeight="SemiBold"/>
+            <Button Content="Cancel"
+                    Click="Cancel_Click"
+                    Background="#2A2A40"
+                    Foreground="{StaticResource TextBrush}"
+                    BorderThickness="0"
+                    Padding="15,6"
+                    Cursor="Hand"/>
+        </StackPanel>
+    </Grid>
+</Window>

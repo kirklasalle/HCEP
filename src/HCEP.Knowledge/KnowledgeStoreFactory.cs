@@ -24,6 +24,9 @@ public static class KnowledgeStoreFactory
     /// </summary>
     public static IServiceCollection AddHCEPKnowledge(this IServiceCollection services)
     {
+        // Register the encrypted storage provider
+        services.AddSingleton<EncryptedStorageProvider>();
+
         // Register the fallback store (always needed — used as mirror by the adapter)
         services.AddSingleton<InMemoryKnowledgeStore>();
 
