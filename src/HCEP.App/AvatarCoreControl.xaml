@@ -31,57 +31,24 @@
                      ToolTip="Avatar face — yellow circle representing the avatar head"/>
 
             <!-- ── Left Eye Socket ───────────────────────────────── -->
-            <!-- Socket Ellipse is the visual outer ring; centre at (95, 112) -->
-            <Ellipse x:Name="LeftEyeSocket"
-                     Canvas.Left="73"
-                     Canvas.Top="90"
-                     Width="44"
-                     Height="44"
-                     Fill="#FFFFFFFF"
-                     Stroke="#FF1A1A1A"
-                     StrokeThickness="2"
-                     ToolTip="Left eye socket — the fixed bony landmark used for screen coordinate lookup"/>
-
-            <!-- Left Pupil — centred inside socket; animated by TranslateTransform -->
-            <Ellipse x:Name="LeftPupil"
-                     Canvas.Left="83"
-                     Canvas.Top="100"
-                     Width="20"
-                     Height="20"
-                     Fill="#FF000000"
-                     ToolTip="Left pupil — translated by SetGaze() to track the gaze vector">
-                <Ellipse.RenderTransform>
-                    <TranslateTransform x:Name="LeftPupilTransform"
-                                        X="0"
-                                        Y="0"/>
-                </Ellipse.RenderTransform>
-            </Ellipse>
+            <!-- 3D eye sphere rendered by EyeSphereVisual in code-behind -->
+            <!-- Invisible hit-test placeholder keeps screen-coordinate tracking working -->
+            <Canvas x:Name="LeftEyeHost"
+                    Canvas.Left="73"
+                    Canvas.Top="90"
+                    Width="44"
+                    Height="44"
+                    Background="Transparent"
+                    ToolTip="Left eye socket — 3D sphere rendered in code-behind"/>
 
             <!-- ── Right Eye Socket ──────────────────────────────── -->
-            <Ellipse x:Name="RightEyeSocket"
-                     Canvas.Left="163"
-                     Canvas.Top="90"
-                     Width="44"
-                     Height="44"
-                     Fill="#FFFFFFFF"
-                     Stroke="#FF1A1A1A"
-                     StrokeThickness="2"
-                     ToolTip="Right eye socket — the fixed bony landmark used for screen coordinate lookup"/>
-
-            <!-- Right Pupil -->
-            <Ellipse x:Name="RightPupil"
-                     Canvas.Left="173"
-                     Canvas.Top="100"
-                     Width="20"
-                     Height="20"
-                     Fill="#FF000000"
-                     ToolTip="Right pupil — translated by SetGaze() to track the gaze vector">
-                <Ellipse.RenderTransform>
-                    <TranslateTransform x:Name="RightPupilTransform"
-                                        X="0"
-                                        Y="0"/>
-                </Ellipse.RenderTransform>
-            </Ellipse>
+            <Canvas x:Name="RightEyeHost"
+                    Canvas.Left="163"
+                    Canvas.Top="90"
+                    Width="44"
+                    Height="44"
+                    Background="Transparent"
+                    ToolTip="Right eye socket — 3D sphere rendered in code-behind"/>
 
             <!-- ── Smile ─────────────────────────────────────────── -->
             <!--

@@ -25,7 +25,7 @@ namespace HCEP.App;
 /// Sensor → Vision Pipeline → Audio Pipeline → Scene Snapshot.
 /// Runs as a background async loop, composing snapshots from all subsystems.
 /// </summary>
-public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
+public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator, IAsyncDisposable
 {
     private ISensorSource _sensor;
     private readonly SimulatedSensorSource _fallbackSensor;
@@ -50,6 +50,8 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
     private volatile FaceFrame? _latestFace;
     private volatile HcepReading? _latestHcep;
     private readonly FpsCounter _hcepFpsCounter = new();
+    private long _faceFrameCount;
+    private long _skelFrameCount;
 
     // ── Phase 6: True Gaze Avatar ───────────────────────────
     // MVP defaults — Kinect centred horizontally, 120 mm above screen centre,
@@ -250,37 +252,7 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
         }
 
         // Wire sensor events to pipeline channels
-        long faceFrameCount = 0;
-        _sensor.FaceFrameReady += face =>
-        {
-            _latestFace = face;
-            bool written = _vision.FaceInput.TryWrite(face);
-            var count = Interlocked.Increment(ref faceFrameCount);
-            if (count <= 5 || count % 300 == 0)
-                _logger.LogInformation(
-                    "FaceFrame #{Count}: written={Written} tracked={IsTracked} yaw={Yaw:F1} pitch={Pitch:F1}",
-                    count, written, face.IsTracked, face.HeadRotation.Y, face.HeadRotation.X);
-        };
-        _sensor.AudioFrameReady += audio => _audio.AudioInput.TryWrite(audio);
-        _sensor.ColorFrameReady += color =>
-        {
-            _vision.LatestColor = color;
-            ColorFrameReady?.Invoke(color);
-        };
-        _sensor.DepthFrameReady += depth => DepthFrameReady?.Invoke(depth);
-        _sensor.InfraredFrameReady += ir => InfraredFrameReady?.Invoke(ir);
-        long skelFrameCount = 0;
-        _sensor.SkeletonFrameReady += skel =>
-        {
-            _latestSkeleton = skel;
-            SkeletonFrameReady?.Invoke(skel);
-            var count = Interlocked.Increment(ref skelFrameCount);
-            if (count <= 5 || count % 300 == 0)
-                _logger.LogInformation(
-                    "SkeletonFrame #{Count}: id={Id} state={State} joints={Joints} pos=({X:F2},{Y:F2},{Z:F2})",
-                    count, skel.TrackingId, skel.State, skel.Joints?.Count ?? 0,
-                    skel.Position.X, skel.Position.Y, skel.Position.Z);
-        };
+        WireSensorEvents(_sensor);
 
         // Start sub-pipelines
         await _vision.StartAsync(_cts.Token);
@@ -295,34 +267,13 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
             _logger.LogWarning("Sensor failed after StartAsync (state={State}) — switching to simulated",
                 _sensor.State);
 
-            // Unwire the failed sensor
+            // Unwire event handlers from the failed sensor before switching
+            UnwireSensorEvents(_sensor);
             _sensor = _fallbackSensor;
             await _sensor.InitializeAsync(SensorStreamType.All, _cts.Token);
 
-            // Re-wire events on fallback (reuse same counters)
-            _sensor.FaceFrameReady += face =>
-            {
-                _latestFace = face;
-                bool written = _vision.FaceInput.TryWrite(face);
-                var count = Interlocked.Increment(ref faceFrameCount);
-                if (count <= 5 || count % 300 == 0)
-                    _logger.LogInformation(
-                        "FaceFrame #{Count} (fallback): written={Written} tracked={IsTracked}",
-                        count, written, face.IsTracked);
-            };
-            _sensor.AudioFrameReady += audio => _audio.AudioInput.TryWrite(audio);
-            _sensor.ColorFrameReady += color =>
-            {
-                _vision.LatestColor = color;
-                ColorFrameReady?.Invoke(color);
-            };
-            _sensor.DepthFrameReady += depth => DepthFrameReady?.Invoke(depth);
-            _sensor.InfraredFrameReady += ir => InfraredFrameReady?.Invoke(ir);
-            _sensor.SkeletonFrameReady += skel =>
-            {
-                _latestSkeleton = skel;
-                SkeletonFrameReady?.Invoke(skel);
-            };
+            // Re-wire events on fallback sensor
+            WireSensorEvents(_sensor);
 
             await _sensor.StartAsync(_cts.Token);
         }
@@ -363,12 +314,22 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
             catch (OperationCanceledException) { }
         }
 
+        UnwireSensorEvents(_sensor);
         await _sensor.StopAsync(ct);
         await _vision.StopAsync();
         await _audio.StopAsync();
 
         _cts?.Dispose();
         _logger.LogInformation("HCEP pipeline stopped");
+    }
+
+    /// <inheritdoc />
+    public async ValueTask DisposeAsync()
+    {
+        if (_isRunning)
+            await StopAsync();
+
+        _cts?.Dispose();
     }
 
     // ── Snapshot Loop ──────────────────────────────────────────
@@ -682,6 +643,63 @@ public sealed class HCEPPipelineOrchestrator : IPipelineOrchestrator
         {
             _logger.LogError(ex, "Speech loop error");
         }
+    }
+
+    // ── Sensor Event Wiring ───────────────────────────────────
+
+    private void WireSensorEvents(ISensorSource sensor)
+    {
+        sensor.FaceFrameReady += OnFaceFrameReady;
+        sensor.AudioFrameReady += OnAudioFrameReady;
+        sensor.ColorFrameReady += OnColorFrameReady;
+        sensor.DepthFrameReady += OnDepthFrameReady;
+        sensor.InfraredFrameReady += OnInfraredFrameReady;
+        sensor.SkeletonFrameReady += OnSkeletonFrameReady;
+    }
+
+    private void UnwireSensorEvents(ISensorSource sensor)
+    {
+        sensor.FaceFrameReady -= OnFaceFrameReady;
+        sensor.AudioFrameReady -= OnAudioFrameReady;
+        sensor.ColorFrameReady -= OnColorFrameReady;
+        sensor.DepthFrameReady -= OnDepthFrameReady;
+        sensor.InfraredFrameReady -= OnInfraredFrameReady;
+        sensor.SkeletonFrameReady -= OnSkeletonFrameReady;
+    }
+
+    private void OnFaceFrameReady(FaceFrame face)
+    {
+        _latestFace = face;
+        bool written = _vision.FaceInput.TryWrite(face);
+        var count = Interlocked.Increment(ref _faceFrameCount);
+        if (count <= 5 || count % 300 == 0)
+            _logger.LogInformation(
+                "FaceFrame #{Count}: written={Written} tracked={IsTracked} yaw={Yaw:F1} pitch={Pitch:F1}",
+                count, written, face.IsTracked, face.HeadRotation.Y, face.HeadRotation.X);
+    }
+
+    private void OnAudioFrameReady(AudioFrame audio) => _audio.AudioInput.TryWrite(audio);
+
+    private void OnColorFrameReady(ColorFrame color)
+    {
+        _vision.LatestColor = color;
+        ColorFrameReady?.Invoke(color);
+    }
+
+    private void OnDepthFrameReady(DepthFrame depth) => DepthFrameReady?.Invoke(depth);
+
+    private void OnInfraredFrameReady(ColorFrame ir) => InfraredFrameReady?.Invoke(ir);
+
+    private void OnSkeletonFrameReady(SkeletonFrame skel)
+    {
+        _latestSkeleton = skel;
+        SkeletonFrameReady?.Invoke(skel);
+        var count = Interlocked.Increment(ref _skelFrameCount);
+        if (count <= 5 || count % 300 == 0)
+            _logger.LogInformation(
+                "SkeletonFrame #{Count}: id={Id} state={State} joints={Joints} pos=({X:F2},{Y:F2},{Z:F2})",
+                count, skel.TrackingId, skel.State, skel.Joints?.Count ?? 0,
+                skel.Position.X, skel.Position.Y, skel.Position.Z);
     }
 
     // ── Eye Location Helpers ───────────────────────────────────

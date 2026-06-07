@@ -5,6 +5,9 @@
     <Description>Structured logging, performance counters, and diagnostic telemetry.</Description>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="HCEP.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\HCEP.Core\HCEP.Core.csproj" />
   </ItemGroup>
   <ItemGroup>

@@ -10,16 +10,16 @@ namespace HCEP.Kinect.Bridge
     {
         const byte FRAME_COLOR = 0x01;
         const byte FRAME_DEPTH = 0x02;
-        const byte FRAME_IR    = 0x03;
+        const byte FRAME_IR = 0x03;
         const byte FRAME_READY = 0xFE;
         const byte FRAME_ERROR = 0xFF;
         const string PIPE_NAME = "HCEP_KINECT_BRIDGE";
 
-        static KinectSensor _kinect;
-        static BinaryWriter _writer;
+        static KinectSensor? _kinect;
+        static BinaryWriter? _writer;
         static readonly object _writeLock = new object();
-        static byte[] _colorPixels;
-        static short[] _rawDepthPixels;
+        static byte[]? _colorPixels;
+        static short[]? _rawDepthPixels;
         static int _colorFrameNum;
         static int _depthFrameNum;
         static volatile bool _running = true;
@@ -68,7 +68,7 @@ namespace HCEP.Kinect.Bridge
             Console.Error.WriteLine("[Bridge] Exiting");
         }
 
-        static KinectSensor FindKinect()
+        static KinectSensor? FindKinect()
         {
             foreach (var sensor in KinectSensor.KinectSensors)
                 if (sensor.Status == KinectStatus.Connected) return sensor;
@@ -134,7 +134,7 @@ namespace HCEP.Kinect.Bridge
                     else if (d > maxD) v = 5;
                     else v = (byte)(255 - (int)((d - minD) / range * 230));
                     int j = i * 4;
-                    irPx[j] = v; irPx[j+1] = v; irPx[j+2] = v; irPx[j+3] = 255;
+                    irPx[j] = v; irPx[j + 1] = v; irPx[j + 2] = v; irPx[j + 3] = 255;
                 }
                 var ip = new byte[16 + irPx.Length];
                 WI(ip, 0, w); WI(ip, 4, h); WI(ip, 8, 4); WI(ip, 12, fn);
@@ -166,7 +166,7 @@ namespace HCEP.Kinect.Bridge
 
         static void WI(byte[] b, int o, int v)
         {
-            b[o] = (byte)v; b[o+1] = (byte)(v>>8); b[o+2] = (byte)(v>>16); b[o+3] = (byte)(v>>24);
+            b[o] = (byte)v; b[o + 1] = (byte)(v >> 8); b[o + 2] = (byte)(v >> 16); b[o + 3] = (byte)(v >> 24);
         }
 
         static void Cleanup()

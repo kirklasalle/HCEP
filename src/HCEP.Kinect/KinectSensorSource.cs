@@ -101,7 +101,9 @@ public sealed class KinectSensorSource : ISensorSource
     public event Action<ColorFrame>? ColorFrameReady;
     public event Action<DepthFrame>? DepthFrameReady;
     public event Action<ColorFrame>? InfraredFrameReady;
+#pragma warning disable CS0067 // AudioFrameReady is part of ISensorSource but raised by Kinect v1 via a different path
     public event Action<AudioFrame>? AudioFrameReady;
+#pragma warning restore CS0067
     public event Action<SensorState>? StateChanged;
 
     public int ElevationAngle

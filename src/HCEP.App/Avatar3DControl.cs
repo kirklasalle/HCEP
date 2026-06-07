@@ -6,32 +6,9 @@
 using System.Numerics;
 using System.Windows;
 using System.Windows.Media;
+using HCEP.Core.Models;
 
 namespace HCEP.App;
-
-// ── Kinect FaceTracking SDK 87-point feature-point edge connectivity ──────────
-// Indices match KinectSensorSource FeaturePoints2D ordering.
-// Mirrors and extends VideoOverlayControl._faceEdgeChains.
-file static class FaceEdgeChains
-{
-    public static readonly int[][] Chains =
-    [
-        // Eyes (closed loops)
-        [10, 11, 9, 13, 14, 12, 10],                                           // right eye
-        [31, 32, 30, 34, 35, 33, 31],                                          // left eye
-        // Eyebrows
-        [5, 6, 7, 8],                                                          // right brow
-        [29, 28, 27, 26],                                                      // left brow
-        // Nose
-        [13, 34],                                                              // bridge
-        [40, 41, 42, 43, 44, 45, 40],                                          // tip + nostrils
-        // Mouth
-        [48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 48],                 // outer lip
-        [60, 61, 62, 63, 64, 65, 66, 67, 60],                                 // inner lip
-        // Jaw / face contour
-        [0, 1, 2, 3, 4, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 0],
-    ];
-}
 
 /// <summary>
 /// 3D Wireframe Avatar — renders the Kinect FaceTrackLib Candide-3 mesh
@@ -77,10 +54,37 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     // ── Stable wire pen (frozen — shareable across render cycles) ─
     private static readonly Pen _wirePen;
 
+    private static readonly Brush _pupilBrush;
+
+    // ── Eye sphere rendering brushes (frozen) ────────────────────
+    private static readonly Brush _irisRingBrush;
+    private static readonly Brush _pupilDotBrush;
+    private static readonly Brush _specularBrush;
+    private static readonly Pen _eyeOutlinePen;
+    private static readonly Pen _irisOutlinePen;
+
     static Avatar3DControl()
     {
         _wirePen = new Pen(new SolidColorBrush(Color.FromArgb(220, 0, 220, 190)), 1.2);
         _wirePen.Freeze();
+        _pupilBrush = new SolidColorBrush(Color.FromArgb(255, 0, 220, 190));
+        _pupilBrush.Freeze();
+
+        // Iris: teal ring (matches wireframe accent)
+        _irisRingBrush = new SolidColorBrush(Color.FromArgb(220, 0, 180, 160));
+        _irisRingBrush.Freeze();
+        // Pupil: dark center
+        _pupilDotBrush = new SolidColorBrush(Color.FromArgb(255, 8, 12, 18));
+        _pupilDotBrush.Freeze();
+        // Specular highlight
+        _specularBrush = new SolidColorBrush(Color.FromArgb(200, 255, 255, 255));
+        _specularBrush.Freeze();
+        // Subtle outline for eye sphere
+        _eyeOutlinePen = new Pen(new SolidColorBrush(Color.FromArgb(100, 0, 220, 190)), 0.8);
+        _eyeOutlinePen.Freeze();
+        // Subtle iris ring outline
+        _irisOutlinePen = new Pen(new SolidColorBrush(Color.FromArgb(120, 0, 140, 130)), 0.6);
+        _irisOutlinePen.Freeze();
     }
 
     // ── Live mesh state ──────────────────────────────────────────
@@ -102,6 +106,11 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     private float _headYawRad;
     private float _headPitchRad;
     private float _headRollRad;
+    private float _trackedHeadYawRad;
+    private float _trackedHeadPitchRad;
+    private float _trackedHeadRollRad;
+    private long _lastHeadPoseTicks;
+    private bool _headPoseInitialized;
 
     // ── Mesh status (surfaced to AvatarWindow HUD) ───────────────────────
     public int MeshVertexCount { get; private set; }
@@ -113,17 +122,38 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     public Point LeftEyeScreenPos { get; private set; }
     public Point RightEyeScreenPos { get; private set; }
 
-    // ── Mesh eye-socket lock state (stable mesh-ID anchors) ───────────────────
-    private int[]? _leftEyeSocketMeshIds;
-    private int[]? _rightEyeSocketMeshIds;
+    // ── Eye-socket smoothing state ─────────────────────────────────────────────
     private Point _leftEyeSocketSmoothed;
     private Point _rightEyeSocketSmoothed;
     private bool _eyeSocketSmoothingReady;
+
+    // ── Micro-saccade engine state ──────────────────────────────────────
+    // Simulates natural inter-eye saccades (shifting gaze between the user's
+    // left and right eye sockets) and micro-saccade jitter during fixation.
+    private static readonly Random _saccadeRng = new();
+    private bool _saccadeTargetLeft = true;       // which user eye is the current target
+    private long _nextSaccadeMs;                  // tick64 for next inter-eye switch
+    private double _saccadeSmoothedYaw;           // exponentially smoothed inter-eye offset
+    private double _microTargetX, _microTargetY;  // current micro-jitter target (normalised)
+    private double _microSmoothedX, _microSmoothedY; // smoothed micro-jitter
+    private long _nextMicroSaccadeMs;             // tick64 for next micro-jitter change
+    private long _lastSaccadeUpdateMs;            // for framerate-independent smoothing
+
     // ── Construction ─────────────────────────────────────────────────────
     public Avatar3DControl()
     {
         // Re-resolve screen coords whenever layout changes — same pattern as AvatarCoreControl.
         LayoutUpdated += (_, _) => UpdateEyeScreenCoordinates();
+
+        // Low-frequency timer keeps micro-saccade animation fluid even during
+        // brief sensor data gaps. WPF coalesces repeated InvalidateVisual calls.
+        var saccadeTimer = new System.Windows.Threading.DispatcherTimer(
+            System.Windows.Threading.DispatcherPriority.Render)
+        {
+            Interval = TimeSpan.FromMilliseconds(33), // ~30 Hz
+        };
+        saccadeTimer.Tick += (_, _) => InvalidateVisual();
+        saccadeTimer.Start();
     }
 
     private void UpdateEyeScreenCoordinates()
@@ -153,8 +183,6 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 
         if (topologyChanged)
         {
-            _leftEyeSocketMeshIds = null;
-            _rightEyeSocketMeshIds = null;
             _eyeSocketSmoothingReady = false;
         }
 
@@ -173,8 +201,6 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         _triangles = null;   // null = edge-chain fallback mode
         MeshVertexCount = 0;
         MeshTriangleCount = 0;
-        _leftEyeSocketMeshIds = null;
-        _rightEyeSocketMeshIds = null;
         _eyeSocketSmoothingReady = false;
         ComputeBounds();
         InvalidateVisual();
@@ -212,9 +238,41 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     public void SetHeadPose(System.Numerics.Vector3 rotationDeg)
     {
         const float Deg2Rad = MathF.PI / 180f;
-        _headYawRad = rotationDeg.Y * Deg2Rad;
-        _headPitchRad = rotationDeg.X * Deg2Rad;
-        _headRollRad = rotationDeg.Z * Deg2Rad;
+
+        float targetYaw = rotationDeg.Y * Deg2Rad;
+        float targetPitch = rotationDeg.X * Deg2Rad;
+        float targetRoll = rotationDeg.Z * Deg2Rad;
+
+        _trackedHeadYawRad = targetYaw;
+        _trackedHeadPitchRad = targetPitch;
+        _trackedHeadRollRad = targetRoll;
+
+        long now = Environment.TickCount64;
+        if (!_headPoseInitialized)
+        {
+            _headYawRad = targetYaw;
+            _headPitchRad = targetPitch;
+            _headRollRad = targetRoll;
+            _headPoseInitialized = true;
+            _lastHeadPoseTicks = now;
+            InvalidateVisual();
+            return;
+        }
+
+        double dt = Math.Clamp((now - _lastHeadPoseTicks) / 1000.0, 0.0, 0.20);
+        _lastHeadPoseTicks = now;
+
+        // Eye-first dynamics: allow more eye-only lead before head catches up,
+        // then follow more gradually for natural recentering.
+        const float EyeLeadDeadzoneRad = 5.0f * (MathF.PI / 180f);
+        const float HeadFollowTimeConstantSec = 0.28f;
+
+        float followAlpha = (float)(1.0 - Math.Exp(-dt / HeadFollowTimeConstantSec));
+
+        _headYawRad = StepHeadFollow(_headYawRad, targetYaw, followAlpha, EyeLeadDeadzoneRad);
+        _headPitchRad = StepHeadFollow(_headPitchRad, targetPitch, followAlpha, EyeLeadDeadzoneRad * 0.85f);
+        _headRollRad = StepHeadFollow(_headRollRad, targetRoll, followAlpha, EyeLeadDeadzoneRad);
+
         // In fallback mode, head rotation is rendered by OnRender.
         // In full-mesh mode, rotation is baked into GetProjectedShape vertices.
         InvalidateVisual();
@@ -226,8 +284,6 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     {
         _vertices = null;
         _triangles = null;
-        _leftEyeSocketMeshIds = null;
-        _rightEyeSocketMeshIds = null;
         _eyeSocketSmoothingReady = false;
         _gazePitch = 0;
         _gazeYaw = 0;
@@ -241,7 +297,12 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         // Transparent background — inherits dark window colour.
         dc.DrawRectangle(Brushes.Transparent, null, new Rect(0, 0, ActualWidth, ActualHeight));
 
-        if (_vertices is null || _vertices.Length == 0)
+        // Snapshot volatile references (written from background threads).
+        var vertices = _vertices;
+        var triangles = _triangles;
+        var featurePoints = _featurePoints;
+
+        if (vertices is null || vertices.Length == 0)
         {
             // No data at all — draw a placeholder crosshair.
             var grey = new Pen(new SolidColorBrush(Color.FromArgb(80, 255, 255, 255)), 1.0);
@@ -272,11 +333,12 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         // baked into the vertex positions.  We render with a pure transform.
         // When false: edge-chain fallback using 87 feature points; we apply
         // a naive cos-compress / pitch-shift to approximate head orientation.
-        bool hasMesh = _triangles is not null;
+        bool hasMesh = triangles is not null;
 
         // ── Transform parameters (full-mesh vs feature-point fallback) ───
-        // Full-mesh mode: no manual head transforms — they are in the vertices.
-        // Fallback mode : use REAL head rotation from Kinect FaceFrame.HeadRotation.
+        // Full-mesh mode: apply a corrective transform from tracked pose toward
+        // smoothed display pose so eyes visibly lead before head catches up.
+        // Fallback mode : use the smoothed display head rotation directly.
         //   yaw  → X-compress (cos) + slight X-shift (sin)
         //   pitch → Y-shift
         //   roll  → rotation around face centre
@@ -287,23 +349,36 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         double headPitch = _headPitchRad;
         double headRoll = _headRollRad;
 
-        double yawCompress = hasMesh ? 1.0 :
-            Math.Cos(Math.Clamp(headYaw, -Math.PI / 3, Math.PI / 3));
-        double yawShiftX = hasMesh ? 0.0 :
-            Math.Sin(-headYaw) * w * 0.12;   // lateral shift with yaw
-        double pitchShift = hasMesh ? 0.0 :
-            Math.Sin(-headPitch) * h * 0.10;  // vertical shift with pitch
-        double rollAngle = hasMesh ? 0.0 : headRoll;
+        double correctionYaw = hasMesh
+            ? Math.Clamp(headYaw - _trackedHeadYawRad, -Math.PI / 3, Math.PI / 3)
+            : headYaw;
+        double correctionPitch = hasMesh
+            ? Math.Clamp(headPitch - _trackedHeadPitchRad, -Math.PI / 4, Math.PI / 4)
+            : headPitch;
+        double correctionRoll = hasMesh
+            ? Math.Clamp(headRoll - _trackedHeadRollRad, -Math.PI / 4, Math.PI / 4)
+            : headRoll;
+
+        bool applyHeadTransform = !hasMesh
+            || Math.Abs(correctionYaw) > 0.0005
+            || Math.Abs(correctionPitch) > 0.0005
+            || Math.Abs(correctionRoll) > 0.0005;
+
+        double yawCompress = Math.Cos(Math.Clamp(correctionYaw, -Math.PI / 3, Math.PI / 3));
+        double yawShiftX = Math.Sin(-correctionYaw) * w * 0.12;   // lateral shift with yaw
+        double pitchShift = Math.Sin(-correctionPitch) * h * 0.10;  // vertical shift with pitch
+        double rollAngle = correctionRoll;
 
         // ── Vertex mapping ───────────────────────────────────────────────
         // Converts a mesh-space vertex index to screen-space Point.
         // Fallback mode applies: yaw-compress, yaw-shift, pitch-shift, then roll.
         Point Map(int idx)
         {
-            Vector2 v = _vertices[idx];
+            if ((uint)idx >= (uint)vertices.Length) return new Point(0, 0);
+            Vector2 v = vertices[idx];
             double x = v.X * fitScale + offX;
             double y = v.Y * fitScale + offY + pitchShift;
-            if (!hasMesh)
+            if (applyHeadTransform)
             {
                 x = meshCentreX + (x - meshCentreX) * yawCompress + yawShiftX;
                 // Apply roll rotation around the visual centre
@@ -324,11 +399,11 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         if (hasMesh)
         {
             // Full wireframe mesh — GetProjectedShape succeeded.
-            foreach (var (a, b, c) in _triangles!)
+            foreach (var (a, b, c) in triangles!)
             {
-                if ((uint)a >= (uint)_vertices.Length ||
-                    (uint)b >= (uint)_vertices.Length ||
-                    (uint)c >= (uint)_vertices.Length)
+                if ((uint)a >= (uint)vertices.Length ||
+                    (uint)b >= (uint)vertices.Length ||
+                    (uint)c >= (uint)vertices.Length)
                     continue;
 
                 dc.DrawLine(_wirePen, Map(a), Map(b));
@@ -339,179 +414,142 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         else
         {
             // Feature-point wireframe: Kinect 87-point edge chains (fallback).
-            foreach (var chain in FaceEdgeChains.Chains)
+            foreach (var chain in FaceTopology.ExtendedChains)
             {
                 for (int i = 0; i < chain.Length - 1; i++)
                 {
                     int a = chain[i], b = chain[i + 1];
-                    if (a >= _vertices.Length || b >= _vertices.Length) continue;
-                    Vector2 va = _vertices[a], vb = _vertices[b];
+                    if (a >= vertices.Length || b >= vertices.Length) continue;
+                    Vector2 va = vertices[a], vb = vertices[b];
                     if (va == Vector2.Zero || vb == Vector2.Zero) continue;
                     dc.DrawLine(_wirePen, Map(a), Map(b));
                 }
             }
         }
 
-        // ── Gaze-driven pupils in eye sockets ────────────────────────────
-        // In high-poly mesh mode, anchor pupils to mesh-derived eye regions.
-        // In fallback mode, use legacy feature-point eye loops.
-        //
-        // Pupil positioning
-        // ─────────────────
-        // GazeVectorReady pitch/yaw are geometrically computed angles from the
-        // avatar eye socket toward the user's eye position (camera-space geometry).
-        // FaceFrame.HeadRotation is the user's head orientation from Kinect.
-        // These are in DIFFERENT frames — subtraction would be meaningless.
-        //
-        // In full-mesh mode the projected feature-point positions already reflect
-        // the user's head orientation (GetProjectedShape bakes in head pose).
-        // The pupils are offset WITHIN those live socket positions using the
-        // raw geometric gaze angles — no head-pose subtraction.
-        //
-        // MaxGazeAngle = 20° covers the practical gaze range before Kinect
-        // tracking fidelity degrades.  Using 20° (vs 45°) means an 8° gaze
-        // registers as 40% of full travel — visually clear.
-        if (hasMesh && _vertices is { Length: > 20 })
+        // ── Eye socket positioning — proportional placement ────────────
+        // Uses the same eye/face proportions as the 2D Happy Face avatar:
+        //   Happy Face canvas = 280×280
+        //   Right eye = (95, 112) → (0.339, 0.400)
+        //   Left eye  = (185, 112) → (0.661, 0.400)
+        //   Eye radius = 22 → 0.0786 of face width
+        // These proportions are applied to the mesh bounding box, then
+        // transformed through the same wireframe pipeline (fitScale, offsets,
+        // yaw-compress, pitch-shift, roll). No feature-point dependency —
+        // eliminates the FP↔mesh projection mismatch that caused crashes.
+        bool eyesDrawn = false;
+
+        if (hasMesh)
         {
-            // Seed lock once from live eye contour points (feature points), then keep
-            // those stable mesh vertex IDs as socket anchors across frames.
-            if ((_leftEyeSocketMeshIds is null || _rightEyeSocketMeshIds is null)
-                && _featurePoints is { Length: > 35 }
-                && TrySeedEyeSocketMeshIds(_vertices, _featurePoints, out var leftIds, out var rightIds))
+            // Happy-face baseline + small wireframe calibration.
+            const double BaseREyeXFrac = 95.0 / 280.0;    // 0.339
+            const double BaseLEyeXFrac = 185.0 / 280.0;   // 0.661
+            const double BaseEyeYFrac = 112.0 / 280.0;    // 0.400
+            const double EyeRFrac = 20.5 / 280.0;         // 0.073
+            const double HorizontalSpreadFrac = 0.016;    // push eyes slightly outward
+            const double VerticalDropFrac = 0.018;        // lower eye plane slightly
+
+            double rEyeXFrac = BaseREyeXFrac - HorizontalSpreadFrac;
+            double lEyeXFrac = BaseLEyeXFrac + HorizontalSpreadFrac;
+            double eyeYFrac = BaseEyeYFrac + VerticalDropFrac;
+
+            // Map proportions into mesh-vertex coordinate space
+            double rCxMesh = _meshLeft + rEyeXFrac * _meshWidth;
+            double rCyMesh = _meshTop + eyeYFrac * _meshHeight;
+            double lCxMesh = _meshLeft + lEyeXFrac * _meshWidth;
+            double lCyMesh = _meshTop + eyeYFrac * _meshHeight;
+
+            // Transform to screen space — same pipeline as wireframe vertices
+            Point MapCoord(double vx, double vy)
             {
-                _leftEyeSocketMeshIds = leftIds;
-                _rightEyeSocketMeshIds = rightIds;
-                _eyeSocketSmoothingReady = false;
-            }
-
-            Point MapMeshRaw(Vector2 v) => new(v.X * fitScale + offX, v.Y * fitScale + offY);
-
-            if (_leftEyeSocketMeshIds is { Length: > 0 } leftSocketIds
-                && _rightEyeSocketMeshIds is { Length: > 0 } rightSocketIds
-                && TryComputeSocket(_vertices, leftSocketIds, MapMeshRaw, out var leftSocket)
-                && TryComputeSocket(_vertices, rightSocketIds, MapMeshRaw, out var rightSocket))
-            {
-                // Temporal smoothing to remove per-frame centroid jitter while keeping
-                // responsiveness; this is key for visual "lock" under lean/yaw.
-                const double Alpha = 0.32;
-                if (!_eyeSocketSmoothingReady)
+                double x2 = vx * fitScale + offX;
+                double y2 = vy * fitScale + offY + pitchShift;
+                if (applyHeadTransform)
                 {
-                    _leftEyeSocketSmoothed = new Point(leftSocket.Cx, leftSocket.Cy);
-                    _rightEyeSocketSmoothed = new Point(rightSocket.Cx, rightSocket.Cy);
-                    _eyeSocketSmoothingReady = true;
-                }
-                else
-                {
-                    _leftEyeSocketSmoothed = new Point(
-                        _leftEyeSocketSmoothed.X + (leftSocket.Cx - _leftEyeSocketSmoothed.X) * Alpha,
-                        _leftEyeSocketSmoothed.Y + (leftSocket.Cy - _leftEyeSocketSmoothed.Y) * Alpha);
-                    _rightEyeSocketSmoothed = new Point(
-                        _rightEyeSocketSmoothed.X + (rightSocket.Cx - _rightEyeSocketSmoothed.X) * Alpha,
-                        _rightEyeSocketSmoothed.Y + (rightSocket.Cy - _rightEyeSocketSmoothed.Y) * Alpha);
-                }
-
-                // Blend toward live eyelid feature-point centroids for tighter visual seating.
-                // Mesh IDs provide stability; feature loops provide immediate eyelid alignment.
-                Point leftAnchor = _leftEyeSocketSmoothed;
-                Point rightAnchor = _rightEyeSocketSmoothed;
-                double yawAbsNorm = Math.Clamp(Math.Abs(_headYawRad) / (Math.PI / 4.0), 0.0, 1.0);
-                if (_featurePoints is { Length: > 35 }
-                    && TryFeatureEyeCenter(_featurePoints, [30, 31, 32, 33, 34, 35], fitScale, offX, offY, out var fpLeft)
-                    && TryFeatureEyeCenter(_featurePoints, [9, 10, 11, 12, 13, 14], fitScale, offX, offY, out var fpRight))
-                {
-                    // If locked sockets drift too far from eyelid contours, reseed IDs.
-                    // This keeps persistence while recovering from pose-driven lock drift.
-                    double driftL = Math.Sqrt((leftAnchor.X - fpLeft.X) * (leftAnchor.X - fpLeft.X)
-                                            + (leftAnchor.Y - fpLeft.Y) * (leftAnchor.Y - fpLeft.Y));
-                    double driftR = Math.Sqrt((rightAnchor.X - fpRight.X) * (rightAnchor.X - fpRight.X)
-                                            + (rightAnchor.Y - fpRight.Y) * (rightAnchor.Y - fpRight.Y));
-                    double driftThreshold = Math.Max(Math.Min(leftSocket.HalfW, rightSocket.HalfW) * 0.95, 10.0);
-                    if ((driftL > driftThreshold || driftR > driftThreshold)
-                        && TrySeedEyeSocketMeshIds(_vertices, _featurePoints, out var reseedLeft, out var reseedRight))
+                    x2 = meshCentreX + (x2 - meshCentreX) * yawCompress + yawShiftX;
+                    if (Math.Abs(rollAngle) > 0.001)
                     {
-                        _leftEyeSocketMeshIds = reseedLeft;
-                        _rightEyeSocketMeshIds = reseedRight;
-                        _eyeSocketSmoothingReady = false;
-                        leftAnchor = fpLeft;
-                        rightAnchor = fpRight;
+                        double dx2 = x2 - meshCentreX;
+                        double dy2 = y2 - meshCentreY;
+                        double cosR = Math.Cos(rollAngle);
+                        double sinR = Math.Sin(rollAngle);
+                        x2 = meshCentreX + dx2 * cosR - dy2 * sinR;
+                        y2 = meshCentreY + dx2 * sinR + dy2 * cosR;
                     }
-
-                    // Stronger feature influence at high yaw keeps pupils seated in sockets.
-                    double blend = 0.52 + (0.33 * yawAbsNorm);
-                    leftAnchor = new Point(
-                        leftAnchor.X + (fpLeft.X - leftAnchor.X) * blend,
-                        leftAnchor.Y + (fpLeft.Y - leftAnchor.Y) * blend);
-                    rightAnchor = new Point(
-                        rightAnchor.X + (fpRight.X - rightAnchor.X) * blend,
-                        rightAnchor.Y + (fpRight.Y - rightAnchor.Y) * blend);
                 }
-
-                const double MaxGazeAngle = Math.PI / 9.0; // 20°
-
-                // Eye-leads/head-follows: eyes take initial movement, then settle toward
-                // center as head yaw/pitch catches up.
-                double eyeRelativeYaw = _gazeYaw - (_headYawRad * 0.45);
-                double eyeRelativePitch = _gazePitch - (_headPitchRad * 0.35);
-
-                double normYaw = Math.Clamp(eyeRelativeYaw, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
-                double normPitch = Math.Clamp(eyeRelativePitch, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
-
-                // Eyeball-like rotation mapping: use sin() so center response is smooth
-                // and extremes saturate naturally near socket limits.
-                double rotYaw = Math.Sin(normYaw * (Math.PI / 2.0));
-                double rotPitch = Math.Sin(normPitch * (Math.PI / 2.0));
-
-                const double Travel = 0.48;
-                double lTX = leftSocket.HalfW * Travel, lTY = leftSocket.HalfH * Travel;
-                double rTX = rightSocket.HalfW * Travel, rTY = rightSocket.HalfH * Travel;
-
-                double conv = Math.Min(leftSocket.HalfW, rightSocket.HalfW) * 0.18
-                              * Math.Clamp((1.2 - _gazeDistM) / 1.2, 0.0, 1.0)
-                              * (1.0 - 0.60 * yawAbsNorm);
-
-                // Slight downward seating bias keeps pupils inside wireframe eyelid loops.
-                // Increase with yaw because projected eyelids visually rise under turn.
-                double seatBiasYLeft = leftSocket.HalfH * (0.12 + 0.08 * yawAbsNorm);
-                double seatBiasYRight = rightSocket.HalfH * (0.12 + 0.08 * yawAbsNorm);
-
-                double lpx = leftAnchor.X + rotYaw * lTX + conv;
-                double lpy = leftAnchor.Y - rotPitch * lTY + seatBiasYLeft;
-                double rpx = rightAnchor.X + rotYaw * rTX - conv;
-                double rpy = rightAnchor.Y - rotPitch * rTY + seatBiasYRight;
-
-                // Hard separation safety: never allow both pupils to collapse into one eye.
-                double minSep = Math.Max(Math.Min(leftSocket.HalfW, rightSocket.HalfW) * 1.1, 6.0);
-                if (rpx - lpx < minSep)
-                {
-                    double cx = (lpx + rpx) / 2.0;
-                    lpx = cx - minSep / 2.0;
-                    rpx = cx + minSep / 2.0;
-                }
-
-                double pr = Math.Max(Math.Min(Math.Min(leftSocket.HalfW, rightSocket.HalfW) * 0.24, 10.0), 3.6);
-
-                var pupilBrush = new SolidColorBrush(Color.FromArgb(255, 0, 220, 190));
-                pupilBrush.Freeze();
-                dc.DrawEllipse(pupilBrush, null, new Point(lpx, lpy), pr, pr);
-                dc.DrawEllipse(pupilBrush, null, new Point(rpx, rpy), pr, pr);
-
-                _leftEyeLocalPt = leftAnchor;
-                _rightEyeLocalPt = rightAnchor;
+                return new Point(x2, y2);
             }
+
+            Point rightAnchorRaw = MapCoord(rCxMesh, rCyMesh);
+            Point leftAnchorRaw = MapCoord(lCxMesh, lCyMesh);
+
+            // Keep eye centres locked to head motion with minimal lag.
+            // Using near-instant smoothing preserves stability but follows
+            // pan/tilt/roll immediately.
+            const double Alpha = 0.98;
+            if (!_eyeSocketSmoothingReady)
+            {
+                _leftEyeSocketSmoothed = leftAnchorRaw;
+                _rightEyeSocketSmoothed = rightAnchorRaw;
+                _eyeSocketSmoothingReady = true;
+            }
+            else
+            {
+                _leftEyeSocketSmoothed = new Point(
+                    _leftEyeSocketSmoothed.X + (leftAnchorRaw.X - _leftEyeSocketSmoothed.X) * Alpha,
+                    _leftEyeSocketSmoothed.Y + (leftAnchorRaw.Y - _leftEyeSocketSmoothed.Y) * Alpha);
+                _rightEyeSocketSmoothed = new Point(
+                    _rightEyeSocketSmoothed.X + (rightAnchorRaw.X - _rightEyeSocketSmoothed.X) * Alpha,
+                    _rightEyeSocketSmoothed.Y + (rightAnchorRaw.Y - _rightEyeSocketSmoothed.Y) * Alpha);
+            }
+
+            Point leftAnchor = _leftEyeSocketSmoothed;
+            Point rightAnchor = _rightEyeSocketSmoothed;
+
+            // Eye radius in screen space (proportional to face width).
+            // Cap more conservatively to avoid overlap on narrow sockets.
+            double interEye = Math.Max(Math.Abs(rightAnchor.X - leftAnchor.X), 20.0);
+            double eyeR = Math.Clamp(_meshWidth * EyeRFrac * fitScale, 7.0, interEye * 0.24);
+
+            // ── Gaze computation ──────────────────────────────────────
+
+            const double MaxGazeAngle = Math.PI / 9.0;
+            // Stronger head contribution to recenter eyes once head catches up.
+            double eyeRelativeYaw = _gazeYaw - (_headYawRad * 0.75);
+            double eyeRelativePitch = _gazePitch - (_headPitchRad * 0.55);
+            double normYaw = Math.Clamp(eyeRelativeYaw, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
+            double normPitch = Math.Clamp(eyeRelativePitch, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
+
+            var (saccYaw, saccPitch) = UpdateSaccade();
+            normYaw = Math.Clamp(normYaw + saccYaw, -1.0, 1.0);
+            normPitch = Math.Clamp(normPitch + saccPitch, -1.0, 1.0);
+
+            double rotYaw = Math.Sin(normYaw * (Math.PI / 2.0));
+            double rotPitch = Math.Sin(normPitch * (Math.PI / 2.0));
+
+            eyesDrawn = true;
+
+            // Lock eyeball centres to socket anchors; only iris/pupil rotates.
+            DrawEyeSphere(dc, leftAnchor.X, leftAnchor.Y, eyeR, rotYaw, rotPitch);
+            DrawEyeSphere(dc, rightAnchor.X, rightAnchor.Y, eyeR, rotYaw, rotPitch);
+
+            _leftEyeLocalPt = leftAnchor;
+            _rightEyeLocalPt = rightAnchor;
         }
-        else if (_featurePoints is { Length: > 35 })
+
+        if (!eyesDrawn && featurePoints is { Length: > 35 })
         {
             // MapFP: applies fit-to-bounds transform to a feature-point index.
             // Both FaceMeshVertices2D and FeaturePoints2D live in the same 640×480
             // projected space, so we use the same fitScale/offX/offY offsets.
             Point MapFP(int idx)
             {
-                if (idx >= _featurePoints.Length || _featurePoints[idx] == Vector2.Zero)
+                if (idx >= featurePoints.Length || featurePoints[idx] == Vector2.Zero)
                     return new Point(double.NaN, double.NaN);
-                Vector2 v = _featurePoints[idx];
+                Vector2 v = featurePoints[idx];
                 double fx = v.X * fitScale + offX;
                 double fy = v.Y * fitScale + offY + pitchShift;
-                if (!hasMesh)
+                if (applyHeadTransform)
                 {
                     fx = meshCentreX + (fx - meshCentreX) * yawCompress + yawShiftX;
                     if (Math.Abs(rollAngle) > 0.001)
@@ -567,6 +605,11 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 double normYaw = Math.Clamp(_gazeYaw, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
                 double normPitch = Math.Clamp(_gazePitch, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
 
+                // Micro-saccade: reuse the same engine for fallback mode.
+                var (saccYawFb, saccPitchFb) = UpdateSaccade();
+                normYaw = Math.Clamp(normYaw + saccYawFb, -1.0, 1.0);
+                normPitch = Math.Clamp(normPitch + saccPitchFb, -1.0, 1.0);
+
                 // Travel = fraction of socket half-span pupils move for full-angle gaze.
                 // 0.65 keeps the dot clearly inside the socket at extremes.
                 const double Travel = 0.65;
@@ -587,16 +630,174 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 // Pupil visual radius: ~28% of socket half-width, minimum 4px.
                 double pr = Math.Max(Math.Min(rHW, lHW) * 0.28, 4.0);
 
-                var pupilBrush = new SolidColorBrush(Color.FromArgb(255, 0, 220, 190));
-                pupilBrush.Freeze();
-                dc.DrawEllipse(pupilBrush, null, new Point(rpx, rpy), pr, pr);
-                dc.DrawEllipse(pupilBrush, null, new Point(lpx, lpy), pr, pr);
+                // ── Eyeball sphere radius for fallback mode ──
+                double eyeR = Math.Max(Math.Min(rHW, lHW) * 0.70, 6.0);
+                double rotYaw = Math.Sin(normYaw * (Math.PI / 2.0));
+                double rotPitch = Math.Sin(normPitch * (Math.PI / 2.0));
+
+                DrawEyeSphere(dc, rpx, rpy, eyeR, rotYaw, rotPitch);
+                DrawEyeSphere(dc, lpx, lpy, eyeR, rotYaw, rotPitch);
 
                 // Cache local-space socket centres for LayoutUpdated → screen coord tracking.
                 _rightEyeLocalPt = new Point(rcx, rcy);
                 _leftEyeLocalPt = new Point(lcx, lcy);
             }
         }
+    }
+
+    // ── Micro-Saccade Engine ────────────────────────────────────
+
+    /// <summary>
+    /// Computes micro-saccade offsets for this render frame.
+    /// Returns (yawOffset, pitchOffset) in normalised [-1, 1] space
+    /// to be added to the pupil position before the sin() rotation mapping.
+    ///
+    /// Behaviour:
+    ///   - Every 1.2–3.5 s the target jumps between the user's left and right
+    ///     eye socket (small horizontal offset, ~5 % of full travel).
+    ///   - Every 300–900 ms a micro-saccade jitter of ±1.5 % (yaw) / ±1 % (pitch)
+    ///     simulates natural fixation instability.
+    ///   - All transitions use framerate-independent exponential smoothing:
+    ///     inter-eye saccade τ = 50 ms (fast ballistic), micro-jitter τ = 200 ms (gentle drift).
+    /// </summary>
+    private (double yawOffset, double pitchOffset) UpdateSaccade()
+    {
+        long now = Environment.TickCount64;
+
+        // Framerate-independent delta time (seconds)
+        double dt = _lastSaccadeUpdateMs > 0
+            ? Math.Clamp((now - _lastSaccadeUpdateMs) / 1000.0, 0.001, 0.2)
+            : 0.033;
+        _lastSaccadeUpdateMs = now;
+
+        // ── Inter-eye saccade (left eye ↔ right eye) ─────────────
+        if (now >= _nextSaccadeMs)
+        {
+            _saccadeTargetLeft = !_saccadeTargetLeft;
+            _nextSaccadeMs = now + 1200 + _saccadeRng.Next(2300); // 1.2–3.5 s
+        }
+
+        // ── Micro-saccade jitter ─────────────────────────────────
+        if (now >= _nextMicroSaccadeMs)
+        {
+            _microTargetX = (_saccadeRng.NextDouble() - 0.5) * 0.03;  // ±1.5 %
+            _microTargetY = (_saccadeRng.NextDouble() - 0.5) * 0.02;  // ±1.0 %
+            _nextMicroSaccadeMs = now + 300 + _saccadeRng.Next(600);   // 300–900 ms
+        }
+
+        // Exponential smoothing — time-constant based for framerate independence.
+        double saccadeAlpha = 1.0 - Math.Exp(-dt / 0.05);  // τ = 50 ms (ballistic)
+        double microAlpha = 1.0 - Math.Exp(-dt / 0.20);  // τ = 200 ms (gentle)
+
+        // Inter-eye horizontal offset: ~5 % of normalised gaze range ≈ 1° at 1.5 m.
+        double interEyeTarget = _saccadeTargetLeft ? -0.05 : 0.05;
+        _saccadeSmoothedYaw += (interEyeTarget - _saccadeSmoothedYaw) * saccadeAlpha;
+
+        _microSmoothedX += (_microTargetX - _microSmoothedX) * microAlpha;
+        _microSmoothedY += (_microTargetY - _microSmoothedY) * microAlpha;
+
+        return (_saccadeSmoothedYaw + _microSmoothedX, _microSmoothedY);
+    }
+
+    // ── Eye Sphere Rendering ───────────────────────────────────
+
+    /// <summary>
+    /// Draws a 3D eyeball sphere at (<paramref name="cx"/>, <paramref name="cy"/>)
+    /// with given radius. The pupil sits on the sphere's meridian and is offset
+    /// by <paramref name="rotYaw"/> (horizontal) and <paramref name="rotPitch"/>
+    /// (vertical), both in [-1, 1] normalised range.
+    ///
+    /// Visual layers (back to front):
+    ///   1. Sclera sphere — radial gradient (white centre → shadow at rim)
+    ///   2. Iris ring — foreshortened ellipse on the sphere surface
+    ///   3. Pupil — dark centre of the iris
+    ///   4. Specular highlight — small white dot offset upper-left
+    /// </summary>
+    private static void DrawEyeSphere(
+        DrawingContext dc, double cx, double cy, double radius,
+        double rotYaw, double rotPitch)
+    {
+        // ── 1. Sclera (eyeball sphere) ──────────────────────────
+        // Radial gradient simulates a convex sphere lit from the front.
+        // GradientOrigin is shifted slightly toward the light (upper-left)
+        // for a realistic highlight-to-shadow falloff.
+        var scleraGradient = new RadialGradientBrush
+        {
+            GradientOrigin = new Point(0.38, 0.35),  // light from upper-left
+            Center = new Point(0.5, 0.5),
+            RadiusX = 0.55,
+            RadiusY = 0.55,
+            GradientStops =
+            [
+                new GradientStop(Color.FromArgb(255, 230, 240, 240), 0.0),   // bright white core
+                new GradientStop(Color.FromArgb(255, 180, 200, 200), 0.50),  // mid-tone
+                new GradientStop(Color.FromArgb(255, 60,  80,  85),  0.85),  // shadow at rim
+                new GradientStop(Color.FromArgb(200, 20,  30,  35),  1.0),   // dark edge
+            ],
+        };
+        scleraGradient.Freeze();
+
+        dc.DrawEllipse(scleraGradient, _eyeOutlinePen, new Point(cx, cy), radius, radius);
+
+        // ── 2. Iris + Pupil on the sphere surface ───────────────
+        // The iris centre is offset from the eyeball centre by the gaze angles.
+        // As the eye rotates, the iris also foreshortens (becomes narrower along
+        // the axis of rotation) — this is what makes it look like a circle painted
+        // on a sphere rather than a flat sticker.
+
+        double irisR = radius * 0.50;   // iris radius relative to eyeball
+        double pupilR = radius * 0.25;  // pupil (dark centre)
+
+        // Offset: pupil travel on the sphere surface. Max travel = ~60% of radius
+        // so the iris doesn't clip outside the sclera at extreme gaze.
+        double maxTravel = radius * 0.42;
+        double irisOffX = rotYaw * maxTravel;
+        double irisOffY = -rotPitch * maxTravel; // pitch+= up → -Y
+
+        double irisCX = cx + irisOffX;
+        double irisCY = cy + irisOffY;
+
+        // Foreshortening: when the eye looks sideways, the iris appears as an
+        // ellipse (compressed along the rotation axis). The compression factor
+        // is cos(angle). We derive the angle from the normalised rotation.
+        double yawAngle = rotYaw * (Math.PI / 2.0);
+        double pitchAngle = rotPitch * (Math.PI / 2.0);
+        double foreshortX = Math.Max(Math.Cos(yawAngle), 0.35);   // min 35% to stay visible
+        double foreshortY = Math.Max(Math.Cos(pitchAngle), 0.35);
+
+        double irisRX = irisR * foreshortX;
+        double irisRY = irisR * foreshortY;
+        double pupilRX = pupilR * foreshortX;
+        double pupilRY = pupilR * foreshortY;
+
+        // Iris ring gradient (teal → darker edge)
+        var irisGradient = new RadialGradientBrush
+        {
+            GradientOrigin = new Point(0.45, 0.40),
+            Center = new Point(0.5, 0.5),
+            RadiusX = 0.5,
+            RadiusY = 0.5,
+            GradientStops =
+            [
+                new GradientStop(Color.FromArgb(255, 0, 200, 175), 0.0),     // bright teal centre
+                new GradientStop(Color.FromArgb(255, 0, 160, 140), 0.55),    // mid iris
+                new GradientStop(Color.FromArgb(255, 0, 100, 90),  1.0),     // dark iris rim
+            ],
+        };
+        irisGradient.Freeze();
+
+        dc.DrawEllipse(irisGradient, _irisOutlinePen, new Point(irisCX, irisCY), irisRX, irisRY);
+
+        // ── 3. Pupil (dark centre of iris) ──────────────────────
+        dc.DrawEllipse(_pupilDotBrush, null, new Point(irisCX, irisCY), pupilRX, pupilRY);
+
+        // ── 4. Specular highlight ───────────────────────────────
+        // Fixed position relative to the eyeball (not the iris) to simulate
+        // a stationary light source. Offset upper-left, small radius.
+        double specR = radius * 0.14;
+        double specX = cx - radius * 0.22;
+        double specY = cy - radius * 0.25;
+        dc.DrawEllipse(_specularBrush, null, new Point(specX, specY), specR, specR * 0.85);
     }
 
     // ── Helpers ──────────────────────────────────────────────────
@@ -629,227 +830,17 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         }
     }
 
-    private readonly struct SocketShape(double cx, double cy, double halfW, double halfH)
+    private static float StepHeadFollow(float current, float target, float alpha, float deadzone)
     {
-        public double Cx { get; } = cx;
-        public double Cy { get; } = cy;
-        public double HalfW { get; } = halfW;
-        public double HalfH { get; } = halfH;
+        float delta = target - current;
+        float abs = MathF.Abs(delta);
+
+        if (abs <= deadzone)
+            return current;
+
+        float beyond = abs - deadzone;
+        float step = beyond * Math.Clamp(alpha, 0f, 1f);
+        return current + MathF.CopySign(step, delta);
     }
 
-    private static bool TryComputeSocket(
-        Vector2[] verts,
-        int[] ids,
-        Func<Vector2, Point> map,
-        out SocketShape socket)
-    {
-        double sx = 0, sy = 0;
-        double minX = double.MaxValue, maxX = double.MinValue;
-        double minY = double.MaxValue, maxY = double.MinValue;
-        int n = 0;
-
-        foreach (int id in ids)
-        {
-            if ((uint)id >= (uint)verts.Length) continue;
-            Vector2 v = verts[id];
-            if (v == Vector2.Zero) continue;
-            var p = map(v);
-            sx += p.X;
-            sy += p.Y;
-            if (p.X < minX) minX = p.X;
-            if (p.X > maxX) maxX = p.X;
-            if (p.Y < minY) minY = p.Y;
-            if (p.Y > maxY) maxY = p.Y;
-            n++;
-        }
-
-        if (n < 3)
-        {
-            socket = default;
-            return false;
-        }
-
-        socket = new SocketShape(
-            sx / n,
-            sy / n,
-            Math.Max((maxX - minX) / 2.0, 5.0),
-            Math.Max((maxY - minY) / 2.0, 3.5));
-        return true;
-    }
-
-    private bool TrySeedEyeSocketMeshIds(
-        Vector2[] meshVerts,
-        Vector2[] featurePoints,
-        out int[] leftIds,
-        out int[] rightIds)
-    {
-        float centerX = ComputeMeshCenterX(meshVerts);
-
-        leftIds = BuildSocketIds(meshVerts, featurePoints, [30, 31, 32, 33, 34, 35], centerX, requireLeftSide: true);
-        rightIds = BuildSocketIds(meshVerts, featurePoints, [9, 10, 11, 12, 13, 14], centerX, requireLeftSide: false);
-
-        // Enforce disjoint sets for persistent dual-eye lock.
-        if (leftIds.Length > 0 && rightIds.Length > 0)
-        {
-            var leftSet = new HashSet<int>(leftIds);
-            rightIds = rightIds.Where(i => !leftSet.Contains(i)).ToArray();
-        }
-
-        // Fallback reseed by geometry if one side is weak.
-        if (leftIds.Length < 4)
-            leftIds = BuildSocketBySide(meshVerts, centerX, true);
-        if (rightIds.Length < 4)
-            rightIds = BuildSocketBySide(meshVerts, centerX, false);
-
-        return leftIds.Length >= 4 && rightIds.Length >= 4;
-    }
-
-    private int[] BuildSocketIds(
-        Vector2[] meshVerts,
-        Vector2[] featurePoints,
-        int[] fpEyeIndices,
-        float centerX,
-        bool requireLeftSide)
-    {
-        var seeds = new HashSet<int>();
-        var fpValid = new List<Vector2>(fpEyeIndices.Length);
-
-        foreach (int fpIdx in fpEyeIndices)
-        {
-            if ((uint)fpIdx >= (uint)featurePoints.Length) continue;
-            Vector2 fp = featurePoints[fpIdx];
-            if (fp == Vector2.Zero) continue;
-            fpValid.Add(fp);
-
-            float bestD2 = float.MaxValue;
-            int best = -1;
-            for (int i = 0; i < meshVerts.Length; i++)
-            {
-                Vector2 mv = meshVerts[i];
-                if (mv == Vector2.Zero) continue;
-
-                // Side constraint prevents both eyes from snapping to same socket.
-                if (requireLeftSide)
-                {
-                    if (mv.X > centerX) continue;
-                }
-                else
-                {
-                    if (mv.X < centerX) continue;
-                }
-
-                float dx = mv.X - fp.X;
-                float dy = mv.Y - fp.Y;
-                float d2 = dx * dx + dy * dy;
-                if (d2 < bestD2)
-                {
-                    bestD2 = d2;
-                    best = i;
-                }
-            }
-            if (best >= 0) seeds.Add(best);
-        }
-
-        if (seeds.Count == 0)
-            return [];
-
-        // Expand one triangle hop around seeds to capture full socket ring.
-        if (_triangles is { Length: > 0 })
-        {
-            var expanded = new HashSet<int>(seeds);
-            foreach (var (a, b, c) in _triangles)
-            {
-                if (seeds.Contains(a) || seeds.Contains(b) || seeds.Contains(c))
-                {
-                    expanded.Add(a);
-                    expanded.Add(b);
-                    expanded.Add(c);
-                }
-            }
-            seeds = expanded;
-        }
-
-        Vector2 center = Vector2.Zero;
-        if (fpValid.Count > 0)
-        {
-            foreach (var p in fpValid) center += p;
-            center /= fpValid.Count;
-        }
-
-        return seeds
-            .OrderBy(i =>
-            {
-                Vector2 mv = meshVerts[i];
-                float dx = mv.X - center.X;
-                float dy = mv.Y - center.Y;
-                return dx * dx + dy * dy;
-            })
-            .Take(18)
-            .ToArray();
-    }
-
-    private static float ComputeMeshCenterX(Vector2[] meshVerts)
-    {
-        float sx = 0f;
-        int n = 0;
-        foreach (var v in meshVerts)
-        {
-            if (v == Vector2.Zero) continue;
-            sx += v.X;
-            n++;
-        }
-        return n > 0 ? sx / n : 320f;
-    }
-
-    private int[] BuildSocketBySide(Vector2[] meshVerts, float centerX, bool left)
-    {
-        float expY = _meshTop + _meshHeight * 0.42f;
-        float expX = left
-            ? _meshLeft + _meshWidth * 0.36f
-            : _meshLeft + _meshWidth * 0.64f;
-
-        return meshVerts
-            .Select((v, i) => (v, i))
-            .Where(t => t.v != Vector2.Zero)
-            .Where(t => left ? t.v.X <= centerX : t.v.X >= centerX)
-            .OrderBy(t =>
-            {
-                float dx = t.v.X - expX;
-                float dy = t.v.Y - expY;
-                return dx * dx + dy * dy;
-            })
-            .Take(14)
-            .Select(t => t.i)
-            .ToArray();
-    }
-
-    private static bool TryFeatureEyeCenter(
-        Vector2[] featurePoints,
-        int[] indices,
-        double fitScale,
-        double offX,
-        double offY,
-        out Point center)
-    {
-        double sx = 0, sy = 0;
-        int n = 0;
-        foreach (int i in indices)
-        {
-            if ((uint)i >= (uint)featurePoints.Length) continue;
-            Vector2 fp = featurePoints[i];
-            if (fp == Vector2.Zero) continue;
-            sx += fp.X * fitScale + offX;
-            sy += fp.Y * fitScale + offY;
-            n++;
-        }
-
-        if (n < 3)
-        {
-            center = default;
-            return false;
-        }
-
-        center = new Point(sx / n, sy / n);
-        return true;
-    }
 }

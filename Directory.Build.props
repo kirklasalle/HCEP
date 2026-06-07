@@ -10,6 +10,9 @@
     <Product>HCEP — Human Communication Eye Protocol</Product>
     <Copyright>Copyright © 2026 Kirk LaSalle. All rights reserved.</Copyright>
     <Version>0.1.0</Version>
-    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Suppress moderate NuGet audit warnings (e.g. ImageSharp) promoted by TreatWarningsAsErrors.
+         Critical/high vulnerabilities still block the build. -->
+    <WarningsNotAsErrors>NU1902</WarningsNotAsErrors>
   </PropertyGroup>
 </Project>

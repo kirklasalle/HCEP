@@ -23,6 +23,8 @@
     <ProjectReference Include="..\..\src\HCEP.Intelligence\HCEP.Intelligence.csproj" />
     <ProjectReference Include="..\..\src\HCEP.Vision\HCEP.Vision.csproj" />
     <ProjectReference Include="..\..\src\HCEP.Telemetry\HCEP.Telemetry.csproj" />
+    <ProjectReference Include="..\..\src\HCEP.Kinect\HCEP.Kinect.csproj" />
+    <ProjectReference Include="..\..\src\HCEP.Audio\HCEP.Audio.csproj" />
   </ItemGroup>
 
   <ItemGroup>

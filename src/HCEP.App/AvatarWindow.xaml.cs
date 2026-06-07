@@ -5,6 +5,7 @@
 
 using System.Numerics;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using HCEP.Core.Models;
 
@@ -50,6 +51,7 @@ public partial class AvatarWindow : Window
         InitializeComponent();
 
         Loaded += Window_Loaded;
+        PreviewKeyDown += Window_PreviewKeyDown;
         Closed += (_, _) =>
         {
             _orchestrator.GazeVectorReady -= OnGazeVectorReady;
@@ -156,27 +158,29 @@ public partial class AvatarWindow : Window
 
         // Always push feature points — Avatar3D needs them for eye socket gaze tracking
         // regardless of whether the full mesh or edge-chain fallback is active.
+        // Also set head pose on both avatars for gaze-driven head turning.
         if (face is { IsTracked: true, FeaturePoints2D.Length: > 0 })
         {
             Avatar3D.UpdateEyeData(face.FeaturePoints2D);
-            // Pass head pose so Avatar3D can compute eye-relative gaze for pupils.
-            // FaceFrame.HeadRotation = (pitchDeg, yawDeg, rollDeg) from Kinect Get3DPose().
-            Avatar3D.SetHeadPose(face.HeadRotation);
+            // Pass zero head pose so the avatars run their head rotation and float autonomously,
+            // rather than mimicking the tracked user's head rotations.
+            Avatar3D.SetHeadPose(System.Numerics.Vector3.Zero);
+            Avatar.SetHeadPose(System.Numerics.Vector3.Zero);
         }
 
-        // 3D wireframe: push live mesh or feature-point fallback
+        // 3D wireframe: push live neutral mesh or feature-point fallback
         if (!_is3DMode) return;
         if (face is null) return;
 
-        if (face.FaceMeshVertices2D is { Length: > 0 } && face.FaceMeshTriangles is { Length: > 0 })
+        var neutralOrLiveVerts = face.NeutralFaceMeshVertices2D ?? face.FaceMeshVertices2D;
+        if (neutralOrLiveVerts is { Length: > 0 } && face.FaceMeshTriangles is { Length: > 0 })
         {
-            var verts = face.FaceMeshVertices2D;
             var tris = face.FaceMeshTriangles;
-            _lastMeshVerts = verts;
+            _lastMeshVerts = neutralOrLiveVerts;
             _lastMeshTris = tris;
             Dispatcher.BeginInvoke(() =>
             {
-                Avatar3D.SetMesh(verts, tris);
+                Avatar3D.SetMesh(neutralOrLiveVerts, tris);
                 MeshStatusText.Text = $"{Avatar3D.MeshVertexCount}V";
                 MeshStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
             });
@@ -235,5 +239,16 @@ public partial class AvatarWindow : Window
                 TrackingModeText.Foreground = Brushes.Orange;
             }
         });
+    }
+
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        // Manual blink test: press B while 2D Happy avatar is active.
+        if (e.Key != Key.B || _is3DMode) return;
+
+        Avatar.TriggerBlink();
+        TrackingModeText.Text = "BLINK";
+        TrackingModeText.Foreground = Brushes.LightBlue;
+        e.Handled = true;
     }
 }

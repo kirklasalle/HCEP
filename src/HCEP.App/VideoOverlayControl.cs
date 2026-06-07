@@ -113,27 +113,8 @@ public sealed class VideoOverlayControl : FrameworkElement
     ];
 
     // ── FaceTrackLib 87-Point Feature Edge Chains ──────────────
-    // Connects key facial feature points into wireframe outlines.
-    // Based on the Kinect v1 FeaturePoint enum (indices 0–86).
-
-    private static readonly int[][] _faceEdgeChains =
-    [
-        // Right eye (loop): outer → midTop → aboveMid → inner → belowMid → midBottom → outer
-        [10, 11, 9, 13, 14, 12, 10],
-        // Left eye (loop): outer → midTop → aboveMid → inner → belowMid → midBottom → outer
-        [31, 32, 30, 34, 35, 33, 31],
-        // Right eyebrow: outer → midTop → inner → midBottom
-        [5, 6, 7, 8],
-        // Left eyebrow: rightSide → midTop → leftSide → midBottom
-        [29, 28, 27, 26],
-        // Nose bridge: inner right eye to inner left eye
-        [13, 34],
-        // Upper lip contour: right corner → right dip → right top → right upper →
-        //   center dip → left upper → left top → left dip → left corner
-        [16, 18, 19, 20, 2, 21, 22, 23, 24],
-        // Jawline: right side → right chin → bottom → left side
-        [15, 17, 4, 25],
-    ];
+    // Shared topology from HCEP.Core.Models.FaceTopology.
+    private static readonly int[][] _faceEdgeChains = FaceTopology.BasicChains;
 
     // ── Cached DPI ─────────────────────────────────────────────
 

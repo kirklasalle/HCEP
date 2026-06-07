@@ -61,6 +61,13 @@ public sealed record FaceFrame
     public Vector2[]? FaceMeshVertices2D { get; init; }
 
     /// <summary>
+    /// Full face mesh vertices projected to 2D pixel coordinates in a neutral, front-facing pose.
+    /// Used by the autonomous 3D avatar to prevent mimicking the user.
+    /// Null when using skeleton-approximate face tracking.
+    /// </summary>
+    public Vector2[]? NeutralFaceMeshVertices2D { get; init; }
+
+    /// <summary>
     /// Triangle mesh topology: array of (First, Second, Third) vertex indices.
     /// Static — does not change between frames.
     /// Null when using skeleton-approximate face tracking.

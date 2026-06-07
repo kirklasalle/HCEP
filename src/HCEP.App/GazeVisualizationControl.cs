@@ -70,6 +70,10 @@ public sealed class GazeVisualizationControl : FrameworkElement
     private static readonly Pen _headPosePen = Freeze(new Pen(new SolidColorBrush(Color.FromArgb(180, 245, 158, 11)), 2.0));
     private static readonly Pen _highlightPen = Freeze(new Pen(new SolidColorBrush(Color.FromArgb(140, 6, 182, 212)), 2.0));
     private static readonly Pen _conePen = Freeze(new Pen(new SolidColorBrush(Color.FromArgb(40, 6, 182, 212)), 1.0) { DashStyle = DashStyles.Dash });
+    private static readonly Brush _modeBarInactiveBg = Freeze(new SolidColorBrush(Color.FromArgb(30, 60, 60, 80)));
+    private static readonly Brush _regionInactiveFill = Freeze(new SolidColorBrush(Color.FromArgb(40, 148, 163, 184)));
+    private static readonly Pen _separatorPen = Freeze(new Pen(new SolidColorBrush(Color.FromArgb(40, 148, 163, 184)), 0.5));
+    private static readonly Brush _auBarTrackBrush = Freeze(new SolidColorBrush(Color.FromArgb(30, 255, 255, 255)));
 
     private static readonly Typeface _typeface = new(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Normal, FontStretches.Normal);
     private static readonly Typeface _typefaceBold = new(new FontFamily("Segoe UI"), FontStyles.Normal, FontWeights.Bold, FontStretches.Normal);
@@ -198,7 +202,7 @@ public sealed class GazeVisualizationControl : FrameworkElement
             bool isActive = hcep.Region == region;
 
             double dotR = isActive ? 6 : 3;
-            Brush fill = isActive ? _highlightBrush : new SolidColorBrush(Color.FromArgb(40, 148, 163, 184));
+            Brush fill = isActive ? _highlightBrush : _regionInactiveFill;
             dc.DrawEllipse(fill, isActive ? _highlightPen : _regionPen,
                 new System.Windows.Point(px, py), dotR, dotR);
 
@@ -312,7 +316,7 @@ public sealed class GazeVisualizationControl : FrameworkElement
 
             Brush bg = active
                 ? _modeColors.GetValueOrDefault(mode, _textDim)
-                : new SolidColorBrush(Color.FromArgb(30, 60, 60, 80));
+                : _modeBarInactiveBg;
             Brush fg = active ? _bgBrush : _textDim;
 
             dc.DrawRoundedRectangle(bg, null, rect, 3, 3);
@@ -326,7 +330,7 @@ public sealed class GazeVisualizationControl : FrameworkElement
         double width, double height, TrackedPerson person, HcepReading hcep, FaceFrame? face)
     {
         // Subtle separator line
-        dc.DrawLine(new Pen(new SolidColorBrush(Color.FromArgb(40, 148, 163, 184)), 0.5),
+        dc.DrawLine(_separatorPen,
             new System.Windows.Point(left, top), new System.Windows.Point(left + width, top));
 
         double lineH = 16;
@@ -378,7 +382,7 @@ public sealed class GazeVisualizationControl : FrameworkElement
                 double barW = Math.Max(colW - 95, 10);
                 double barH = 3;
                 double barY = yL + 5;
-                dc.DrawRoundedRectangle(new SolidColorBrush(Color.FromArgb(30, 255, 255, 255)), null,
+                dc.DrawRoundedRectangle(_auBarTrackBrush, null,
                     new Rect(barLeft, barY, barW, barH), 2, 2);
 
                 double fillW = Math.Max(0, Math.Abs(val) * barW);
