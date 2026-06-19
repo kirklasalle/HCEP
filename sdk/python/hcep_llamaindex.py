@@ -1,8 +1,13 @@
 # ──────────────────────────────────────────────────────────────
 # HCEP SDK — LlamaIndex Tool Wrapper
 # Copyright © 2026 Kirk LaSalle. All rights reserved.
+# 
+# LICENSE NOTICE (MIT):
+# This SDK component is open-source and permissively licensed under
+# the MIT License. It is designed to interface with the proprietary
+# HCEP core engine. For core engine licensing terms, see the LICENSE
+# file in the root of the HCEP repository.
 # ──────────────────────────────────────────────────────────────
-
 import requests
 from llama_index.core.tools import FunctionTool
 

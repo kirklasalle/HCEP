@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Decoding the Silent Lexicon: The HCEP Protocol & Codebase Audit</title>
+  <title>Decoding the Silent Lexicon: The HCEP (Human Communication Eye Protocol) Codebase Audit</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -207,7 +207,7 @@
         <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight font-display mb-6">
           Decoding the Silent Lexicon: <br>
           <span class="bg-gradient-to-r from-indigo-400 via-purple-400 to-teal-400 bg-clip-text text-transparent">
-            The Human Conversation Eye Points (HCEP) Protocol
+            The Human Conversation Eye Protocol (HCEP) (Body Language Protocol not used in this implementation)
           </span>
         </h1>
 
@@ -789,7 +789,8 @@
           7. Critical Code &amp; Architecture Audit Findings
         </h2>
         <p class="mb-6">
-          While the codebase is organized and passes all 169 unit and integration tests, we successfully addressed and resolved these critical areas before the v1.0.0 release:
+          While the codebase is organized and passes all 169 unit and integration tests, we successfully addressed and
+          resolved these critical areas before the v1.0.0 release:
         </p>
 
         <!-- Recommendations Grid -->
@@ -797,73 +798,92 @@
 
           <div class="p-5 rounded-xl bg-slate-900 border-l-4 border-emerald-500">
             <div class="font-bold text-white font-mono text-sm uppercase tracking-wide mb-1">A. Kinect v1 Hardware
-              Lock-in &amp; x64 Platform Lock <span class="ml-2 text-xs text-emerald-400 font-semibold">[RESOLVED in v1.0.0]</span></div>
+              Lock-in &amp; x64 Platform Lock <span class="ml-2 text-xs text-emerald-400 font-semibold">[RESOLVED in
+                v1.0.0]</span></div>
             <p class="text-xs text-slate-300 mb-2">
-              The project originally depended solely on native COM assemblies (<code>Kinect10.dll</code>, <code>FaceTrackLib.dll</code>) and a legacy .NET Framework 4.8.1 bridge, limiting deployment to x64 Windows systems with obsolete Kinect hardware.
+              The project originally depended solely on native COM assemblies (<code>Kinect10.dll</code>,
+              <code>FaceTrackLib.dll</code>) and a legacy .NET Framework 4.8.1 bridge, limiting deployment to x64
+              Windows systems with obsolete Kinect hardware.
             </p>
             <div class="text-xs text-emerald-400 font-semibold">Resolution:</div>
             <p class="text-xs text-slate-400">
-              Successfully built a secondary monocular webcam pipeline using OpenCV/ONNX, integrated directly into the C# codebase as a fallback. Added a simulated sensor source for headless development.
+              Successfully built a secondary monocular webcam pipeline using OpenCV/ONNX, integrated directly into the
+              C# codebase as a fallback. Added a simulated sensor source for headless development.
             </p>
           </div>
 
           <div class="p-5 rounded-xl bg-slate-900 border-l-4 border-emerald-500">
             <div class="font-bold text-white font-mono text-sm uppercase tracking-wide mb-1">B. Reflection Overhead in
-              UKS Strategy D Adapter <span class="ml-2 text-xs text-emerald-400 font-semibold">[RESOLVED in v1.0.0]</span></div>
+              UKS Strategy D Adapter <span class="ml-2 text-xs text-emerald-400 font-semibold">[RESOLVED in
+                v1.0.0]</span></div>
             <p class="text-xs text-slate-300 mb-2">
-              The <code>UksKnowledgeAdapter</code> late-binds to the UKS assembly via reflection, risking CPU overhead and latency spikes in high-frequency visual loop cycles.
+              The <code>UksKnowledgeAdapter</code> late-binds to the UKS assembly via reflection, risking CPU overhead
+              and latency spikes in high-frequency visual loop cycles.
             </p>
             <div class="text-xs text-emerald-400 font-semibold">Resolution:</div>
             <p class="text-xs text-slate-400">
-              Implemented optimized late-binding method caching on application startup, completely eliminating reflection overhead during runtime loop cycles.
+              Implemented optimized late-binding method caching on application startup, completely eliminating
+              reflection overhead during runtime loop cycles.
             </p>
           </div>
 
           <div class="p-5 rounded-xl bg-slate-900 border-l-4 border-teal-500">
             <div class="font-bold text-white font-mono text-sm uppercase tracking-wide mb-1">C. Vergence-Accommodation
-              Conflict on 2D Displays <span class="ml-2 text-xs text-teal-400 font-semibold">[MITIGATED in v1.0.0]</span></div>
+              Conflict on 2D Displays <span class="ml-2 text-xs text-teal-400 font-semibold">[MITIGATED in
+                v1.0.0]</span></div>
             <p class="text-xs text-slate-300 mb-2">
-              The WPF avatar control simulates 3D projection on a flat screen, causing visual strain because the user's eyes focus on the flat surface of the glass monitor while the avatar's gaze suggests depth focus.
+              The WPF avatar control simulates 3D projection on a flat screen, causing visual strain because the user's
+              eyes focus on the flat surface of the glass monitor while the avatar's gaze suggests depth focus.
             </p>
             <div class="text-xs text-teal-400 font-semibold">Mitigation:</div>
             <p class="text-xs text-slate-400">
-              Added complete support and export capabilities for external AR/VR stereoscopic platforms, including native Unity and Unreal Engine C++ SDK components, permitting true 3D vergence tracking.
+              Added complete support and export capabilities for external AR/VR stereoscopic platforms, including native
+              Unity and Unreal Engine C++ SDK components, permitting true 3D vergence tracking.
             </p>
           </div>
 
           <div class="p-5 rounded-xl bg-slate-900 border-l-4 border-emerald-500">
             <div class="font-bold text-white font-mono text-sm uppercase tracking-wide mb-1">D. Synchronous Whisper.net
-              Audio Transcription Blocking <span class="ml-2 text-xs text-emerald-400 font-semibold">[RESOLVED in v1.0.0]</span></div>
+              Audio Transcription Blocking <span class="ml-2 text-xs text-emerald-400 font-semibold">[RESOLVED in
+                v1.0.0]</span></div>
             <p class="text-xs text-slate-300 mb-2">
-              Whisper STT transcription can take several hundred milliseconds, blocking the audio processing pipeline and potentially causing micro-stutters in the UI thread.
+              Whisper STT transcription can take several hundred milliseconds, blocking the audio processing pipeline
+              and potentially causing micro-stutters in the UI thread.
             </p>
             <div class="text-xs text-emerald-400 font-semibold">Resolution:</div>
             <p class="text-xs text-slate-400">
-              Isolated Whisper.net calls onto a dedicated background worker task and low-priority thread pool, updating the application state asynchronously.
+              Isolated Whisper.net calls onto a dedicated background worker task and low-priority thread pool, updating
+              the application state asynchronously.
             </p>
           </div>
 
           <div class="p-5 rounded-xl bg-slate-900 border-l-4 border-emerald-500">
             <div class="font-bold text-white font-mono text-sm uppercase tracking-wide mb-1">E. Security &amp; Biometric
-              Data Privacy (Privacy by Design) <span class="ml-2 text-xs text-emerald-400 font-semibold">[RESOLVED in v1.0.0]</span></div>
+              Data Privacy (Privacy by Design) <span class="ml-2 text-xs text-emerald-400 font-semibold">[RESOLVED in
+                v1.0.0]</span></div>
             <p class="text-xs text-slate-300 mb-2">
-              The application processes real-time face frames and generates persistent identity embeddings via ArcFace, storing biometric data in local JSON files.
+              The application processes real-time face frames and generates persistent identity embeddings via ArcFace,
+              storing biometric data in local JSON files.
             </p>
             <div class="text-xs text-emerald-400 font-semibold">Resolution:</div>
             <p class="text-xs text-slate-400">
-              Implemented AES-256 equivalent local credential encryption via DPAPI, integrated automatic deletion of raw video frames post-inference, and added explicit GDPR user erasure methods and a biometric consent UI.
+              Implemented AES-256 equivalent local credential encryption via DPAPI, integrated automatic deletion of raw
+              video frames post-inference, and added explicit GDPR user erasure methods and a biometric consent UI.
             </p>
           </div>
 
           <div class="p-5 rounded-xl bg-slate-900 border-l-4 border-emerald-500">
             <div class="font-bold text-white font-mono text-sm uppercase tracking-wide mb-1">F. Cryptographic
-              Integration of Permanent Active Directives <span class="ml-2 text-xs text-emerald-400 font-semibold">[RESOLVED in v1.0.0]</span></div>
+              Integration of Permanent Active Directives <span
+                class="ml-2 text-xs text-emerald-400 font-semibold">[RESOLVED in v1.0.0]</span></div>
             <p class="text-xs text-slate-300 mb-2">
-              Hardcoded directives in system prompts can be vulnerable to jailbreaking, and local text configuration files can be altered by users to bypass core safety constraints.
+              Hardcoded directives in system prompts can be vulnerable to jailbreaking, and local text configuration
+              files can be altered by users to bypass core safety constraints.
             </p>
             <div class="text-xs text-emerald-400 font-semibold">Resolution:</div>
             <p class="text-xs text-slate-400">
-              Embedded root Permanent Active Directives securely in the binaries, executing real-time SHA-256 integrity checks at runtime to prevent unauthorized prompt/rules bypass attempts.
+              Embedded root Permanent Active Directives securely in the binaries, executing real-time SHA-256 integrity
+              checks at runtime to prevent unauthorized prompt/rules bypass attempts.
             </p>
           </div>
 
@@ -901,7 +921,9 @@
               eye-tracking datasets and user study models.</span>
           </label>
           <div class="pl-6 text-[11px] text-emerald-400/80 font-mono">
-            Protocol: HCEP-2026-004 ("Quantitative Real-Time Non-Verbal Eye Contact Modeling and Behavioral Analysis in Human-Agent Collaboration"). All human user study data is processed locally with local-only storage, 30-day automatic expiration (TTL), and active GDPR/BIPA erasure APIs.
+            Protocol: HCEP-2026-004 ("Quantitative Real-Time Non-Verbal Eye Contact Modeling and Behavioral Analysis in
+            Human-Agent Collaboration"). All human user study data is processed locally with local-only storage, 30-day
+            automatic expiration (TTL), and active GDPR/BIPA erasure APIs.
           </div>
           <label class="flex items-start gap-3 text-slate-300 hover:text-white transition-colors cursor-pointer">
             <input type="checkbox" checked class="mt-1 accent-indigo-600">

@@ -1,4 +1,7 @@
 # Permanent Active Directives - - Replaces all prior directives and governs all behavior going forward.
+# Copyright © 2026 Kirk LaSalle. All rights reserved.
+# PROPRIETARY & TRADE SECRET NOTICE: The HCEP Theory, HCEP engineering/math, Body Language Protocols,
+# and these Permanent Active Directives (PAD) are proprietary trade secrets of Kirk LaSalle.
 
 **Created:** March 08, 2025  
 **Updated:** February 23, 2026  

@@ -3,9 +3,14 @@ Copyright © 2026 Kirk LaSalle. All rights reserved.
 
 PROPRIETARY SOFTWARE LICENSE
 
-This software and associated documentation files (the "Software") are the
-exclusive property of Kirk LaSalle. The Software is protected by copyright
-law, trade secret law, and international treaties.
+This software, including all source code, algorithms, and associated documentation files (collectively, the "Software"), constitutes the exclusive property of Kirk LaSalle. The Software is protected by copyright law, trade secret law, and international treaties.
+
+PROPRIETARY ASSETS AND TRADE SECRETS:
+Specifically protected under trade secret and proprietary ownership are:
+  1. The HCEP (Human Conversation Eye Points) Theory, including the 5-mode cognitive-emotional classification system and ocular hemispheric lateralization mappings.
+  2. The HCEP engineering implementation and supported mathematical formulations (including perspective-n-point extrinsics, 3-stage hybrid gaze vectors, and vergence-parallax correction models).
+  3. The Permanent Active Directives (PAD) governing safety, alignment, and ethical constraints.
+  4. The Body Language Protocols, including the postural lean, shoulder squaring, arm crossing, and sitting vs. standing classifiers.
 
 GRANT OF LICENSE
 No license is granted under this file. All rights are reserved by the author.

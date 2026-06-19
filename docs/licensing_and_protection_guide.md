@@ -10,6 +10,11 @@ This document outlines the strategic legal, technical, and architectural methods
 
 Instead of filing patents—which requires publicly disclosing the exact mathematical algorithms, making them easy for competitors to copy or slightly modify—rely on **Trade Secrets** and proprietary commercial licensing.
 
+* **Core Proprietary Assets & Trade Secrets**:
+  * **HCEP Theory**: The 5-mode cognitive-emotional classification system (LOGIC, AFFECT, SPIRIT, HEART, THINK) and its contralateral neurological validation mapping.
+  * **HCEP Engineering & Supported Math**: The specific implementations of perspective-n-point extrinsics, 3-stage hybrid gaze vector fusion, and vergence-parallax correction models.
+  * **Permanent Active Directives (PAD)**: The safety, alignment, and ethical principles embedded and cryptographically checked on startup.
+  * **Body Language Protocols**: Real-time Kinect postural lean, shoulder squaring, arm crossing, and sitting vs. standing classifiers.
 * **No Public Disclosure:** Your core algebraic algorithms (True Gaze™ offset geometry and cognitive-emotional classification weights) remain completely hidden inside compiled binaries.
 * **Infinite Duration:** Unlike patents (which expire in 20 years), trade secrets protect your IP indefinitely as long as reasonable efforts are made to keep them secret.
 * **Lower Overhead:** Avoids expensive patent prosecution fees, international filing complexities, and costly legal enforcement actions against large corporate infringers.

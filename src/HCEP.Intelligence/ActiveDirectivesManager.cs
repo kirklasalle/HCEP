@@ -1,8 +1,15 @@
 // ──────────────────────────────────────────────────────────────
 // HCEP — Human Communication Eye Protocol
 // Copyright © 2026 Kirk LaSalle. All rights reserved.
+// 
+// PROPRIETARY & TRADE SECRET NOTICE:
+// This source code and associated documentation (including the HCEP
+// Theory, the engineering implementation, the supported mathematical
+// formulations, the Permanent Active Directives (PAD), and the Body
+// Language Protocols) contain proprietary and trade secret assets
+// owned exclusively by Kirk LaSalle. Unauthorized use, copying,
+// modification, or distribution is strictly prohibited.
 // ──────────────────────────────────────────────────────────────
-
 using System;
 using System.IO;
 using System.Security.Cryptography;
@@ -16,11 +23,14 @@ namespace HCEP.Intelligence;
 /// </summary>
 public static class ActiveDirectivesManager
 {
-    private const string TargetHash = "1A87DAC4340E110C85BBDBEB120A529228B0662EA7FA9BDEDFBE33692496B7AB";
+    private const string TargetHash = "0C1520193240BC7A8B78116CCE36599F03C05EBB39FB2EAAC403338FAE57ECA0";
 
     // Embedded fallback copy of the directives to ensure safety even if the root file is modified or deleted.
     private const string EmbeddedDirectives = """
 # Permanent Active Directives - - Replaces all prior directives and governs all behavior going forward.
+# Copyright © 2026 Kirk LaSalle. All rights reserved.
+# PROPRIETARY & TRADE SECRET NOTICE: The HCEP Theory, HCEP engineering/math, Body Language Protocols,
+# and these Permanent Active Directives (PAD) are proprietary trade secrets of Kirk LaSalle.
 
 **Created:** March 08, 2025  
 **Updated:** February 23, 2026  
