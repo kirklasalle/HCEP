@@ -75,7 +75,7 @@
             font-weight: bold;
         }
 
-        /* Grid lines & Layout */
+        /* Grid lines and Layout */
         .grid-line {
             stroke: #1e293b;
             stroke-width: 1;

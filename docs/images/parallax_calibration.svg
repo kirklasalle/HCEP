@@ -64,7 +64,7 @@
             font-weight: bold;
         }
 
-        /* Vector lines & styles */
+        /* Vector lines and styles */
         .grid-line {
             stroke: #1e293b;
             stroke-width: 1;
@@ -265,7 +265,7 @@
         <line x1="180" y1="200" x2="667" y2="305" class="uncorrected-vector" filter="url(#glow-magenta)" />
         <circle cx="667" cy="305" r="5" class="target-dot-uncorrected" filter="url(#glow-magenta)" />
         <path d="M 667 305 L 630 330 L 510 330" stroke="#f43f5e" stroke-width="1" fill="none" class="state-1-text" />
-        <text x="500" y="334" class="label" fill="#f43f5e" text-anchor="end" class="state-1-text">Raw Projection (Error = ~12.4cm offset)</text>
+        <text x="500" y="334" class="label state-1-text" fill="#f43f5e" text-anchor="end">Raw Projection (Error = ~12.4cm offset)</text>
     </g>
 
     <!-- CORRECTED SCENE STATE (Teal/Green) -->
@@ -274,7 +274,7 @@
         <line x1="180" y1="200" x2="667" y2="210" class="corrected-vector" filter="url(#glow-teal)" />
         <circle cx="667" cy="210" r="5" class="target-dot-corrected" filter="url(#glow-teal)" />
         <path d="M 667 210 L 630 235 L 510 235" stroke="#10b981" stroke-width="1" fill="none" class="state-2-text" />
-        <text x="500" y="239" class="label" fill="#10b981" text-anchor="end" class="state-2-text">Calibrated True Gaze™ Vector (Error &lt; 0.5°)</text>
+        <text x="500" y="239" class="label state-2-text" fill="#10b981" text-anchor="end">Calibrated True Gaze™ Vector (Error &lt; 0.5°)</text>
     </g>
 
     <!-- 5. Mathematical Annotations (Bottom Panel) -->
