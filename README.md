@@ -42,7 +42,7 @@ All panel boundaries are drag-resizable via visible GridSplitters.
 
 To eliminate gaze skewing caused by off-axis sensor placement (such as mounting a webcam on top of a monitor bezel), HCEP implements a dynamic 3D coordinate co-registration. This shifts tracking perspective from the sensor's lens center back to the active user-avatar focal line of sight:
 
-![True Gaze Parallax Calibration](docs/images/parallax_calibration.svg)
+![True Gaze Parallax Calibration](docs/images/parallax_calibration.svg?v=2)
 
 ---
 
@@ -66,9 +66,9 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - Saccade detection using Main Sequence equation
 - **Empirical Accuracy:** Validated at 84.55% classification accuracy and Cohen's Kappa of 0.8084 (exceeding targets)
 
-![Telemetry Cones of Vision & 13 Regions](docs/images/cones_of_vision.svg)
+![Telemetry Cones of Vision & 13 Regions](docs/images/cones_of_vision.svg?v=2)
 
-![Three-Stage Gaze Triangulation Geometry](docs/images/gaze_geometry.svg)
+![Three-Stage Gaze Triangulation Geometry](docs/images/gaze_geometry.svg?v=2)
 
 ### Plugin API & LLM Integrations
 
@@ -290,7 +290,7 @@ The system classifies modes in real-time using:
 - **Facial Action Units** — muscle movements indicating emotion
 - **Temporal patterns** — mode stability and transition dynamics
 
-![Telemetry Cones of Vision & 13 Regions](docs/images/cones_of_vision.svg)
+![Telemetry Cones of Vision & 13 Regions](docs/images/cones_of_vision.svg?v=2)
 
 This enables AI systems to respond not just to *what* people say, but to *how* they're communicating — adapting tone, depth, and style to match the human's current cognitive-emotional state.
 
