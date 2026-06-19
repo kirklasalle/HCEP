@@ -8,7 +8,7 @@
 
 **HCEP** is a real-time multi-modal perception platform that fuses sensor input (Kinect v1 or standard USB webcams) with a hybrid LLM engine to analyze human communication through eye contact patterns, facial expressions, body tracking, and speech.
 
-It implements Kirk LaSalle's **HCEP (Human Conversation Eye Points)** theory — a novel 5-mode cognitive-emotional classification system that decodes the unspoken language of eye contact during face-to-face conversation.
+It implements Kirk LaSalle's **HCEP (Human Conversation Eye Protocol)** theory — a novel 5-mode cognitive-emotional classification system that decodes the unspoken language of eye contact during face-to-face conversation. This thecurrent basic version. It is designed to be expanded upon with more features and capabilities.
 
 ---
 
@@ -25,6 +25,8 @@ It implements Kirk LaSalle's **HCEP (Human Conversation Eye Points)** theory —
 ---
 
 ## Screenshot
+
+![HCEP Dashboard Screenshot](docs/hcep-02_enhanced.png)
 
 The HCEP dashboard provides a real-time 3-column layout with live sensor feed, gaze/face visualization, and AI assistant:
 
@@ -63,6 +65,8 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - Temporal smoothing with exponential moving average and hysteresis threshold gating
 - Saccade detection using Main Sequence equation
 - **Empirical Accuracy:** Validated at 84.55% classification accuracy and Cohen's Kappa of 0.8084 (exceeding targets)
+
+![Telemetry Cones of Vision & 13 Regions](docs/images/cones_of_vision.svg)
 
 ![Three-Stage Gaze Triangulation Geometry](docs/images/gaze_geometry.svg)
 
@@ -296,11 +300,11 @@ This enables AI systems to respond not just to *what* people say, but to *how* t
 
 To build third-party client integrations, use the public [HCEP-SDK Repository](https://github.com/kirklasalle/HCEP-SDK). The SDK exposes multi-platform wrappers for real-time telemetry streaming and tool calls:
 
-*   **Model Context Protocol (MCP):** Connects agent clients directly to the HCEP runtime via standard Anthropic MCP tool routers.
-*   **Unity (C#):** Provides `HcepGazeController.cs` to map live eye/head bone rotations dynamically to 3D rig transforms.
-*   **Unreal Engine (C++):** Native components driving actor eye/head sockets with configurable damping.
-*   **Python:** Seamless integration with LangChain and LlamaIndex to feed raw gaze states directly into LLM prompts.
-*   **Semantic Kernel:** A plugin mapping HCEP tool definitions straight to Semantic Kernel agents.
+- **Model Context Protocol (MCP):** Connects agent clients directly to the HCEP runtime via standard Anthropic MCP tool routers.
+- **Unity (C#):** Provides `HcepGazeController.cs` to map live eye/head bone rotations dynamically to 3D rig transforms.
+- **Unreal Engine (C++):** Native components driving actor eye/head sockets with configurable damping.
+- **Python:** Seamless integration with LangChain and LlamaIndex to feed raw gaze states directly into LLM prompts.
+- **Semantic Kernel:** A plugin mapping HCEP tool definitions straight to Semantic Kernel agents.
 
 ---
 
@@ -309,17 +313,21 @@ To build third-party client integrations, use the public [HCEP-SDK Repository](h
 HCEP utilizes a dual-licensing hybrid model designed to protect core intellectual property while fostering open ecosystem integration:
 
 ### 1. Simple Summary (Basic Level)
-*   **Core Desktop Application (Proprietary License):** The main HCEP application (perception engine, PnP solver, intelligence router, and WPF dashboard) is closed-source and proprietary. All rights are reserved by Kirk LaSalle. You may not copy, distribute, or modify the desktop client without explicit written permission.
-*   **Integration SDKs (MIT License):** The HCEP-SDK codebase is open-source under the permissive MIT license. Developers are free to use, modify, and distribute the SDK libraries in games, robotics systems, and custom AI agents.
+
+- **Core Desktop Application (Proprietary License):** The main HCEP application (perception engine, PnP solver, intelligence router, and WPF dashboard) is closed-source and proprietary. All rights are reserved by Kirk LaSalle. You may not copy, distribute, or modify the desktop client without explicit written permission.
+
+- **Integration SDKs (MIT License):** The HCEP-SDK codebase is open-source under the permissive MIT license. Developers are free to use, modify, and distribute the SDK libraries in games, robotics systems, and custom AI agents.
 
 ### 2. Architectural Analysis (Advanced Nerd Level)
-*   **IP Isolation Boundary:** The API boundary acts as a strict firewall between the proprietary and open-source segments:
-    *   **Proprietary Core (Closed-Source):** Contains the PnP head pose solver (Levenberg-Marquardt optimizer), Whisper.net speech transcriptions, ArcFace biometric recognizer, and the cognitive state classifiers. These reside inside the WPF application shell (`src/HCEP.App`, `src/HCEP.Kinect`, etc.).
-    *   **Open SDK (Open-Source):** Client packages communicate over platform-agnostic channels (JSON-RPC MCP over HTTP, standard REST, and high-frequency WebSockets). 
-*   **Compliance, Cryptography, and Directives:**
-    *   **Immutability Safeguard:** Ethical limits (the 10 Augmented Laws) are governed by `Permanent_Active_Directives.txt`. The system computes a SHA-256 hash of this file and compares it to a hardcoded signature (`1A87DA...`) on startup. If modified, the application halts and falls back to a deep safety diagnostic state, neutralizing potential prompt injection or boundary exploits.
-    *   **Encryption at Rest:** User API keys are protected using DPAPI (Data Protection API) via Windows CryptProtectData. Keys are encrypted at rest with user-scope machine-bound key blobs, ensuring configuration security.
-    *   **Biometric Data Gating:** The facial recognition logic (ArcFace) is subject to biometric compliance controls. The application enforces explicit user confirmation dialogues before extracting 512-dimensional vector representations, meeting GDPR Art. 9 and BIPA standards.
+
+- **IP Isolation Boundary:** The API boundary acts as a strict firewall between the proprietary and open-source segments:
+  - **Proprietary Core (Closed-Source):** Contains the PnP head pose solver (Levenberg-Marquardt optimizer), Whisper.net speech transcriptions, ArcFace biometric recognizer, and the cognitive state classifiers. These reside inside the WPF application shell (`src/HCEP.App`, `src/HCEP.Kinect`, etc.).
+  - **Open SDK (Open-Source):** Client packages communicate over platform-agnostic channels (JSON-RPC MCP over HTTP, standard REST, and high-frequency WebSockets).
+
+- **Compliance, Cryptography, and Directives:**
+  - **Immutability Safeguard:** Ethical limits (the 10 Augmented Laws) are governed by `Permanent_Active_Directives.txt`. The system computes a SHA-256 hash of this file and compares it to a hardcoded signature (`1A87DA...`) on startup. If modified, the application halts and falls back to a deep safety diagnostic state, neutralizing potential prompt injection or boundary exploits.
+  - **Encryption at Rest:** User API keys are protected using DPAPI (Data Protection API) via Windows CryptProtectData. Keys are encrypted at rest with user-scope machine-bound key blobs, ensuring configuration security.
+  - **Biometric Data Gating:** The facial recognition logic (ArcFace) is subject to biometric compliance controls. The application enforces explicit user confirmation dialogues before extracting 512-dimensional vector representations, meeting GDPR Art. 9 and BIPA standards.
 
 ---
 
