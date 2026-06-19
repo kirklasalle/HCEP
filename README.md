@@ -8,7 +8,7 @@
 
 **HCEP** is a real-time multi-modal perception platform that fuses sensor input (Kinect v1 or standard USB webcams) with a hybrid LLM engine to analyze human communication through eye contact patterns, facial expressions, body tracking, and speech.
 
-It implements Kirk LaSalle's **HCEP (Human Conversation Eye Protocol)** theory — a novel 5-mode cognitive-emotional classification system that decodes the unspoken language of eye contact during face-to-face conversation. This thecurrent basic version. It is designed to be expanded upon with more features and capabilities.
+It implements Kirk LaSalle's **HCEP (Human Communication Eye Protocol)** theory — a novel 5-mode cognitive-emotional classification system that decodes the unspoken language of eye contact during face-to-face conversation. This thecurrent basic version. It is designed to be expanded upon with more features and capabilities.
 
 ---
 
@@ -281,7 +281,7 @@ The app auto-detects Kinect availability. If no sensor is found, it silently fal
 
 ## HCEP Theory
 
-Kirk LaSalle's **Human Conversation Eye Points (HCEP)** theory posits that eye contact patterns during face-to-face conversation reveal five distinct communication modes that people naturally cycle through. These modes encode cognitive state, emotional valence, and communicative intent — information that is invisible to speech-only analysis.
+Kirk LaSalle's **Human Communication Eye Protocol (HCEP)** theory posits that eye contact patterns during face-to-face conversation reveal five distinct communication modes that people naturally cycle through. These modes encode cognitive state, emotional valence, and communicative intent — information that is invisible to speech-only analysis.
 
 The system classifies modes in real-time using:
 

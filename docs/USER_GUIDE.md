@@ -179,7 +179,7 @@ ollama pull llama3:8b
 
 ### What is HCEP?
 
-HCEP (Human Conversation Eye Points) is Kirk LaSalle's theory that eye contact patterns during conversation reveal five distinct communication modes. The system classifies which mode you're in based on where you look, how you move your eyes, and your facial expressions.
+HCEP (Human Communication Eye Protocol) is Kirk LaSalle's theory that eye contact patterns during conversation reveal five distinct communication modes. The system classifies which mode you're in based on where you look, how you move your eyes, and your facial expressions.
 
 ### The 5 Modes
 
@@ -394,7 +394,7 @@ If BrainSim III's Universal Knowledge Store (UKS) is available, HCEP uses it for
 
 | Term | Definition |
 |---|---|
-| **HCEP** | Human Conversation Eye Points — Kirk LaSalle's theory of eye contact communication modes |
+| **HCEP** | Human Communication Eye Protocol — Kirk LaSalle's theory of eye contact communication modes |
 | **HCEP** | Human Communication Eye Protocol — this application |
 | **Gaze Region** | One of 13 classified areas where a person is looking (LeftEye, RightEye, NasalBridge, Mouth, Forehead, Chin, PeripheralLeft, PeripheralRight, Above, Below, Defocused, FaceCenter, Unknown) |
 | **Social Triangle** | Gaze pattern cycling between both eyes and mouth, associated with AFFECT mode |

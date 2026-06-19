@@ -12,7 +12,7 @@
 
 HCEP (Human Communication Eye Protocol) is a world-class, state-of-the-art real-time multi-modal perception platform that fuses sensor data (Xbox 360 Kinect v1 or standard USB webcams) with a hybrid LLM engine (local Ollama + cloud GPT-5-mini) to analyze and respond to human communication through eye contact patterns, facial expressions, and speech.
 
-At its core, HCEP implements Kirk LaSalle's HCEP (Human Conversation Eye Points) theory — a novel 5-mode cognitive-emotional classification system that decodes the rich, unspoken language of eye contact during face-to-face conversation.
+At its core, HCEP implements Kirk LaSalle's HCEP (Human Communication Eye Protocol) theory — a novel 5-mode cognitive-emotional classification system that decodes the rich, unspoken language of eye contact during face-to-face conversation.
 
 ### 1.1 Vision
 
@@ -21,6 +21,7 @@ To build the first real-time system that understands *how* people communicate th
 ### 1.2 Mission
 
 Deliver a commercially viable Windows desktop platform that:
+
 - Tracks face, eyes, skeleton, and speech in real-time via Kinect v1 or standard USB webcams
 - Classifies the 5 HCEP modes (Logic, Affect, Spirit, Heart, Think)
 - Routes conversation to local or cloud LLMs based on cognitive-emotional context
@@ -51,13 +52,15 @@ No existing system classifies these patterns in real-time or uses them to modula
 | **Robotics** | Physical humanoid/companion robots utilizing HCEP to achieve human-like visual acuity, natural gaze interaction, and joint attention. |
 | **AR / VR / Gaming** | NPC and avatar systems rendering true eye-contact geometry so characters look at each other and the player camera correctly, breaking the "dead eyes" barrier in spatial computing. |
 | **Researchers & Science** | Psychologists and cognitive scientists utilizing HCEP as a standard for automated human behavior/psychology readings (strictly constrained by ethical AI Laws). |
-| **Kirk LaSalle** | Primary stakeholder, HCEP theory inventor |
 
 ### 3.1 Future Expansion: Advanced Detection
+
 While v0.1 establishes the foundational standard (face, gaze, Action Units), future iterations of HCEP will expand to **Full-Body Posture and Movement Detection** (kinesics and proxemics). This will allow the protocol to decode holistic human communication—merging eye contact patterns with body language, weight shifts, and spatial positioning.
 
 ### 3.2 Advanced Use Cases & Human-Avatar Applications
+
 As HCEP expands to capture full kinesics, the protocol will support specialized performance, cloning, and educational domains:
+
 - **Human Physical Motion & Performance Cloning (Mimicry)**: Enabling photorealistic virtual avatars or robotic entities to mirror, clone, and replicate human movement, gestures, and expressions with micro-second fidelity.
 - **Acting, Pretending & Reciprocation**: Driving conversational agents to perform socially reciprocal physical behaviors, mirroring human posture shifts, acting out physical cues, and establishing mutual, natural gestural responses.
 - **Sign Language Recognition & Translation**: Fusing hand articulation with micro-expressions and gaze cues to map, parse, and translate sign languages into textual or spoken representations.
