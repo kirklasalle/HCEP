@@ -22,19 +22,33 @@ namespace HCEP.App;
 /// Gaze convention (matches <c>GazeVectorEngine</c> output):
 ///   Pitch &gt; 0 → looking up.
 ///   Yaw   &gt; 0 → looking right.
+///
+/// Brow convention (matches Kinect FaceTrackLib Action Unit values):
+///   <paramref name="outerBrowRaise"/> AU5 (OuterBrowRaiser): positive = raised.
+///   <paramref name="browLower"/>     AU3 (BrowLowerer): negative = furrowed.
+///   <paramref name="hcepModeFurrow"/>: 0-1 autonomous furrow from HCEP mode (LOGIC/THINK).
 /// </summary>
 public interface IAvatarComponent
 {
-    /// <summary>
-    /// Drives the avatar to reflect the given gaze direction.
-    /// </summary>
-    /// <param name="pitchRad">Vertical gaze angle (radians).</param>
-    /// <param name="yawRad">Horizontal gaze angle (radians).</param>
-    /// <param name="userDistanceM">
-    /// Distance of the user from the sensor (metres, Camera Space Z).
-    /// Used for convergence / depth effects. Pass 1.5 if unknown.
-    /// </param>
+    /// <summary>Drives the avatar to reflect the given gaze direction.</summary>
     void SetGaze(float pitchRad, float yawRad, float userDistanceM = 1.5f);
+
+    /// <summary>
+    /// Drives eyebrow animation from Kinect Action Units and autonomous HCEP mode expression.
+    /// Call every frame from <c>AvatarWindow.OnSnapshotReady</c>.
+    /// </summary>
+    /// <param name="outerBrowRaise">
+    /// AU5 OuterBrowRaiser raw value [−1..+1]. Positive = brows raised (surprise, query, greeting).
+    /// </param>
+    /// <param name="browLower">
+    /// AU3 BrowLowerer raw value [−1..+1]. Negative = furrowed (concentration, LOGIC/THINK modes).
+    /// </param>
+    /// <param name="hcepModeFurrow">
+    /// Autonomous furrow target [0..1] derived from the current HCEP mode classification.
+    /// Blended with AU values so the avatar expresses the appropriate brow posture
+    /// even when the Kinect cannot resolve precise AU magnitudes.
+    /// </param>
+    void SetBrows(float outerBrowRaise, float browLower, float hcepModeFurrow = 0f);
 
     /// <summary>Returns the avatar to its neutral / resting pose.</summary>
     void ResetGaze();

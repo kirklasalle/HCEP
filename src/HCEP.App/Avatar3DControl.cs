@@ -61,8 +61,8 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 {
     // ── Stable wire pen (frozen — shareable across render cycles) ─
     private static readonly Pen _wirePen;
-
     private static readonly Brush _pupilBrush;
+    private static readonly Pen _browPen;  // slightly thicker than wirePen for legibility
 
     // ── Eye sphere rendering brushes (frozen) ────────────────────
     private static readonly Brush _irisRingBrush;
@@ -77,6 +77,8 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         _wirePen.Freeze();
         _pupilBrush = new SolidColorBrush(Color.FromArgb(255, 0, 220, 190));
         _pupilBrush.Freeze();
+        _browPen = new Pen(new SolidColorBrush(Color.FromArgb(240, 0, 220, 190)), 1.8);
+        _browPen.Freeze();
 
         // Iris: teal ring (matches wireframe accent)
         _irisRingBrush = new SolidColorBrush(Color.FromArgb(220, 0, 180, 160));
@@ -164,6 +166,14 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     // to create the illusion of the avatar turning its head.
     private GazeHeadFollower _gazeHeadFollower = null!;
     private long _lastGazeHeadFollowerUpdateMs;    // for framerate-independent updates
+
+    // ── Eyebrow state ────────────────────────────────────────────────
+    // Smoothed AU-driven brow targets. Set via SetBrows(); rendered in OnRender.
+    private float _browRaiseTarget3D;
+    private float _browFurrowTarget3D;
+    private double _browRaiseSmoothed3D;
+    private double _browFurrowSmoothed3D;
+    private long _lastBrowTicks3D;
 
     // ── Construction ─────────────────────────────────────────────────────
     public Avatar3DControl()
@@ -331,6 +341,7 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 
     // IAvatarComponent
     void IAvatarComponent.SetGaze(float p, float y, float d) => SetGaze(p, y, d);
+    void IAvatarComponent.SetBrows(float raise, float lower, float modeFurrow) => SetBrows(raise, lower, modeFurrow);
     void IAvatarComponent.ResetGaze()
     {
         _gazeHeadFollower.Reset();
@@ -343,6 +354,17 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         _bakedHeadPitchRad = 0;
         _bakedHeadRollRad = 0;
         InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Sets eyebrow animation targets from Kinect Action Units and HCEP mode.
+    /// Blended values are rendered in the next <c>OnRender</c> frame.
+    /// </summary>
+    public void SetBrows(float outerBrowRaise, float browLower, float hcepModeFurrow = 0f)
+    {
+        _browRaiseTarget3D  = Math.Clamp(outerBrowRaise, 0f, 1f);
+        float auFurrow      = Math.Clamp(-browLower, 0f, 1f);
+        _browFurrowTarget3D = Math.Max(auFurrow, hcepModeFurrow);
     }
 
     // ── Render ───────────────────────────────────────────────────
@@ -619,7 +641,22 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
             DrawEyeSphere(dc, leftAnchor.X, leftAnchor.Y, eyeR, rotYaw, rotPitch);
             DrawEyeSphere(dc, rightAnchor.X, rightAnchor.Y, eyeR, rotYaw, rotPitch);
 
-            _leftEyeLocalPt = leftAnchor;
+            // ── Eyebrow animation ──────────────────────────────────────────────
+            // Smooth the brow targets (150ms EMA) and draw arcs above each socket.
+            // Runs inside the hasMesh block so eyeR and leftAnchor/rightAnchor are live.
+            long browNow = Environment.TickCount64;
+            double browDt = _lastBrowTicks3D > 0
+                ? Math.Clamp((browNow - _lastBrowTicks3D) / 1000.0, 0.001, 0.2)
+                : 0.033;
+            _lastBrowTicks3D = browNow;
+            double browAlpha = 1.0 - Math.Exp(-browDt / 0.15);
+            _browRaiseSmoothed3D  += (_browRaiseTarget3D  - _browRaiseSmoothed3D)  * browAlpha;
+            _browFurrowSmoothed3D += (_browFurrowTarget3D - _browFurrowSmoothed3D) * browAlpha;
+
+            DrawBrow3D(dc, leftAnchor,  eyeR, _browRaiseSmoothed3D, _browFurrowSmoothed3D, isLeft: true);
+            DrawBrow3D(dc, rightAnchor, eyeR, _browRaiseSmoothed3D, _browFurrowSmoothed3D, isLeft: false);
+
+            _leftEyeLocalPt  = leftAnchor;
             _rightEyeLocalPt = rightAnchor;
         }
 
@@ -786,6 +823,59 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     }
 
     // ── Eye Sphere Rendering ───────────────────────────────────
+
+    /// <summary>
+    /// Draws a single eyebrow arc above the given eye socket anchor.
+    ///
+    /// The brow is a quadratic bezier with three control points proportional
+    /// to <paramref name="eyeR"/>:
+    ///   Outer (temporal) → peak (above socket centre) → inner (nasal side)
+    ///
+    /// <paramref name="raise"/>  [0..1]: raises the whole arch (AU5/AU1 — surprise, query, greeting).
+    /// <paramref name="furrow"/> [0..1]: drops the inner end toward the nose, creating the
+    ///   characteristic inverted-V of concentration or concern (AU3/AU4 — LOGIC, THINK modes).
+    /// </summary>
+    private static void DrawBrow3D(
+        DrawingContext dc, Point anchor, double eyeR,
+        double raise, double furrow, bool isLeft)
+    {
+        // Proportional offsets from eye socket centre:
+        double halfW  = eyeR * 1.1;   // half-width of brow span
+        double riseN  = eyeR * 1.35;  // neutral height above socket centre
+        double riseR  = raise  * eyeR * 0.7;   // extra rise when brow raised
+        double dropI  = furrow * eyeR * 0.6;   // inner-end drop when furrowed
+        double flatPk = furrow * eyeR * 0.3;   // peak flattens when furrowed
+
+        double outerX, innerX;
+        if (isLeft)
+        {
+            // Left brow: outer = temporal (left), inner = nasal (right)
+            outerX = anchor.X - halfW;
+            innerX = anchor.X + halfW;
+        }
+        else
+        {
+            // Right brow: outer = temporal (right), inner = nasal (left)
+            outerX = anchor.X + halfW;
+            innerX = anchor.X - halfW;
+        }
+
+        double outerY = anchor.Y - riseN - riseR + furrow * eyeR * 0.15; // outer holds roughly
+        double peakY  = anchor.Y - riseN - eyeR * 0.2 - riseR + flatPk;  // peak above socket
+        double innerY = anchor.Y - riseN - riseR + dropI;                 // inner drops on furrow
+
+        var geo = new StreamGeometry();
+        using (var ctx = geo.Open())
+        {
+            ctx.BeginFigure(new Point(outerX, outerY), false, false);
+            ctx.QuadraticBezierTo(
+                new Point(anchor.X, peakY),
+                new Point(innerX, innerY),
+                isStroked: true, isSmoothJoin: false);
+        }
+        geo.Freeze();
+        dc.DrawGeometry(null, _browPen, geo);
+    }
 
     /// <summary>
     /// Draws a 3D eyeball sphere at (<paramref name="cx"/>, <paramref name="cy"/>)

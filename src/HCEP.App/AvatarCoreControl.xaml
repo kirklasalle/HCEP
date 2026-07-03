@@ -95,6 +95,33 @@
                        Stroke="#FFCC9900"
                        StrokeThickness="1"/>
 
+            <!-- ── Left Eyebrow ────────────────────────────────────── -->
+            <!--
+                Quadratic bezier: M outer  Q peak  inner
+                Neutral: outer=(66,80)  peak=(95,68)  inner=(120,76)
+                Animated in code-behind via AU1/AU2 (raise) and AU4 (furrow).
+                Canvas.Left/Top set to (0,0) — coordinates are absolute in
+                canvas space, same as all other face elements.
+            -->
+            <Path x:Name="LeftBrow"
+                  Stroke="#FF1A1A1A"
+                  StrokeThickness="5"
+                  StrokeStartLineCap="Round"
+                  StrokeEndLineCap="Round"
+                  Fill="Transparent"
+                  ToolTip="Left eyebrow — animated via AU1 inner brow raise, AU2 outer brow raise, AU4 brow lowerer"
+                  Data="M 66,80 Q 95,68 120,76"/>
+
+            <!-- ── Right Eyebrow ───────────────────────────────────── -->
+            <Path x:Name="RightBrow"
+                  Stroke="#FF1A1A1A"
+                  StrokeThickness="5"
+                  StrokeStartLineCap="Round"
+                  StrokeEndLineCap="Round"
+                  Fill="Transparent"
+                  ToolTip="Right eyebrow — animated via AU1 inner brow raise, AU2 outer brow raise, AU4 brow lowerer"
+                  Data="M 160,76 Q 185,68 214,80"/>
+
             <!-- ── Smile ─────────────────────────────────────────── -->
             <!--
             Arc from (78,172) to (202,172), rx=62, ry=42, sweep=1 (clockwise → curves down).

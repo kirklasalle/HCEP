@@ -104,13 +104,18 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
 
     private const double BlinkCloseMs = 70.0;
     private const double BlinkOpenMs = 95.0;
-    private const double LidMaxCoverPx = 22.5; // ~half of 44px socket
-    private const double UpperBaseCoverPx = 8.8; // 20% of 44px socket
-    private const double LowerBaseCoverPx = 2.2; // 5% of 44px socket
+    private const double LidMaxCoverPx = 22.5;
+    private const double UpperBaseCoverPx = 8.8;
+    private const double LowerBaseCoverPx = 2.2;
 
-    // ── Drawing visuals for each eye ──────────────────────────
-    private DrawingVisual _leftEyeVisual = new();
-    private DrawingVisual _rightEyeVisual = new();
+    // ── Eyebrow state ─────────────────────────────────────────
+    // Driven by Kinect Action Units via SetBrows().
+    // Smoothed with a 150ms EMA so abrupt AU changes don't snap.
+    private float _browRaiseTarget;    // [0..1] from AU1+AU2
+    private float _browFurrowTarget;   // [0..1] from AU4
+    private double _browRaiseSmoothed;
+    private double _browFurrowSmoothed;
+    private long _lastBrowUpdateMs;
 
     // ── Public screen-coordinate properties ───────────────────
 
@@ -190,7 +195,75 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
 
     // IAvatarComponent
     void IAvatarComponent.SetGaze(float p, float y, float d) => SetGaze((double)p, (double)y, (double)d);
+    void IAvatarComponent.SetBrows(float raise, float lower, float modeFurrow) => SetBrows(raise, lower, modeFurrow);
     void IAvatarComponent.ResetGaze() => ResetGaze();
+
+    // ── Eyebrow Control ────────────────────────────────────────
+
+    /// <summary>
+    /// Sets eyebrow animation targets from Kinect Action Units and HCEP mode.
+    /// Call every frame from AvatarWindow.OnSnapshotReady.
+    /// </summary>
+    /// <param name="outerBrowRaise">AU5 raw value [−1..+1]. Positive → raised brows.</param>
+    /// <param name="browLower">AU3 raw value [−1..+1]. Negative → furrowed.</param>
+    /// <param name="hcepModeFurrow">Autonomous furrow [0..1] from HCEP mode (LOGIC/THINK).</param>
+    public void SetBrows(float outerBrowRaise, float browLower, float hcepModeFurrow = 0f)
+    {
+        // Raise target: AU5 drives upward movement; clamp to [0..1]
+        _browRaiseTarget = Math.Clamp(outerBrowRaise, 0f, 1f);
+
+        // Furrow target: blend Kinect AU furrow with autonomous mode furrow.
+        // AU3 is negative when furrowed (SDK convention), so we negate it.
+        float auFurrow = Math.Clamp(-browLower, 0f, 1f);
+        _browFurrowTarget = Math.Max(auFurrow, hcepModeFurrow);
+    }
+
+    private void ApplyBrows()
+    {
+        long now = Environment.TickCount64;
+        double dt = _lastBrowUpdateMs > 0
+            ? Math.Clamp((now - _lastBrowUpdateMs) / 1000.0, 0.001, 0.2)
+            : 0.033;
+        _lastBrowUpdateMs = now;
+
+        // 150ms EMA — fast enough to follow AU changes, slow enough to suppress jitter
+        double alpha = 1.0 - Math.Exp(-dt / 0.15);
+        _browRaiseSmoothed += (_browRaiseTarget - _browRaiseSmoothed) * alpha;
+        _browFurrowSmoothed += (_browFurrowTarget - _browFurrowSmoothed) * alpha;
+
+        double raise  = _browRaiseSmoothed;
+        double furrow = _browFurrowSmoothed;
+
+        // ── Left eyebrow (quadratic bezier) ───────────────────────────────────
+        // Neutral:  outer=(66,80)  peak=(95,68)  inner=(120,76)
+        // Raised:   all Y −8px (raise=1); peak −9px for deeper arch
+        // Furrowed: inner drops +7px toward nose; outer holds; arch flattens
+        var leftGeo = new StreamGeometry();
+        using (var ctx = leftGeo.Open())
+        {
+            double ox = 66,  oy = 80  - raise * 8  + furrow * 2;
+            double cx = 95,  cy = 68  - raise * 9  + furrow * 5;
+            double ix = 120, iy = 76  - raise * 8  + furrow * 7;
+            ctx.BeginFigure(new Point(ox, oy), false, false);
+            ctx.QuadraticBezierTo(new Point(cx, cy), new Point(ix, iy), true, false);
+        }
+        leftGeo.Freeze();
+        LeftBrow.Data = leftGeo;
+
+        // ── Right eyebrow (mirror) ─────────────────────────────────────────────
+        // Inner=(160,76)  peak=(185,68)  outer=(214,80)
+        var rightGeo = new StreamGeometry();
+        using (var ctx = rightGeo.Open())
+        {
+            double ix = 160, iy = 76  - raise * 8  + furrow * 7;
+            double cx = 185, cy = 68  - raise * 9  + furrow * 5;
+            double ox = 214, oy = 80  - raise * 8  + furrow * 2;
+            ctx.BeginFigure(new Point(ix, iy), false, false);
+            ctx.QuadraticBezierTo(new Point(cx, cy), new Point(ox, oy), true, false);
+        }
+        rightGeo.Freeze();
+        RightBrow.Data = rightGeo;
+    }
 
     // ── Eye Sphere Rendering ──────────────────────────────────
 
@@ -222,6 +295,7 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
 
         double blink = UpdateBlink();
         ApplyEyelids(blink, nPitch);
+        ApplyBrows();   // animate eyebrows from latest AU + HCEP mode targets
 
         // ── Apply 2D plane movement in 3D space ─────────────────────────────────────────
         // The happy face is a 2D plane that translates and rotates in 3D:

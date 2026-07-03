@@ -184,6 +184,42 @@ public partial class AvatarWindow : Window
             // and cancel out the user's rotation for the mesh rendering.
             Avatar3D.SetHeadPose(face.HeadRotation);
             Avatar.SetHeadPose(face.HeadRotation);
+
+            // ── Eyebrow animation ──────────────────────────────────────────────
+            // Extract AU3 (BrowLowerer) and AU5 (OuterBrowRaiser) from Kinect AUs.
+            // HCEP mode provides an autonomous furrow baseline that keeps the avatar
+            // expressively coherent even between tracked AU frames.
+            //   LOGIC  → slight analytical furrow (0.30)
+            //   THINK  → deeper processing furrow (0.50)
+            //   HEART  → inner empathy raise; no furrow
+            //   AFFECT → open/relaxed; trace raise
+            //   SPIRIT → soft open; minimal signals
+            var aus = face.ActionUnits;
+            float auRaise  = aus.Length > (int)HCEP.Core.Enums.ActionUnit.OuterBrowRaiser
+                ? aus[(int)HCEP.Core.Enums.ActionUnit.OuterBrowRaiser] : 0f;
+            float auLower  = aus.Length > (int)HCEP.Core.Enums.ActionUnit.BrowLowerer
+                ? aus[(int)HCEP.Core.Enums.ActionUnit.BrowLowerer]     : 0f;
+
+            var hcep = snapshot.PrimaryPerson?.LatestHcep;
+            float modeFurrow = hcep?.Mode switch
+            {
+                HCEP.Core.Enums.HcepMode.Logic  => 0.30f,
+                HCEP.Core.Enums.HcepMode.Think  => 0.50f,
+                HCEP.Core.Enums.HcepMode.Heart  => 0.00f,
+                HCEP.Core.Enums.HcepMode.Affect => 0.00f,
+                HCEP.Core.Enums.HcepMode.Spirit => 0.00f,
+                _                               => 0.10f,
+            };
+            float modeRaise = hcep?.Mode switch
+            {
+                HCEP.Core.Enums.HcepMode.Heart  => 0.35f,  // inner empathy raise (AU1)
+                HCEP.Core.Enums.HcepMode.Affect => 0.12f,  // open/engaged
+                _                               => 0.00f,
+            };
+            float blendedRaise = Math.Max(auRaise, modeRaise);
+
+            Avatar3D.SetBrows(blendedRaise, auLower, modeFurrow);
+            Avatar.SetBrows(blendedRaise, auLower, modeFurrow);
         }
 
         // 3D wireframe: push live neutral mesh or feature-point fallback
