@@ -129,7 +129,7 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 
 ---
 
-## Phase 9 — Full Kinesics: Head Gestures + Body Language — [PLANNED — Q3-Q4 2026]
+## Phase 9 — Full Kinesics: Head Gestures + Body Language — [IN PROGRESS — Q3-Q4 2026]
 
 **Goal:** Extend HCEP's perception pipeline to decode the full kinesic vocabulary: head kinematics (nod, shake, tilt, thrust), shoulder movements (shrug), torso orientation (lean, orientation), and integrate these into the HCEP mode classification and AI response modulation.
 
@@ -137,12 +137,14 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 
 **Milestones:**
 
-* [ ] **Head Gesture Detector** — `HCEP.Spatial.HeadGestureClassifier`
-  * Nod detection: Δpitch > 8°/frame × ≥80ms → reversal
-  * Shake detection: Δyaw > 10°/frame × ≥80ms → reversal
-  * Tilt detection: Δroll > 12°/frame × ≥500ms sustained
-  * Forward/backward thrust: sustained pitch change > 1500ms
-  * 5-state HMM with minimum event duration and inter-event refractory period
+* [x] **Head Gesture Detector** — `HCEP.Spatial.HeadGestureClassifier`
+  * Nod detection: Δpitch > 7°/frame × ≥70ms → directional reversal confirmation
+  * Shake detection: Δyaw > 9°/frame × ≥70ms → directional reversal confirmation
+  * Tilt detection: Δroll > 11°/frame × ≥450ms sustained
+  * Forward/backward lean: depth delta ≥ 40mm/frame × ≥1200ms sustained
+  * Refractory period (600ms) + stale-candidate timeout (1800ms)
+  * Fed from `face.HeadRotation` + `TrackedPerson.DistanceM` in `AvatarWindow.OnSnapshotReady`
+  * `GestureDetected` event → `AvatarWindow.OnHeadGestureDetected` → reciprocal nod
   
 * [ ] **Shoulder/Torso Extractor** — `HCEP.Kinect.TorsoAnalyzer`
   * Shoulder elevation differential (bilateral shrug detection)
@@ -161,7 +163,7 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 
 ---
 
-## Phase 10 — AI Reciprocal Expression: The Expressive Agent — [PLANNED — Q4 2026 - Q1 2027]
+## Phase 10 — AI Reciprocal Expression: The Expressive Agent — [IN PROGRESS — Q4 2026 - Q1 2027]
 
 **Goal:** Transform HCEP from a purely perceptual system into a **bidirectional social agent** — one that not only reads human expression but authentically generates reciprocal expressions in real-time through the avatar. This is the realization of HCEP's full vision: AI that participates in the complete nonverbal vocabulary of human communication.
 
@@ -171,11 +173,12 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 
 **Milestones:**
 
-* [ ] **Backchannel Engine** — `HCEP.App.BackchannelController`
-  * Real-time head nod generation during human speech at prosodic boundaries
-  * Nod amplitude and rate modulated by HCEP mode (SPIRIT → slow, sustained; LOGIC → brief acknowledgments)
-  * Biological timing: average 1-3 nods per 10 seconds during active listening
-  * 3D avatar implementation: `Avatar3DControl.TriggerNod(amplitude, duration)`
+* [x] **Backchannel Engine** — `HCEP.App.BackchannelController`
+  * Real-time head nod generation after 2.2s of continuous human speech
+  * Repeat nod every 6.5s of sustained speech (biological ~1-3 nods / 10s)
+  * 2D avatar: sin(π·t) 9px Y-translate pulse on face plane, 500ms
+  * 3D avatar: sin(π·t) 0.14 rad pitch offset on head render, 500ms
+  * User nod (Phase 9) also triggers reciprocal avatar nod via `TriggerAvatarNod()`
 
 * [ ] **Smile and Expression Reciprocation** — `HCEP.App.ExpressionMirror`
   * Detect human AU12 (smile) → delay 200-400ms (biological reaction time) → trigger avatar micro-smile
@@ -189,10 +192,10 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
   * Gaze aversion in THINK mode: avatar looks slightly away, signaling "I'm processing your request"
   * Eye contact on turn-yield: avatar establishes direct eye contact at natural conversational turn boundaries
 
-* [ ] **Binocular Convergence** — `AvatarCoreControl` and `Avatar3DControl` update
-  * Implement `convergenceAngle = atan(IOD/2 / max(0.3f, userDistM))` where IOD ≈ 65mm
-  * Left eye: `yaw + convergenceAngle`; Right eye: `yaw - convergenceAngle`
-  * Visible and neurologically authentic at distances 0.5-2.0m
+* [x] **Binocular Convergence** — `AvatarCoreControl` and `Avatar3DControl` updated
+  * Formula: `conv = eyeRadius × 2.5 × atan(0.0325 / max(0.25, userDistM))` (IOD=65mm, 2.5× visibility scale)
+  * Both 2D Happyface and 3D Wireframe avatars updated
+  * Scales from ~3.5px at arm's length → ~0.7px at 1m — neurologically authentic vergence
 
 * [ ] **Head Gesture Reciprocation**
   * Detect human nod → avatar produces confirming single nod with 250ms delay
@@ -374,7 +377,7 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
   * Pause after syntactically complete utterance (from VAD)
   * Sociocentric sequence detection ("you know?", "right?") — text post-processing
 
-* [ ] **Settings UI** — environment type selector and user-defined location field
+* [x] **Settings UI** — `SettingsWindow` new **Context** tab: Environment (10 options), Activity (9 options), Privacy (3 options), Location label text field; wired to `TimeContextProvider` singleton in DI
 * [ ] **Dashboard indicator** — show active context (time band, environment, silence state)
 
 ---

@@ -8,6 +8,18 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased] — 2026-07-03
 
+### Added — Phase 9 Head Gesture Classifier + Phase 10 Backchannel Engine + Binocular Convergence + Context Settings UI
+
+- **`HeadGestureClassifier`** (Phase 9, `HCEP.Spatial`) — 30 Hz velocity-threshold classifier detects Nod, Shake, TiltLeft, TiltRight, ForwardLean, BackwardLean from Kinect head-pose stream. Nod/Shake use reversal confirmation (min 70ms, max 1800ms); Tilt uses 450ms hold; Lean uses 1200ms hold. 600ms refractory period prevents re-triggering. Fed from `face.HeadRotation` + `TrackedPerson.DistanceM` in `AvatarWindow.OnSnapshotReady`. `GestureDetected` event routed to `TriggerAvatarNod()` so user nods produce a reciprocal avatar nod.
+- **`BackchannelController`** (Phase 10, `HCEP.App`) — Monitors `SceneSnapshot.LatestSpeech` for sustained human speech. Fires `NodRequested` after 2.2 s of continuous speech; repeats every 6.5 s (biological ~1–3 nods/10 s of active listening, Bavelas et al. 2000). `AvatarWindow` subscribes and calls `TriggerAvatarNod()` on both avatars.
+- **`IAvatarComponent.TriggerNod()`** — Added to shared interface. Thread-safe; implementations dispatch internally.
+- **2D Happyface nod animation** (`AvatarCoreControl`) — 500 ms sin(π·t) vertical pulse on the entire face plane (9 px amplitude), implemented as a `TranslateTransform` appended to `unifiedPlaneTransform` in `RenderEyes()`.
+- **3D Wireframe nod animation** (`Avatar3DControl`) — 500 ms sin(π·t) pitch-offset (0.14 rad ≈ 8°) added to `headPitch` in `OnRender()`. `TriggerNod()` stores `Environment.TickCount64` and calls `Dispatcher.BeginInvoke(InvalidateVisual)`.
+- **Binocular convergence (both avatars)** — Replaced linear falloff with the biologically correct atan formula: `conv = eyeRadius × 2.5 × atan(0.0325 / max(0.25, userDistM))` (IOD=65mm, 2.5× visibility scale). Scales from ~3.5 px at 0.5m → ~0.7 px at 1m, matching real vergence anatomy. Applied to both `AvatarCoreControl` and `Avatar3DControl`.
+- **Settings Context tab** — New **Context** tab in `SettingsWindow` (Phase 14): `EnvironmentType` ComboBox (10 options matching enum), `SituationActivity` ComboBox (9 options), `SituationPrivacy` ComboBox, `UserDefinedLocation` TextBox. Wired to `TimeContextProvider` singleton (new DI registration in `App.xaml.cs`). Changes take effect immediately in the LLM system prompt and `SilenceProtocolEvaluator`.
+
+---
+
 ### Added — Avatar Expression System (v1.2 work)
 
 - **Eyebrow animation** — Both `AvatarCoreControl` (2D) and `Avatar3DControl` (3D) now animate eyebrows driven by Kinect AU3 (BrowLowerer) + AU5 (OuterBrowRaiser) and autonomous HCEP-mode targets (LOGIC/THINK → furrow; HEART → empathy raise; AFFECT → open). 150ms EMA smoothing; quadratic bezier paths rebuilt at 30Hz. `IAvatarComponent.SetBrows()` added to shared interface.
