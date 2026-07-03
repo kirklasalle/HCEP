@@ -55,8 +55,16 @@ public sealed class ArcFaceRecognizer : IFaceRecognizer, IDisposable
             ExecutionMode = ExecutionMode.ORT_SEQUENTIAL,
         };
 
-        _session = new InferenceSession(modelPath, options);
-        _logger.LogInformation("ArcFace model loaded from {Path}", modelPath);
+        try
+        {
+            _session = new InferenceSession(modelPath, options);
+            _logger.LogInformation("ArcFace model loaded from {Path}", modelPath);
+        }
+        catch (Exception ex)
+        {
+            _session = null;
+            _logger.LogError(ex, "Failed to load ArcFace ONNX model from {Path} — face recognition disabled", modelPath);
+        }
     }
 
     /// <inheritdoc />

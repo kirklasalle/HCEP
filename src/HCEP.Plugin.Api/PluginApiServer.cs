@@ -144,6 +144,7 @@ public sealed class PluginApiServer : IHostedService, IAsyncDisposable
     {
         Action<SceneSnapshot>? handler = null;
         var tcs = new TaskCompletionSource<bool>();
+        bool hadError = false;
 
         handler = async (snapshot) =>
         {
@@ -154,7 +155,7 @@ public sealed class PluginApiServer : IHostedService, IAsyncDisposable
                     var dto = MapToDto(snapshot);
                     string json = JsonSerializer.Serialize(dto);
                     byte[] bytes = Encoding.UTF8.GetBytes(json);
-                    
+
                     await webSocket.SendAsync(
                         new ArraySegment<byte>(bytes),
                         WebSocketMessageType.Text,
@@ -192,6 +193,7 @@ public sealed class PluginApiServer : IHostedService, IAsyncDisposable
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "WebSocket connection error");
+            hadError = true;
         }
         finally
         {
@@ -200,7 +202,11 @@ public sealed class PluginApiServer : IHostedService, IAsyncDisposable
             {
                 try
                 {
-                    await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", default);
+                    var closeStatus = hadError
+                        ? WebSocketCloseStatus.InternalServerError
+                        : WebSocketCloseStatus.NormalClosure;
+                    var closeDescription = hadError ? "Internal server error" : "Closing";
+                    await webSocket.CloseAsync(closeStatus, closeDescription, default);
                 }
                 catch { }
             }

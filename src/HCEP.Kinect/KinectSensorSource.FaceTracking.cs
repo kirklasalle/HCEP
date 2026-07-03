@@ -135,6 +135,11 @@ public sealed partial class KinectSensorSource
             _faceTrackingInitialized = true;
             _logger.LogInformation("Face tracking initialized via FaceTrackLib.dll — REAL face tracking enabled");
         }
+        catch (DllNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "FaceTrackLib.dll not found (Kinect SDK not installed) — using skeleton-approximate face tracking");
+            DisposeFaceTracking();
+        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Face tracking initialization failed — using skeleton-approximate");
@@ -555,10 +560,10 @@ public sealed partial class KinectSensorSource
                                         neutralMeshVertices = new Vector2[_meshVertexCount];
                                         for (int i = 0; i < (int)_meshVertexCount; i++)
                                         {
-                                             IntPtr p = neutralVertBuf + i * 8;
-                                             float vx = Marshal.PtrToStructure<float>(p);
-                                             float vy = Marshal.PtrToStructure<float>(p + 4);
-                                             neutralMeshVertices[i] = new Vector2(vx, vy);
+                                            IntPtr p = neutralVertBuf + i * 8;
+                                            float vx = Marshal.PtrToStructure<float>(p);
+                                            float vy = Marshal.PtrToStructure<float>(p + 4);
+                                            neutralMeshVertices[i] = new Vector2(vx, vy);
                                         }
                                     }
                                 }

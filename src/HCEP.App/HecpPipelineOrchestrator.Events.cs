@@ -44,13 +44,19 @@ public sealed partial class HCEPPipelineOrchestrator
         _latestFace = face;
         bool written = _vision.FaceInput.TryWrite(face);
         var count = Interlocked.Increment(ref _faceFrameCount);
-        if (count <= 5 || count % 300 == 0)
+        if (!written)
+            _logger.LogWarning("Face frame #{Count} dropped — FaceInput channel is full (back-pressure)", count);
+        else if (count <= 5 || count % 300 == 0)
             _logger.LogInformation(
                 "FaceFrame #{Count}: written={Written} tracked={IsTracked} yaw={Yaw:F1} pitch={Pitch:F1}",
                 count, written, face.IsTracked, face.HeadRotation.Y, face.HeadRotation.X);
     }
 
-    private void OnAudioFrameReady(AudioFrame audio) => _audio.AudioInput.TryWrite(audio);
+    private void OnAudioFrameReady(AudioFrame audio)
+    {
+        if (!_audio.AudioInput.TryWrite(audio))
+            _logger.LogWarning("Audio frame dropped — AudioInput channel is full (back-pressure)");
+    }
 
     private void OnColorFrameReady(ColorFrame color)
     {

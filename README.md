@@ -1,14 +1,14 @@
 # HCEP — Human Communication Eye Protocol
 
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-169%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-193%20passing-brightgreen)]()
 [![.NET](https://img.shields.io/badge/.NET-9.0-512BD4)]()
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6)]()
 [![License](https://img.shields.io/badge/license-Proprietary-red)]()
 
 **HCEP** is a real-time multi-modal perception platform that fuses sensor input (Kinect v1 or standard USB webcams) with a hybrid LLM engine to analyze human communication through eye contact patterns, facial expressions, body tracking, and speech.
 
-It implements Kirk LaSalle's **HCEP (Human Communication Eye Protocol)** theory — a novel 5-mode cognitive-emotional classification system that decodes the unspoken language of eye contact during face-to-face conversation. This thecurrent basic version. It is designed to be expanded upon with more features and capabilities.
+It implements Kirk LaSalle's **HCEP (Human Communication Eye Protocol)** theory — a novel 5-mode cognitive-emotional classification system that decodes the unspoken language of eye contact during face-to-face conversation. This the current basic version. It is designed to be expanded upon with more features and capabilities.
 
 ---
 
@@ -112,6 +112,8 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - HCEP-aware system prompts that modulate AI behavior per mode
 - Automatic local/cloud routing (THINK/LOGIC → local, SPIRIT/AFFECT/HEART → cloud)
 - 5-step agentic reasoning loop with tools: `query_knowledge`, `get_hcep_state`, `store_knowledge`, `summarize_person`, `analyze_gaze_pattern`
+- **Cloud Circuit Breaker**: Opens after 3 consecutive cloud failures; all calls are short-circuited for a 30-second cool-down before retry
+- **Windows Credential Manager**: API keys are read from the WCM vault (`HCEP/OpenAI`, `HCEP/Anthropic`, etc.) first, falling back to environment variables — keys are never exposed in process listings
 
 ### Knowledge & Memory
 
@@ -119,6 +121,8 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - Strategy D: UKS (BrainSim III) hybrid adapter with auto-fallback to in-memory store
 - JSON persistence across sessions
 - Natural-language summarization for LLM context injection
+- **Capacity-limited triple store**: Configurable `MaxSubjects` (500) and `MaxTriplesPerSubject` (1000) with LRU eviction — prevents unbounded memory growth in long sessions
+- **Input validation**: Subject (≤255 chars), relation (≤100 chars), object (≤10,000 chars) bounds enforced on all writes
 
 ### Dashboard UI (WPF)
 
@@ -134,6 +138,26 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - LLM chat interface
 - Full Body toggle button (switches Kinect between 20-joint and 10-joint tracking)
 - Sensor Streams and Kinect Video child windows
+
+---
+
+## Production Hardening (Audit v1.1 — 2026-07-03)
+
+A full security and reliability audit was completed on 2026-07-03. All 21 identified issues were resolved. Key changes:
+
+| Category | Change |
+|---|---|
+| **Thread Safety** | Replaced incorrect `Interlocked.CompareExchange` volatile-read pattern with `Volatile.Read/Write` on all cross-thread shared-state properties in `VisionPipeline` |
+| **Resilience** | Cloud LLM circuit breaker: opens after 3 consecutive failures, short-circuits for 30 s, resets on success |
+| **Security** | `WindowsCredentialStore` wraps Windows Credential Manager — API keys stored encrypted in WCM vault, never visible in process listings |
+| **Memory Safety** | `InMemoryKnowledgeStore` now has configurable capacity limits (500 subjects × 1,000 triples) with LRU eviction |
+| **Observability** | Frame-drop warnings on all channel back-pressure paths; audio flush errors escalated from `LogDebug` to `LogWarning`; no-LLM fallback logged explicitly |
+| **Fault Tolerance** | `ArcFaceRecognizer.LoadModel()` no longer crashes on corrupted ONNX files; `FaceTracking` init correctly separates `DllNotFoundException` from runtime failures |
+| **Configurability** | Auto-fallback timeout (`AutoFallbackSeconds`) is now a public property (was a hardcoded `const`) |
+| **Documentation** | All empirical constants (`HeadWeight`, `ModeStabilityFrames`, `GazeAversionAngleDeg`, PnP epsilon) now have XML doc comments with research basis |
+| **Tests** | 21 new tests: concurrency stress, negative-path (corrupted models, capacity limits), circuit-breaker verification |
+
+See [CHANGELOG.md](CHANGELOG.md) for the full list of changes.
 
 ---
 
@@ -166,7 +190,7 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**11 projects** | **102 unit tests** | **.NET 9.0** | **x64 only**
+**11 projects** | **193 unit tests** | **.NET 9.0** | **x64 only**
 
 ---
 
@@ -194,11 +218,11 @@ HCEP/
 │   ├── HCEP.Intelligence/          # Hybrid LLM engine, agentic tools, prompt bridge
 │   └── HCEP.App/                    # WPF application, DI host, orchestrator, UI controls
 └── tests/
-    └── HCEP.Tests/                   # xUnit tests (102 passing)
+    └── HCEP.Tests/                   # xUnit tests (193 passing)
         ├── Spatial/                  # Ray-plane, coordinate mapper, PnP, confidence cone
         ├── Knowledge/               # In-memory store, UKS adapter, person knowledge
-        ├── Intelligence/            # Agentic tools, prompt bridge, tool definitions
-        ├── Vision/                  # HCEP mode analyzer
+        ├── Intelligence/            # Agentic tools, prompt bridge, tool definitions, circuit-breaker tests
+        ├── Vision/                  # HCEP mode analyzer, ArcFace negative-path tests, concurrency tests
         └── Core/                    # Models, enums, constants
 ```
 
@@ -338,7 +362,7 @@ HCEP utilizes a dual-licensing hybrid model designed to protect core intellectua
 
 - **Compliance, Cryptography, and Directives:**
   - **Immutability Safeguard:** Ethical limits (the 10 Augmented Laws) are governed by `Permanent_Active_Directives.txt`. The system computes a SHA-256 hash of this file and compares it to a hardcoded signature (`1A87DA...`) on startup. If modified, the application halts and falls back to a deep safety diagnostic state, neutralizing potential prompt injection or boundary exploits.
-  - **Encryption at Rest:** User API keys are protected using DPAPI (Data Protection API) via Windows CryptProtectData. Keys are encrypted at rest with user-scope machine-bound key blobs, ensuring configuration security.
+  - **Encryption at Rest:** User API keys are protected using DPAPI (Data Protection API) via Windows CryptProtectData. Keys are encrypted at rest with user-scope machine-bound key blobs. For production deployments the recommended path is the built-in **Windows Credential Manager integration** (`HCEP.Intelligence.WindowsCredentialStore`) which stores keys in the WCM vault and falls back to environment variables automatically.
   - **Biometric Data Gating:** The facial recognition logic (ArcFace) is subject to biometric compliance controls. The application enforces explicit user confirmation dialogues before extracting 512-dimensional vector representations, meeting GDPR Art. 9 and BIPA standards.
 
 ---

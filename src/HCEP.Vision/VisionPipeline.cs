@@ -42,45 +42,49 @@ public sealed class VisionPipeline : IAsyncDisposable
     /// <summary>
     /// Latest speech result injected by the orchestrator from the audio pipeline.
     /// Set externally so the HCEP analyzer can incorporate speech activity.
+    /// Uses Volatile semantics to guarantee cross-thread visibility without a full lock.
     /// </summary>
     private SpeechResult? _latestSpeech;
     public SpeechResult? LatestSpeech
     {
-        get => Interlocked.CompareExchange(ref _latestSpeech, null!, null!);
-        set => Interlocked.Exchange(ref _latestSpeech, value);
+        get => Volatile.Read(ref _latestSpeech);
+        set => Volatile.Write(ref _latestSpeech, value);
     }
 
     /// <summary>
     /// Latest color frame injected by the orchestrator for face crop extraction.
     /// Set externally; consumed by the recognition loop.
+    /// Uses Volatile semantics to guarantee cross-thread visibility without a full lock.
     /// </summary>
     private ColorFrame? _latestColor;
     public ColorFrame? LatestColor
     {
-        get => Interlocked.CompareExchange(ref _latestColor, null!, null!);
-        set => Interlocked.Exchange(ref _latestColor, value);
+        get => Volatile.Read(ref _latestColor);
+        set => Volatile.Write(ref _latestColor, value);
     }
 
     /// <summary>
     /// Latest face recognition result (updated ~1 Hz when model is loaded).
     /// Read by the orchestrator to populate TrackedPerson identity fields.
+    /// Uses Volatile semantics to guarantee cross-thread visibility without a full lock.
     /// </summary>
     private FaceRecognitionResult? _latestRecognition;
     public FaceRecognitionResult? LatestRecognition
     {
-        get => Interlocked.CompareExchange(ref _latestRecognition, null!, null!);
-        set => Interlocked.Exchange(ref _latestRecognition, value);
+        get => Volatile.Read(ref _latestRecognition);
+        set => Volatile.Write(ref _latestRecognition, value);
     }
 
     /// <summary>
     /// Enroll the next detected face under the given name.
     /// Set externally by the UI; cleared after enrollment.
+    /// Uses Volatile semantics to guarantee cross-thread visibility without a full lock.
     /// </summary>
     private string? _pendingEnrollmentName;
     public string? PendingEnrollmentName
     {
-        get => Interlocked.CompareExchange(ref _pendingEnrollmentName, null!, null!);
-        set => Interlocked.Exchange(ref _pendingEnrollmentName, value);
+        get => Volatile.Read(ref _pendingEnrollmentName);
+        set => Volatile.Write(ref _pendingEnrollmentName, value);
     }
 
     public VisionPipeline(

@@ -49,6 +49,19 @@ public sealed class HybridLlmEngine : ILlmEngine
     /// <summary>Unified configuration for local and cloud LLM engines.</summary>
     public LlmConfiguration Configuration { get; set; } = new();
 
+    // ── Circuit Breaker (cloud provider) ────────────────────────
+    /// <summary>Number of consecutive cloud failures before the breaker opens.</summary>
+    public int CircuitBreakerThreshold { get; set; } = 3;
+    /// <summary>How long the breaker stays open before allowing a retry.</summary>
+    public TimeSpan CircuitBreakerCoolDown { get; set; } = TimeSpan.FromSeconds(30);
+
+    private int _cloudConsecutiveFailures;
+    private DateTimeOffset _cloudBreakerOpenedAt = DateTimeOffset.MinValue;
+
+    private bool IsCloudCircuitOpen =>
+        _cloudConsecutiveFailures >= CircuitBreakerThreshold &&
+        DateTimeOffset.UtcNow - _cloudBreakerOpenedAt < CircuitBreakerCoolDown;
+
     // ── Backward-Compatibility Mappings ─────────────────────────
     public string OllamaBaseUrl
     {
@@ -143,35 +156,65 @@ public sealed class HybridLlmEngine : ILlmEngine
         string activeApiKey = GetActiveCloudApiKey();
         if (!string.IsNullOrEmpty(activeApiKey))
         {
-            try
+            if (IsCloudCircuitOpen)
             {
-                string response = Configuration.ActiveCloudProvider switch
-                {
-                    CloudProviderType.Anthropic => await CallAnthropicAsync(systemPrompt, userMessage, ct),
-                    CloudProviderType.Gemini => await CallGeminiAsync(systemPrompt, userMessage, ct),
-                    CloudProviderType.Mistral => await CallOpenAiCompatibleApiAsync(Configuration.Mistral.BaseUrl, Configuration.Mistral.ApiKey, Configuration.Mistral.Model, systemPrompt, userMessage, ct),
-                    CloudProviderType.xAI => await CallOpenAiCompatibleApiAsync(Configuration.xAI.BaseUrl, Configuration.xAI.ApiKey, Configuration.xAI.Model, systemPrompt, userMessage, ct),
-                    CloudProviderType.Cohere => await CallOpenAiCompatibleApiAsync(Configuration.Cohere.BaseUrl, Configuration.Cohere.ApiKey, Configuration.Cohere.Model, systemPrompt, userMessage, ct),
-                    _ => await CallOpenAiCompatibleApiAsync(Configuration.OpenAI.BaseUrl, Configuration.OpenAI.ApiKey, Configuration.OpenAI.Model, systemPrompt, userMessage, ct)
-                };
-
-                return new LlmExchange
-                {
-                    SystemPrompt = systemPrompt,
-                    UserMessage = userMessage,
-                    HcepContext = hcepContext?.ToString(),
-                    Response = response,
-                    ModelId = GetActiveCloudModel(),
-                    IsLocal = false,
-                    Latency = DateTimeOffset.UtcNow - start,
-                    Timestamp = start,
-                };
+                var remaining = CircuitBreakerCoolDown - (DateTimeOffset.UtcNow - _cloudBreakerOpenedAt);
+                _logger.LogWarning(
+                    "Cloud circuit breaker is OPEN after {Failures} consecutive failures — skipping cloud call, retry in {Remaining:F0}s",
+                    _cloudConsecutiveFailures, remaining.TotalSeconds);
             }
-            catch (Exception ex)
+            else
             {
-                _logger.LogError(ex, "Frontier cloud provider call failed");
+                try
+                {
+                    string response = Configuration.ActiveCloudProvider switch
+                    {
+                        CloudProviderType.Anthropic => await CallAnthropicAsync(systemPrompt, userMessage, ct),
+                        CloudProviderType.Gemini => await CallGeminiAsync(systemPrompt, userMessage, ct),
+                        CloudProviderType.Mistral => await CallOpenAiCompatibleApiAsync(Configuration.Mistral.BaseUrl, Configuration.Mistral.ApiKey, Configuration.Mistral.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.xAI => await CallOpenAiCompatibleApiAsync(Configuration.xAI.BaseUrl, Configuration.xAI.ApiKey, Configuration.xAI.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.Cohere => await CallOpenAiCompatibleApiAsync(Configuration.Cohere.BaseUrl, Configuration.Cohere.ApiKey, Configuration.Cohere.Model, systemPrompt, userMessage, ct),
+                        _ => await CallOpenAiCompatibleApiAsync(Configuration.OpenAI.BaseUrl, Configuration.OpenAI.ApiKey, Configuration.OpenAI.Model, systemPrompt, userMessage, ct)
+                    };
+
+                    // Success — reset circuit breaker
+                    _cloudConsecutiveFailures = 0;
+
+                    return new LlmExchange
+                    {
+                        SystemPrompt = systemPrompt,
+                        UserMessage = userMessage,
+                        HcepContext = hcepContext?.ToString(),
+                        Response = response,
+                        ModelId = GetActiveCloudModel(),
+                        IsLocal = false,
+                        Latency = DateTimeOffset.UtcNow - start,
+                        Timestamp = start,
+                    };
+                }
+                catch (Exception ex)
+                {
+                    _cloudConsecutiveFailures++;
+                    if (_cloudConsecutiveFailures >= CircuitBreakerThreshold)
+                    {
+                        _cloudBreakerOpenedAt = DateTimeOffset.UtcNow;
+                        _logger.LogError(ex,
+                            "Cloud provider call failed ({Failures}/{Threshold}) — circuit breaker OPENED, will retry after {CoolDown}s",
+                            _cloudConsecutiveFailures, CircuitBreakerThreshold, CircuitBreakerCoolDown.TotalSeconds);
+                    }
+                    else
+                    {
+                        _logger.LogError(ex,
+                            "Frontier cloud provider call failed ({Failures}/{Threshold})",
+                            _cloudConsecutiveFailures, CircuitBreakerThreshold);
+                    }
+                }
             }
         }
+
+        _logger.LogError(
+            "All LLM providers exhausted (local available={Local}, cloud key present={Cloud}) — returning no-LLM fallback response",
+            await IsLocalAvailableAsync(ct), !string.IsNullOrEmpty(GetActiveCloudApiKey()));
 
         return new LlmExchange
         {
@@ -351,15 +394,33 @@ public sealed class HybridLlmEngine : ILlmEngine
         _ => Configuration.OpenAI.Model
     };
 
-    private string GetActiveCloudApiKey() => Configuration.ActiveCloudProvider switch
+    private string GetActiveCloudApiKey()
     {
-        CloudProviderType.Anthropic => Configuration.Anthropic.ApiKey,
-        CloudProviderType.Gemini => Configuration.Gemini.ApiKey,
-        CloudProviderType.Mistral => Configuration.Mistral.ApiKey,
-        CloudProviderType.xAI => Configuration.xAI.ApiKey,
-        CloudProviderType.Cohere => Configuration.Cohere.ApiKey,
-        _ => Configuration.OpenAI.ApiKey
-    };
+        // Priority: Windows Credential Manager → LlmConfiguration property → empty string.
+        // WCM keys are stored under "HCEP/<ProviderName>" and are never visible in
+        // process listings or environment dumps.
+        return Configuration.ActiveCloudProvider switch
+        {
+            CloudProviderType.Anthropic =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.Anthropic, "ANTHROPIC_API_KEY", _logger)
+                ?? Configuration.Anthropic.ApiKey,
+            CloudProviderType.Gemini =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.Gemini, "GEMINI_API_KEY", _logger)
+                ?? Configuration.Gemini.ApiKey,
+            CloudProviderType.Mistral =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.Mistral, "MISTRAL_API_KEY", _logger)
+                ?? Configuration.Mistral.ApiKey,
+            CloudProviderType.xAI =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.xAI, "XAI_API_KEY", _logger)
+                ?? Configuration.xAI.ApiKey,
+            CloudProviderType.Cohere =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.Cohere, "COHERE_API_KEY", _logger)
+                ?? Configuration.Cohere.ApiKey,
+            _ =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.OpenAI, "OPENAI_API_KEY", _logger)
+                ?? Configuration.OpenAI.ApiKey,
+        };
+    }
 
     // ── Local Engine Client Methods ──────────────────────────────
 

@@ -86,7 +86,7 @@ public static class PnPSolver
         for (int iter = 0; iter < maxIterations; iter++)
         {
             Matrix4x4 R = EulerToRotationMatrix(rot);
-            
+
             // Compute residuals
             float currentError = 0;
             for (int i = 0; i < n; i++)
@@ -99,6 +99,9 @@ public static class PnPSolver
 
             // Build Jacobian J (size: 2N x 6)
             // Parameters: 0:rx, 1:ry, 2:rz, 3:tx, 4:ty, 5:tz
+            // Finite-difference step size: 1e-3 radians (~0.057°) balances numerical
+            // precision against floating-point cancellation at 32-bit resolution.
+            // Smaller values produce cancellation; larger values reduce gradient accuracy.
             float eps = 1e-3f;
 
             for (int j = 0; j < 6; j++)

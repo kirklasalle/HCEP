@@ -81,7 +81,8 @@ public sealed class AudioPipeline : IAsyncDisposable
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Error flushing speech recognizer");
+            _logger.LogWarning(ex, "Failed to flush speech recognizer — pending results may be lost");
+            _telemetry.Increment("audio.flush_error");
         }
 
         _cts?.Cancel();

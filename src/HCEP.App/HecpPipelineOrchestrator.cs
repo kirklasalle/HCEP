@@ -88,7 +88,13 @@ public sealed partial class HCEPPipelineOrchestrator : IPipelineOrchestrator, IA
     // ── Auto-fallback: full-body → seated mode ──────────────
     private DateTimeOffset _lastPersonSeenAt = DateTimeOffset.MinValue;
     private bool _autoFellBackToSeated;
-    private const double AutoFallbackSeconds = 5.0;
+
+    /// <summary>
+    /// Seconds without a detected person before the pipeline auto-switches from full-body
+    /// to seated skeleton-tracking mode. Configurable at runtime.
+    /// Default: 5 seconds. Set to <see cref="double.MaxValue"/> to disable auto-fallback.
+    /// </summary>
+    public double AutoFallbackSeconds { get; set; } = 5.0;
 
     public HCEPPipelineOrchestrator(
         ISensorSource sensor,

@@ -27,9 +27,22 @@ namespace HCEP.Knowledge;
 
 /// <summary>
 /// Provides encryption-at-rest for HCEP sensitive data storage.
-/// Wraps Windows DPAPI for machine-scope encryption of knowledge store
+/// Wraps Windows DPAPI for CurrentUser-scope encryption of knowledge store
 /// and biometric embeddings. No explicit key management required — keys
-/// are derived from the Windows user account.
+/// are derived from the Windows user account credentials.
+///
+/// SECURITY SCOPE NOTE:
+/// DataProtectionScope.CurrentUser means any process running as the same
+/// Windows user account can decrypt this data if it knows the entropy value.
+/// The entropy string "HCEP-KnowledgeStore-v1" provides application-level
+/// isolation against accidental access but not against a determined attacker
+/// with code access.
+///
+/// UPGRADE PATH (future hardening):
+/// For stronger isolation, API keys should be stored in Windows Credential
+/// Manager (see <see cref="HCEP.Intelligence.WindowsCredentialStore"/>).
+/// Biometric embeddings should use a per-session AES-256-GCM key stored
+/// in Windows Credential Manager, rotated on each application start.
 /// </summary>
 public sealed class EncryptedStorageProvider
 {

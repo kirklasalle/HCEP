@@ -40,6 +40,16 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
             Microsoft.Extensions.Logging.Abstractions.NullLogger<EncryptedStorageProvider>.Instance);
     }
 
+    // ── Capacity limits ──────────────────────────────────────
+    /// <summary>Maximum number of distinct subjects tracked simultaneously.</summary>
+    public int MaxSubjects { get; set; } = 500;
+    /// <summary>Maximum number of (relation, object) triples stored per subject before evicting the oldest.</summary>
+    public int MaxTriplesPerSubject { get; set; } = 1000;
+
+    private const int MaxSubjectLength = 255;
+    private const int MaxRelationLength = 100;
+    private const int MaxObjectLength = 10_000;
+
     /// <inheritdoc />
     public int Count
     {
@@ -59,9 +69,30 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
         ArgumentException.ThrowIfNullOrWhiteSpace(relation);
         ArgumentException.ThrowIfNullOrWhiteSpace(obj);
 
+        if (subject.Length > MaxSubjectLength)
+            throw new ArgumentException($"Subject exceeds maximum length of {MaxSubjectLength} characters.", nameof(subject));
+        if (relation.Length > MaxRelationLength)
+            throw new ArgumentException($"Relation exceeds maximum length of {MaxRelationLength} characters.", nameof(relation));
+        if (obj.Length > MaxObjectLength)
+            throw new ArgumentException($"Object exceeds maximum length of {MaxObjectLength} characters.", nameof(obj));
+
+        if (_graph.Count >= MaxSubjects && !_graph.ContainsKey(subject))
+        {
+            _logger.LogWarning("Knowledge store subject limit ({Max}) reached — cannot add new subject '{Subject}'", MaxSubjects, subject);
+            return;
+        }
+
         var dict = _graph.GetOrAdd(subject, _ => new Dictionary<(string, string), DateTime>());
         lock (dict)
         {
+            // Evict oldest entry when per-subject limit is reached
+            if (!dict.ContainsKey((relation, obj)) && dict.Count >= MaxTriplesPerSubject)
+            {
+                var oldest = dict.MinBy(e => e.Value);
+                dict.Remove(oldest.Key);
+                _logger.LogTrace("Evicted oldest triple for '{Subject}' to stay within {Max}-triple limit", subject, MaxTriplesPerSubject);
+            }
+
             dict[(relation, obj)] = DateTime.UtcNow;
         }
 
@@ -74,13 +105,16 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
         if (!_graph.TryGetValue(subject, out var dict))
             return [];
 
+        List<(string Relation, string Object)> snapshot;
         lock (dict)
         {
-            return dict.Keys
-                .Where(t => t.Relation.Equals(relation, StringComparison.OrdinalIgnoreCase))
-                .Select(t => t.Object)
-                .ToList();
+            snapshot = [.. dict.Keys];
         }
+
+        return snapshot
+            .Where(t => t.Relation.Equals(relation, StringComparison.OrdinalIgnoreCase))
+            .Select(t => t.Object)
+            .ToList();
     }
 
     /// <inheritdoc />
@@ -91,7 +125,7 @@ public sealed class InMemoryKnowledgeStore : IKnowledgeStore
 
         lock (dict)
         {
-            return dict.Keys.ToList();
+            return [.. dict.Keys];
         }
     }
 
