@@ -45,4 +45,11 @@ public interface IAvatarComponent
 
     /// <summary>Returns the avatar to its neutral / resting pose.</summary>
     void ResetGaze();
+
+    /// <summary>
+    /// Triggers a single backchannel nod animation (~500 ms vertical head movement).
+    /// Phase 10 — called by <c>BackchannelController</c> when sustained human speech
+    /// is detected.  Safe to call from any thread; implementations dispatch internally.
+    /// </summary>
+    void TriggerNod();
 }

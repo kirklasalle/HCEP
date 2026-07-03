@@ -15,6 +15,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using HCEP.Core.Models;
+using HCEP.Spatial;
 
 namespace HCEP.App;
 
@@ -56,7 +57,11 @@ public partial class AvatarWindow : Window
     // ── TTS viseme subscription (Phase 13) ────────────────────────
     // Wired in Window_Loaded to HybridLlmEngine's TTS engine if available.
     private HCEP.Speech.HybridTtsEngine? _ttsEngine;
+    // ── Phase 9 — Head gesture classifier ─────────────────────────────
+    private readonly HeadGestureClassifier _gestureClassifier = new();
 
+    // ── Phase 10 — Backchannel engine ──────────────────────────────────
+    private readonly BackchannelController _backchannel = new();
     public AvatarWindow(HCEPPipelineOrchestrator orchestrator)
     {
         _orchestrator = orchestrator;
@@ -68,6 +73,7 @@ public partial class AvatarWindow : Window
         {
             _orchestrator.GazeVectorReady -= OnGazeVectorReady;
             _orchestrator.SnapshotReady -= OnSnapshotReady;
+            _backchannel.NodRequested -= OnBackchannelNodRequested;
             if (_ttsEngine is not null)
                 _ttsEngine.VisemeChanged -= OnVisemeChanged;
         };
@@ -93,6 +99,10 @@ public partial class AvatarWindow : Window
 
         _orchestrator.GazeVectorReady += OnGazeVectorReady;
         _orchestrator.SnapshotReady += OnSnapshotReady;
+
+        // ── Phase 9/10: gesture classifier + backchannel ──────────────────────
+        _gestureClassifier.GestureDetected += OnHeadGestureDetected;
+        _backchannel.NodRequested += OnBackchannelNodRequested;
 
         // ── Wire TTS viseme events for lip sync ───────────────────────
         // The TTS engine is exposed by the orchestrator when HCEP.Speech is wired in.
@@ -122,6 +132,35 @@ public partial class AvatarWindow : Window
             Avatar.SetViseme(viseme);
             Avatar3D.SetViseme(viseme);
         });
+    }
+
+    // ── Phase 9: head gesture handler ─────────────────────────────────────
+
+    private void OnHeadGestureDetected(HeadGestureType gesture)
+    {
+        // Called from the pipeline thread — route to UI for any future visual feedback.
+        // Currently logs the gesture; future work will map to expressive avatar states.
+        Dispatcher.BeginInvoke(() =>
+        {
+            // Optional: update a debug HUD label or fire an event for the MainViewModel.
+            // For now, a nod from the *user* can optionally trigger a reciprocal avatar nod.
+            if (gesture == HeadGestureType.Nod)
+                TriggerAvatarNod();
+        });
+    }
+
+    // ── Phase 10: backchannel nod handler ──────────────────────────────────
+
+    private void OnBackchannelNodRequested()
+    {
+        // BackchannelController fires from the pipeline thread — dispatch to UI.
+        Dispatcher.BeginInvoke(TriggerAvatarNod);
+    }
+
+    private void TriggerAvatarNod()
+    {
+        Avatar.TriggerNod();
+        Avatar3D.TriggerNod();
     }
 
     // ── Mode switch ────────────────────────────────────
@@ -212,15 +251,15 @@ public partial class AvatarWindow : Window
             Avatar3D.SetHeadPose(face.HeadRotation);
             Avatar.SetHeadPose(face.HeadRotation);
 
+            // ── Phase 9: feed head pose to gesture classifier ────────────────
+            _gestureClassifier.Update(
+                face.HeadRotation.X,
+                face.HeadRotation.Y,
+                face.HeadRotation.Z,
+                snapshot.PrimaryPerson?.DistanceM ?? 1.5f);
+
             // ── Eyebrow animation ──────────────────────────────────────────────
             // Extract AU3 (BrowLowerer) and AU5 (OuterBrowRaiser) from Kinect AUs.
-            // HCEP mode provides an autonomous furrow baseline that keeps the avatar
-            // expressively coherent even between tracked AU frames.
-            //   LOGIC  → slight analytical furrow (0.30)
-            //   THINK  → deeper processing furrow (0.50)
-            //   HEART  → inner empathy raise; no furrow
-            //   AFFECT → open/relaxed; trace raise
-            //   SPIRIT → soft open; minimal signals
             var aus = face.ActionUnits;
             float auRaise = aus.Length > (int)HCEP.Core.Enums.ActionUnit.OuterBrowRaiser
                 ? aus[(int)HCEP.Core.Enums.ActionUnit.OuterBrowRaiser] : 0f;
@@ -248,6 +287,13 @@ public partial class AvatarWindow : Window
             Avatar3D.SetBrows(blendedRaise, auLower, modeFurrow);
             Avatar.SetBrows(blendedRaise, auLower, modeFurrow);
         }
+        else if (face is not null && !face.IsTracked)
+        {
+            _gestureClassifier.Reset();
+        }
+
+        // ── Phase 10: feed snapshot to backchannel engine ────────────────────
+        _backchannel.OnSnapshot(snapshot);
 
         // 3D wireframe: push live neutral mesh or feature-point fallback
         if (!_is3DMode) return;

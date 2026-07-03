@@ -120,6 +120,7 @@ public partial class App : Application
                 services.AddSingleton<AgenticToolExecutor>();
                 services.AddHttpClient<HybridLlmEngine>();
                 services.AddSingleton<ILlmEngine, HybridLlmEngine>();
+                services.AddSingleton<HCEP.Intelligence.TimeContextProvider>();
 
                 // -- Pipeline Orchestrator ----------------------
                 services.AddSingleton<HCEPPipelineOrchestrator>();

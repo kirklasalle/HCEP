@@ -125,6 +125,12 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
     private double _visemeCompressSmoothed;
     private long _lastVisemeMs;
 
+    // ── Backchannel nod state (Phase 10) ──────────────────────
+    // A nod is a single 500 ms sin(π·t) vertical pulse on the whole face plane.
+    private long _nodStartMs = -1;
+    private const double NodDurationMs = 500.0;
+    private const double NodAmplitudePx = 9.0;
+
     // ── Public screen-coordinate properties ───────────────────
 
     public Point LeftEyeScreenPos { get; private set; }
@@ -430,6 +436,16 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
         // This ensures ALL face elements (face circle, eyelids, eyes, smile) move together
         // as a unified 2D plane. Individual animations (blink, pupil movement) still work
         // within this rotated/translated coordinate space.
+        // ── Backchannel nod: brief vertical face-plane pulse ─────────────────────────────
+        if (_nodStartMs >= 0)
+        {
+            double t = (Environment.TickCount64 - _nodStartMs) / NodDurationMs;
+            if (t <= 1.0)
+                unifiedPlaneTransform.Children.Add(new TranslateTransform(0, NodAmplitudePx * Math.Sin(Math.PI * t)));
+            else
+                _nodStartMs = -1;
+        }
+
         RootCanvas.RenderTransform = unifiedPlaneTransform;
 
         // ── Eye rendering (within rotated coordinate space) ────────────────────────────────
@@ -437,8 +453,9 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
         // The RootCanvas transform automatically applies to them
         // Pupil movement still happens within the eye socket in this rotated space
 
-        // Convergence (eyes angle inward based on distance)
-        double conv = EyeRadius * 0.18 * Clamp((1.2 - _userDistM) / 1.2, 0.0, 1.0);
+        // Biologically correct convergence: each eye rotates inward by atan(IOD/2 / userDist)
+        // where IOD = 65 mm. Scaled 2.5x for visible effect in canvas space.
+        double conv = EyeRadius * 2.5 * Math.Atan(0.0325 / Math.Max(0.25, _userDistM));
 
         // Pupil travel within socket
         const double Travel = 0.48;
@@ -667,6 +684,13 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
         _blinkState = BlinkState.Closing;
         _blinkStateStartMs = now;
     }
+
+    /// <summary>
+    /// Phase 10 — Triggers a single backchannel nod animation: a 500 ms
+    /// downward-then-upward sin(\u03c0\u00b7t) pulse of the entire face plane.
+    /// Thread-safe: the write is a 64-bit assignment which is atomic on x64.
+    /// </summary>
+    public void TriggerNod() => _nodStartMs = Environment.TickCount64;
 
     // ── Helpers ───────────────────────────────────────────────
 

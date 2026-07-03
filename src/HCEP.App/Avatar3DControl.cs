@@ -175,6 +175,12 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     private double _browFurrowSmoothed3D;
     private long _lastBrowTicks3D;
 
+    // ── Backchannel nod state (Phase 10) ────────────────────────────────────
+    // A nod adds a sin(π·t) pitch offset to headPitch for 500 ms.
+    private long _nodStartMs3D = -1;
+    private const double NodDuration3DMs = 500.0;
+    private const float NodAmplitudePitch3DRad = 0.14f; // ~8°
+
     // ── Construction ─────────────────────────────────────────────────────
     public Avatar3DControl()
     {
@@ -384,6 +390,16 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         InvalidateVisual();
     }
 
+    /// <summary>
+    /// Phase 10 — Triggers a single backchannel nod: a 500 ms sin(π·t) forward-pitch
+    /// pulse on the avatar head. Thread-safe; dispatches InvalidateVisual internally.
+    /// </summary>
+    public void TriggerNod()
+    {
+        _nodStartMs3D = Environment.TickCount64;
+        Dispatcher.BeginInvoke(InvalidateVisual);
+    }
+
     // ── Render ───────────────────────────────────────────────────
 
     protected override void OnRender(DrawingContext dc)
@@ -477,6 +493,16 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
             headYaw = _headYawRad + floatYaw;
             headPitch = _headPitchRad + floatPitch;
             headRoll = _headRollRad + floatRoll;
+        }
+
+        // ── Backchannel nod (Phase 10): add sin(π·t) pitch offset for 500 ms ─────────
+        if (_nodStartMs3D >= 0)
+        {
+            double nodT = (Environment.TickCount64 - _nodStartMs3D) / NodDuration3DMs;
+            if (nodT <= 1.0)
+                headPitch += NodAmplitudePitch3DRad * (float)Math.Sin(Math.PI * nodT);
+            else
+                _nodStartMs3D = -1;
         }
 
         double correctionYaw = Math.Clamp(headYaw - _bakedHeadYawRad, -Math.PI / 3, Math.PI / 3);
@@ -771,8 +797,9 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 double rTX = rHW * Travel, rTY = rHH * Travel;
                 double lTX = lHW * Travel, lTY = lHH * Travel;
 
-                // Binocular convergence: pupils angle inward as user leans closer.
-                double conv = rHW * 0.30 * Math.Clamp((1.2 - _gazeDistM) / 1.2, 0.0, 1.0);
+                // Binocular convergence: each eye rotates inward by atan(IOD/2 / userDist)
+                // where IOD = 65 mm. Scaled 2.5x for display visibility.
+                double conv = rHW * 2.5 * Math.Atan(0.0325 / Math.Max(0.25, _gazeDistM));
 
                 // Right pupil: yaw+ = look right → +X; pitch+ = look up → −Y.
                 // Convergence pulls right pupil LEFT (toward nose = −X).

@@ -27,11 +27,13 @@ public partial class SettingsWindow : Window
     private readonly HybridLlmEngine? _llmEngine;
     private readonly LlmConfiguration _configCopy;
     private CloudProviderType _currentSelectedCloudProvider;
+    private readonly TimeContextProvider? _contextProvider;
 
-    public SettingsWindow(ILlmEngine llmEngine)
+    public SettingsWindow(ILlmEngine llmEngine, TimeContextProvider contextProvider)
     {
         InitializeComponent();
         _llmEngine = llmEngine as HybridLlmEngine;
+        _contextProvider = contextProvider;
 
         // Create a deep copy of the configuration so we can discard edits on Cancel
         if (_llmEngine is not null)
@@ -66,6 +68,15 @@ public partial class SettingsWindow : Window
         EmuWeightSlider.Value = _configCopy.EmulationBlendWeight;
         DelaySlider.Value = _configCopy.ReflectionDelayMs;
         SyncBlinksCheck.IsChecked = _configCopy.SyncBlinksToUser;
+
+        // 4. Context (Phase 14)
+        if (_contextProvider is not null)
+        {
+            EnvironmentCombo.SelectedIndex = (int)_contextProvider.Environment;
+            ActivityCombo.SelectedIndex = (int)_contextProvider.Activity;
+            PrivacyCombo.SelectedIndex = (int)_contextProvider.Privacy;
+            LocationLabelText.Text = _contextProvider.UserDefinedLocation ?? string.Empty;
+        }
     }
 
     private void CloudProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -134,6 +145,16 @@ public partial class SettingsWindow : Window
         _configCopy.EmulationBlendWeight = (float)EmuWeightSlider.Value;
         _configCopy.ReflectionDelayMs = (int)DelaySlider.Value;
         _configCopy.SyncBlinksToUser = SyncBlinksCheck.IsChecked == true;
+
+        // Apply context settings (Phase 14)
+        if (_contextProvider is not null)
+        {
+            _contextProvider.Environment = (HCEP.Core.Models.EnvironmentType)EnvironmentCombo.SelectedIndex;
+            _contextProvider.Activity = (HCEP.Core.Models.SituationActivity)ActivityCombo.SelectedIndex;
+            _contextProvider.Privacy = (HCEP.Core.Models.SituationPrivacy)PrivacyCombo.SelectedIndex;
+            _contextProvider.UserDefinedLocation = LocationLabelText.Text.Trim().Length > 0
+                ? LocationLabelText.Text.Trim() : null;
+        }
 
         // Copy everything back to the engine
         CopyConfig(_configCopy, _llmEngine.Configuration);

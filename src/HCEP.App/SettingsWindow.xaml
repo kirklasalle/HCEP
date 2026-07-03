@@ -14,36 +14,55 @@
 
     <Window.Resources>
         <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Foreground"
+                    Value="{StaticResource TextBrush}"/>
+            <Setter Property="FontSize"
+                    Value="12"/>
+            <Setter Property="VerticalAlignment"
+                    Value="Center"/>
         </Style>
         <Style TargetType="TextBox">
-            <Setter Property="Background" Value="#252540"/>
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="5,3"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Background"
+                    Value="#252540"/>
+            <Setter Property="Foreground"
+                    Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush"
+                    Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderThickness"
+                    Value="1"/>
+            <Setter Property="Padding"
+                    Value="5,3"/>
+            <Setter Property="VerticalAlignment"
+                    Value="Center"/>
+            <Setter Property="FontSize"
+                    Value="12"/>
         </Style>
         <Style TargetType="ComboBox">
-            <Setter Property="Background" Value="#252540"/>
-            <Setter Property="Foreground" Value="Black"/>
-            <Setter Property="Padding" Value="5,3"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Background"
+                    Value="#252540"/>
+            <Setter Property="Foreground"
+                    Value="Black"/>
+            <Setter Property="Padding"
+                    Value="5,3"/>
+            <Setter Property="VerticalAlignment"
+                    Value="Center"/>
+            <Setter Property="FontSize"
+                    Value="12"/>
         </Style>
         <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
-            <Setter Property="VerticalAlignment" Value="Center"/>
-            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground"
+                    Value="{StaticResource TextBrush}"/>
+            <Setter Property="VerticalAlignment"
+                    Value="Center"/>
+            <Setter Property="FontSize"
+                    Value="12"/>
         </Style>
         <Style TargetType="TabItem">
             <Setter Property="HeaderTemplate">
                 <Setter.Value>
                     <DataTemplate>
-                        <ContentPresenter Content="{TemplateBinding Content}" Margin="10,5"/>
+                        <ContentPresenter Content="{TemplateBinding Content}"
+                                          Margin="10,5"/>
                     </DataTemplate>
                 </Setter.Value>
             </Setter>
@@ -70,10 +89,11 @@
                     Background="{StaticResource SurfaceBrush}"
                     BorderThickness="0"
                     Margin="0,0,0,15">
-            
+
             <!-- Local AI Engine Settings -->
             <TabItem Header="Local Engines">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="15">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Padding="15">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -91,35 +111,79 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- Selection -->
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Active Local Engine" FontWeight="Bold" Margin="0,5"/>
-                        <ComboBox Grid.Row="0" Grid.Column="1" x:Name="LocalEngineCombo" Margin="0,5">
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="0"
+                                   Text="Active Local Engine"
+                                   FontWeight="Bold"
+                                   Margin="0,5"/>
+                        <ComboBox Grid.Row="0"
+                                  Grid.Column="1"
+                                  x:Name="LocalEngineCombo"
+                                  Margin="0,5">
                             <ComboBoxItem Content="Ollama"/>
                             <ComboBoxItem Content="LlamaCpp"/>
                         </ComboBox>
 
                         <!-- Ollama Section -->
-                        <Border Grid.Row="1" Grid.ColumnSpan="2" BorderBrush="#3A3A5A" BorderThickness="0,0,0,1" Margin="0,15,0,10"/>
-                        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="Ollama Service Configurations" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,5"/>
+                        <Border Grid.Row="1"
+                                Grid.ColumnSpan="2"
+                                BorderBrush="#3A3A5A"
+                                BorderThickness="0,0,0,1"
+                                Margin="0,15,0,10"/>
+                        <TextBlock Grid.Row="2"
+                                   Grid.ColumnSpan="2"
+                                   Text="Ollama Service Configurations"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,5"/>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Ollama Base URL:" Margin="0,5"/>
-                        <TextBox Grid.Row="3" Grid.Column="1" x:Name="OllamaUrlText" Margin="0,5"/>
+                        <TextBlock Grid.Row="3"
+                                   Grid.Column="0"
+                                   Text="Ollama Base URL:"
+                                   Margin="0,5"/>
+                        <TextBox Grid.Row="3"
+                                 Grid.Column="1"
+                                 x:Name="OllamaUrlText"
+                                 Margin="0,5"/>
 
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Ollama Model:" Margin="0,5"/>
-                        <TextBox Grid.Row="4" Grid.Column="1" x:Name="OllamaModelText" Margin="0,5"/>
+                        <TextBlock Grid.Row="4"
+                                   Grid.Column="0"
+                                   Text="Ollama Model:"
+                                   Margin="0,5"/>
+                        <TextBox Grid.Row="4"
+                                 Grid.Column="1"
+                                 x:Name="OllamaModelText"
+                                 Margin="0,5"/>
 
                         <!-- LlamaCpp Section -->
-                        <Border Grid.Row="5" Grid.ColumnSpan="2" BorderBrush="#3A3A5A" BorderThickness="0,0,0,1" Margin="0,15,0,10"/>
-                        <TextBlock Grid.Row="6" Grid.ColumnSpan="2" Text="Llama.cpp Service Configurations" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,5"/>
+                        <Border Grid.Row="5"
+                                Grid.ColumnSpan="2"
+                                BorderBrush="#3A3A5A"
+                                BorderThickness="0,0,0,1"
+                                Margin="0,15,0,10"/>
+                        <TextBlock Grid.Row="6"
+                                   Grid.ColumnSpan="2"
+                                   Text="Llama.cpp Service Configurations"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,5"/>
 
-                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Llama.cpp Base URL:" Margin="0,5"/>
-                        <TextBox Grid.Row="7" Grid.Column="1" x:Name="LlamaCppUrlText" Margin="0,5"/>
+                        <TextBlock Grid.Row="7"
+                                   Grid.Column="0"
+                                   Text="Llama.cpp Base URL:"
+                                   Margin="0,5"/>
+                        <TextBox Grid.Row="7"
+                                 Grid.Column="1"
+                                 x:Name="LlamaCppUrlText"
+                                 Margin="0,5"/>
                     </Grid>
                 </ScrollViewer>
             </TabItem>
 
             <!-- Frontier Cloud Provider Settings -->
             <TabItem Header="Frontier Cloud">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="15">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Padding="15">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -136,8 +200,15 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- Selection -->
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Active Cloud Provider" FontWeight="Bold" Margin="0,5"/>
-                        <ComboBox Grid.Row="0" Grid.Column="1" x:Name="CloudProviderCombo" Margin="0,5">
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="0"
+                                   Text="Active Cloud Provider"
+                                   FontWeight="Bold"
+                                   Margin="0,5"/>
+                        <ComboBox Grid.Row="0"
+                                  Grid.Column="1"
+                                  x:Name="CloudProviderCombo"
+                                  Margin="0,5">
                             <ComboBoxItem Content="OpenAI"/>
                             <ComboBoxItem Content="Anthropic"/>
                             <ComboBoxItem Content="Gemini"/>
@@ -146,24 +217,53 @@
                             <ComboBoxItem Content="Cohere"/>
                         </ComboBox>
 
-                        <Border Grid.Row="1" Grid.ColumnSpan="2" BorderBrush="#3A3A5A" BorderThickness="0,0,0,1" Margin="0,15,0,10"/>
-                        <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="Active Provider Authentication &amp; Model" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,5"/>
+                        <Border Grid.Row="1"
+                                Grid.ColumnSpan="2"
+                                BorderBrush="#3A3A5A"
+                                BorderThickness="0,0,0,1"
+                                Margin="0,15,0,10"/>
+                        <TextBlock Grid.Row="2"
+                                   Grid.ColumnSpan="2"
+                                   Text="Active Provider Authentication &amp; Model"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,5"/>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Cloud Model Name:" Margin="0,5"/>
-                        <TextBox Grid.Row="3" Grid.Column="1" x:Name="CloudModelText" Margin="0,5"/>
+                        <TextBlock Grid.Row="3"
+                                   Grid.Column="0"
+                                   Text="Cloud Model Name:"
+                                   Margin="0,5"/>
+                        <TextBox Grid.Row="3"
+                                 Grid.Column="1"
+                                 x:Name="CloudModelText"
+                                 Margin="0,5"/>
 
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="API Key:" Margin="0,5"/>
-                        <TextBox Grid.Row="4" Grid.Column="1" x:Name="CloudApiKeyText" Margin="0,5"/>
+                        <TextBlock Grid.Row="4"
+                                   Grid.Column="0"
+                                   Text="API Key:"
+                                   Margin="0,5"/>
+                        <TextBox Grid.Row="4"
+                                 Grid.Column="1"
+                                 x:Name="CloudApiKeyText"
+                                 Margin="0,5"/>
 
-                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Custom Base URL:" Margin="0,5"/>
-                        <TextBox Grid.Row="5" Grid.Column="1" x:Name="CloudUrlText" Margin="0,5" ToolTip="Leave blank for provider default endpoint"/>
+                        <TextBlock Grid.Row="5"
+                                   Grid.Column="0"
+                                   Text="Custom Base URL:"
+                                   Margin="0,5"/>
+                        <TextBox Grid.Row="5"
+                                 Grid.Column="1"
+                                 x:Name="CloudUrlText"
+                                 Margin="0,5"
+                                 ToolTip="Leave blank for provider default endpoint"/>
                     </Grid>
                 </ScrollViewer>
             </TabItem>
 
             <!-- Happyface & Mirroring Settings -->
             <TabItem Header="Happyface / Emulation">
-                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="15">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Padding="15">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -179,37 +279,208 @@
                         </Grid.ColumnDefinitions>
 
                         <!-- Routing Rules -->
-                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Prefer Local Engines (SLM)" FontWeight="Bold" Margin="0,5"/>
-                        <CheckBox Grid.Row="0" Grid.Column="1" x:Name="PreferLocalCheck" Content="Route requests locally when possible" Margin="0,5"/>
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="0"
+                                   Text="Prefer Local Engines (SLM)"
+                                   FontWeight="Bold"
+                                   Margin="0,5"/>
+                        <CheckBox Grid.Row="0"
+                                  Grid.Column="1"
+                                  x:Name="PreferLocalCheck"
+                                  Content="Route requests locally when possible"
+                                  Margin="0,5"/>
 
-                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Enable Tool Use (Agentic)" FontWeight="Bold" Margin="0,5"/>
-                        <CheckBox Grid.Row="1" Grid.Column="1" x:Name="AgenticToolCheck" Content="Allow LLM to call local HCEP tools" Margin="0,5"/>
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="0"
+                                   Text="Enable Tool Use (Agentic)"
+                                   FontWeight="Bold"
+                                   Margin="0,5"/>
+                        <CheckBox Grid.Row="1"
+                                  Grid.Column="1"
+                                  x:Name="AgenticToolCheck"
+                                  Content="Allow LLM to call local HCEP tools"
+                                  Margin="0,5"/>
 
                         <!-- Emulation weight -->
-                        <Border Grid.Row="2" Grid.ColumnSpan="2" BorderBrush="#3A3A5A" BorderThickness="0,0,0,1" Margin="0,15,0,10"/>
-                        
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Somatic Emulation Weight" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,5"/>
-                        <Grid Grid.Row="3" Grid.Column="1" Margin="0,5">
+                        <Border Grid.Row="2"
+                                Grid.ColumnSpan="2"
+                                BorderBrush="#3A3A5A"
+                                BorderThickness="0,0,0,1"
+                                Margin="0,15,0,10"/>
+
+                        <TextBlock Grid.Row="3"
+                                   Grid.Column="0"
+                                   Text="Somatic Emulation Weight"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,5"/>
+                        <Grid Grid.Row="3"
+                              Grid.Column="1"
+                              Margin="0,5">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="40"/>
                             </Grid.ColumnDefinitions>
-                            <Slider Grid.Column="0" x:Name="EmuWeightSlider" Minimum="0" Maximum="1" TickFrequency="0.05" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding ElementName=EmuWeightSlider, Path=Value, StringFormat={}{0:F2}}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            <Slider Grid.Column="0"
+                                    x:Name="EmuWeightSlider"
+                                    Minimum="0"
+                                    Maximum="1"
+                                    TickFrequency="0.05"
+                                    IsSnapToTickEnabled="True"
+                                    VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding ElementName=EmuWeightSlider, Path=Value, StringFormat={}{0:F2}}"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center"/>
                         </Grid>
 
-                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Reflection Delay (ms)" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,5"/>
-                        <Grid Grid.Row="4" Grid.Column="1" Margin="0,5">
+                        <TextBlock Grid.Row="4"
+                                   Grid.Column="0"
+                                   Text="Reflection Delay (ms)"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,5"/>
+                        <Grid Grid.Row="4"
+                              Grid.Column="1"
+                              Margin="0,5">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="40"/>
                             </Grid.ColumnDefinitions>
-                            <Slider Grid.Column="0" x:Name="DelaySlider" Minimum="50" Maximum="1000" TickFrequency="25" IsSnapToTickEnabled="True" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding ElementName=DelaySlider, Path=Value, StringFormat={}{0:F0}}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                            <Slider Grid.Column="0"
+                                    x:Name="DelaySlider"
+                                    Minimum="50"
+                                    Maximum="1000"
+                                    TickFrequency="25"
+                                    IsSnapToTickEnabled="True"
+                                    VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding ElementName=DelaySlider, Path=Value, StringFormat={}{0:F0}}"
+                                       HorizontalAlignment="Right"
+                                       VerticalAlignment="Center"/>
                         </Grid>
 
-                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Somatic Blink Sync" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" Margin="0,5"/>
-                        <CheckBox Grid.Row="5" Grid.Column="1" x:Name="SyncBlinksCheck" Content="Synchronize Happyface eye blinks with user" Margin="0,5"/>
+                        <TextBlock Grid.Row="5"
+                                   Grid.Column="0"
+                                   Text="Somatic Blink Sync"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,5"/>
+                        <CheckBox Grid.Row="5"
+                                  Grid.Column="1"
+                                  x:Name="SyncBlinksCheck"
+                                  Content="Synchronize Happyface eye blinks with user"
+                                  Margin="0,5"/>
+                    </Grid>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ════════════════════════════════════════════════════════════ -->
+            <!--  Context tab — Phase 14 time/space/situation awareness      -->
+            <!-- ════════════════════════════════════════════════════════════ -->
+            <TabItem Header="Context">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Padding="12,8">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="160"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0"
+                                   Grid.Column="0"
+                                   Grid.ColumnSpan="2"
+                                   Text="Situational Context — informs LLM system prompt and silence protocol"
+                                   Foreground="#888"
+                                   FontStyle="Italic"
+                                   Margin="0,0,0,10"
+                                   TextWrapping="Wrap"/>
+
+                        <TextBlock Grid.Row="1"
+                                   Grid.Column="0"
+                                   Text="Environment"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,5"/>
+                        <ComboBox Grid.Row="1"
+                                  Grid.Column="1"
+                                  x:Name="EnvironmentCombo"
+                                  Margin="0,5"
+                                  Background="#252540"
+                                  Foreground="{StaticResource TextBrush}"
+                                  BorderBrush="{StaticResource AccentBrush}">
+                            <ComboBoxItem Content="Unknown"/>
+                            <ComboBoxItem Content="Bedroom"/>
+                            <ComboBoxItem Content="LivingRoom"/>
+                            <ComboBoxItem Content="Kitchen"/>
+                            <ComboBoxItem Content="Office"/>
+                            <ComboBoxItem Content="Laboratory"/>
+                            <ComboBoxItem Content="Studio"/>
+                            <ComboBoxItem Content="Outdoors"/>
+                            <ComboBoxItem Content="PublicSpace"/>
+                            <ComboBoxItem Content="Vehicle"/>
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="2"
+                                   Grid.Column="0"
+                                   Text="Activity"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,5"/>
+                        <ComboBox Grid.Row="2"
+                                  Grid.Column="1"
+                                  x:Name="ActivityCombo"
+                                  Margin="0,5"
+                                  Background="#252540"
+                                  Foreground="{StaticResource TextBrush}"
+                                  BorderBrush="{StaticResource AccentBrush}">
+                            <ComboBoxItem Content="Unknown"/>
+                            <ComboBoxItem Content="Working"/>
+                            <ComboBoxItem Content="Relaxing"/>
+                            <ComboBoxItem Content="Socializing"/>
+                            <ComboBoxItem Content="Creating"/>
+                            <ComboBoxItem Content="Learning"/>
+                            <ComboBoxItem Content="Exercising"/>
+                            <ComboBoxItem Content="Eating"/>
+                            <ComboBoxItem Content="Commuting"/>
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="3"
+                                   Grid.Column="0"
+                                   Text="Privacy"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,5"/>
+                        <ComboBox Grid.Row="3"
+                                  Grid.Column="1"
+                                  x:Name="PrivacyCombo"
+                                  Margin="0,5"
+                                  Background="#252540"
+                                  Foreground="{StaticResource TextBrush}"
+                                  BorderBrush="{StaticResource AccentBrush}">
+                            <ComboBoxItem Content="Private"/>
+                            <ComboBoxItem Content="SemiPrivate"/>
+                            <ComboBoxItem Content="Public"/>
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="4"
+                                   Grid.Column="0"
+                                   Text="Location Label"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,5"/>
+                        <TextBox Grid.Row="4"
+                                 Grid.Column="1"
+                                 x:Name="LocationLabelText"
+                                 Margin="0,5"
+                                 ToolTip="Optional friendly name for this location (e.g. 'Home Studio', 'University Lab')"/>
                     </Grid>
                 </ScrollViewer>
             </TabItem>
