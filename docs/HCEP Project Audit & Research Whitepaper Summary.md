@@ -1,4 +1,16 @@
 # HCEP Project Audit & Research Whitepaper Summary
+**Last Updated:** July 3, 2026 | **Version:** v1.2.0
+
+## Current Project State (July 2026)
+
+Since this audit was completed, HCEP has shipped:
+- **v1.0.0** (June 2026): Full pipeline, empirically validated (κ=0.8084, 84.55% accuracy), Plugin API, multi-language SDK
+- **v1.1.0** (July 2026): 21 security/reliability fixes — thread-safety, WCM key storage, circuit breaker, capacity limits
+- **v1.2.0** (July 2026): Full avatar expression (eyebrows + lip sync + contextual intelligence)
+
+All v0.2.0 recommendations from the original audit have been implemented. See `CHANGELOG.md` and `ROADMAP.md` for full details.
+
+---
 
 A comprehensive audit of the **Human Communication Eye Protocol (HCEP)** project and a publication-grade academic whitepaper have been compiled and generated. 
 
