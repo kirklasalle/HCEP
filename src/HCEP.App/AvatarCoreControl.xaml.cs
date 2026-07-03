@@ -131,6 +131,26 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
     private const double NodDurationMs = 500.0;
     private const double NodAmplitudePx = 9.0;
 
+    // ── Head tilt state (Phase 10) ─────────────────────────────
+    // A tilt is a 600 ms sin(π·t) roll on the whole face plane.
+    private long _tiltStartMs = -1;
+    private float _tiltRollDeg;
+    private const double TiltDurationMs = 600.0;
+
+    // ── Expression mirror state (Phase 10) ────────────────────
+    // Smile intensity from ExpressionMirror; 150ms EMA smoothing.
+    private float _smileTarget;
+    private double _smileSmoothed;
+
+    // ── Social gaze offset (Phase 10) ──────────────────────────
+    // Set by SocialGazeController; added to rotYaw/rotPitch in RenderEyes.
+    private float _socialGazeYaw;
+    private float _socialGazePitch;
+
+    // ── Proxemic state (Phase 10) ──────────────────────────────
+    // Pupil dilation (close distance) + subtle backward lean (far distance).
+    private float _proxemicDistM = 1.5f;
+
     // ── Public screen-coordinate properties ───────────────────
 
     public Point LeftEyeScreenPos { get; private set; }
@@ -240,6 +260,10 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
         _visemeSpreadSmoothed += (_visemeTarget.LipSpread - _visemeSpreadSmoothed) * alpha;
         _visemeCompressSmoothed += (_visemeTarget.LipCompressed - _visemeCompressSmoothed) * alpha;
 
+        // Phase 10 — smile EMA: 150ms time constant
+        double smileAlpha = 1.0 - Math.Exp(-dt / 0.150);
+        _smileSmoothed += (_smileTarget - _smileSmoothed) * smileAlpha;
+
         double jaw = _visemeJawSmoothed;
         double round = _visemeRoundSmoothed;
         double spread = _visemeSpreadSmoothed;
@@ -277,9 +301,12 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
         }
         else
         {
-            // Normal smile arc, shaped by spread/round
+            // Normal smile arc, shaped by spread/round + Phase 10 smile intensity.
+            // Baseline arc depth = arcRY; smile adds up to 12px extra depth.
+            double smileBoost = _smileSmoothed * 12.0;
+            double smileArcRY = Math.Clamp(arcRY + smileBoost, 8.0, 67.0);
             SmilePath.Data = Geometry.Parse(
-                $"M {outerX:F0},172 A {arcRX:F1},{arcRY:F1} 0 0 0 {innerX:F0},172");
+                $"M {outerX:F0},172 A {arcRX:F1},{smileArcRY:F1} 0 0 0 {innerX:F0},172");
         }
     }
 
@@ -372,16 +399,18 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
         double headPitch = gazeHeadPose.PitchRad;
 
         var (saccYaw, saccPitch) = UpdateSaccade();
-        double nYaw = Clamp(_normYaw + saccYaw, -1.0, 1.0);
-        double nPitch = Clamp(_normPitch + saccPitch, -1.0, 1.0);
 
-        double rotYaw = Math.Sin(nYaw * (Math.PI / 2.0));
-        double rotPitch = Math.Sin(nPitch * (Math.PI / 2.0));
+        // ── Phase 10: apply social gaze offset (triangle scanning / THINK aversion) ──
+        double totalNormYaw = Clamp(_normYaw + _socialGazeYaw + saccYaw, -1.0, 1.0);
+        double totalNormPitch = Clamp(_normPitch + _socialGazePitch + saccPitch, -1.0, 1.0);
+
+        double rotYaw = Math.Sin(totalNormYaw * (Math.PI / 2.0));
+        double rotPitch = Math.Sin(totalNormPitch * (Math.PI / 2.0));
 
         double blink = UpdateBlink();
-        ApplyEyelids(blink, nPitch);
-        ApplyBrows();    // AU-driven + HCEP mode autonomous brow animation
-        ApplyViseme();   // phoneme-accurate lip sync from TTS viseme events
+        ApplyEyelids(blink, totalNormPitch);
+        ApplyBrows();
+        ApplyViseme();
 
         // ── Apply 2D plane movement in 3D space ─────────────────────────────────────────
         // The happy face is a 2D plane that translates and rotates in 3D:
@@ -446,6 +475,22 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
                 _nodStartMs = -1;
         }
 
+        // ── Head tilt: brief roll pulse (Phase 10) ───────────────────────────────────
+        if (_tiltStartMs >= 0)
+        {
+            double t = (Environment.TickCount64 - _tiltStartMs) / TiltDurationMs;
+            if (t <= 1.0)
+            {
+                double tiltAngle = _tiltRollDeg * Math.Sin(Math.PI * t);
+                unifiedPlaneTransform.Children.Add(
+                    new RotateTransform(tiltAngle, 95.0, 100.0)); // centre of face
+            }
+            else
+            {
+                _tiltStartMs = -1;
+            }
+        }
+
         RootCanvas.RenderTransform = unifiedPlaneTransform;
 
         // ── Eye rendering (within rotated coordinate space) ────────────────────────────────
@@ -482,7 +527,8 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
         var drawing = new DrawingGroup();
         using (var dc = drawing.Open())
         {
-            DrawEyeSphere(dc, cx, cy, radius, rotYaw, rotPitch);
+            double proxemicDilate = 1.0 + Math.Clamp(0.6 - _proxemicDistM, 0.0, 0.35) * 0.62;
+            DrawEyeSphere(dc, cx, cy, radius, rotYaw, rotPitch, proxemicDilate);
         }
         drawing.Freeze();
 
@@ -503,7 +549,7 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
     /// </summary>
     private static void DrawEyeSphere(
         DrawingContext dc, double cx, double cy, double radius,
-        double rotYaw, double rotPitch)
+        double rotYaw, double rotPitch, double proxemicDilate = 1.0)
     {
         // 1. Sclera
         var scleraGradient = new RadialGradientBrush
@@ -525,7 +571,8 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
 
         // 2. Iris
         double irisR = radius * 0.50;
-        double pupilR = radius * 0.25;
+        // Phase 10 proxemic response: dilate pupil at close distances (<0.6 m).
+        double pupilR = radius * 0.25 * proxemicDilate;
         double maxTravel = radius * 0.42;
         double irisOffX = rotYaw * maxTravel;
         double irisOffY = -rotPitch * maxTravel;
@@ -691,6 +738,40 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
     /// Thread-safe: the write is a 64-bit assignment which is atomic on x64.
     /// </summary>
     public void TriggerNod() => _nodStartMs = Environment.TickCount64;
+
+    /// <summary>
+    /// Phase 10 — Triggers a brief head-tilt roll animation (600 ms).
+    /// Thread-safe: all field writes are atomic on x64.
+    /// </summary>
+    public void TriggerTilt(float rollDeg = 6f)
+    {
+        _tiltRollDeg = rollDeg;
+        _tiltStartMs = Environment.TickCount64;
+    }
+
+    /// <summary>
+    /// Phase 10 — Expression Mirror: sets the avatar smile target intensity [0..1].
+    /// Thread-safe: float write is atomic on x64.
+    /// </summary>
+    public void SetSmile(float intensity) =>
+        _smileTarget = Math.Clamp(intensity, 0f, 1f);
+
+    /// <summary>
+    /// Phase 10 — Social Gaze Controller: applies gaze offset (radians).
+    /// Thread-safe: float writes are atomic on x64.
+    /// </summary>
+    public void SetSocialGazeOffset(float yawRad, float pitchRad)
+    {
+        _socialGazeYaw = yawRad;
+        _socialGazePitch = pitchRad;
+    }
+
+    /// <summary>
+    /// Phase 10 — Proxemic Response: updates user distance for pupil dilation.
+    /// Thread-safe: float write is atomic on x64.
+    /// </summary>
+    public void SetProxemicDistance(float distanceM) =>
+        _proxemicDistM = Math.Max(0.1f, distanceM);
 
     // ── Helpers ───────────────────────────────────────────────
 

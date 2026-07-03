@@ -52,4 +52,35 @@ public interface IAvatarComponent
     /// is detected.  Safe to call from any thread; implementations dispatch internally.
     /// </summary>
     void TriggerNod();
+
+    /// <summary>
+    /// Phase 10 — Triggers a brief head-tilt animation (~600 ms).
+    /// A positive <paramref name="rollDeg"/> tilts the head toward the right ear
+    /// (curiosity / interest posture per Chovil 1991).
+    /// Safe to call from any thread.
+    /// </summary>
+    void TriggerTilt(float rollDeg = 6f);
+
+    /// <summary>
+    /// Phase 10 — Expression Mirror: drives avatar smile intensity.
+    /// <paramref name="intensity"/> 0 = neutral mouth, 1 = full engaged smile.
+    /// Smoothed internally at 150ms EMA; safe to call at any frequency.
+    /// </summary>
+    void SetSmile(float intensity);
+
+    /// <summary>
+    /// Phase 10 — Social Gaze Pattern Controller: applies an offset to the current
+    /// computed gaze direction.  Used by <c>SocialGazeController</c> to generate
+    /// authentic social-triangle scanning.
+    /// Positive <paramref name="yawRad"/> shifts gaze right; positive
+    /// <paramref name="pitchRad"/> shifts gaze up.
+    /// </summary>
+    void SetSocialGazeOffset(float yawRad, float pitchRad);
+
+    /// <summary>
+    /// Phase 10 — Proxemic response: informs the avatar of the user's distance in metres.
+    /// Drives pupil dilation (closer → larger pupils, simulating sympathetic arousal)
+    /// and, at very far distances, a subtle head lean-back.
+    /// </summary>
+    void SetProxemicDistance(float distanceM);
 }

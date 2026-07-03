@@ -167,6 +167,7 @@ public sealed partial class HCEPPipelineOrchestrator
                         Face = latestFace,
                         CalibratedGazeDirection = calibratedGaze,
                         AvatarIkTarget = avatarIkTarget,
+                        Torso = _torsoAnalyzer.Analyze(latestSkel),
                     };
 
                     // Knowledge Store integration (M1.2)

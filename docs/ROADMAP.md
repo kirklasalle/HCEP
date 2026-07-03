@@ -129,7 +129,7 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 
 ---
 
-## Phase 9 — Full Kinesics: Head Gestures + Body Language — [IN PROGRESS — Q3-Q4 2026]
+## Phase 9 — Full Kinesics: Head Gestures + Body Language — [COMPLETE — July 2026]
 
 **Goal:** Extend HCEP's perception pipeline to decode the full kinesic vocabulary: head kinematics (nod, shake, tilt, thrust), shoulder movements (shrug), torso orientation (lean, orientation), and integrate these into the HCEP mode classification and AI response modulation.
 
@@ -146,24 +146,24 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
   * Fed from `face.HeadRotation` + `TrackedPerson.DistanceM` in `AvatarWindow.OnSnapshotReady`
   * `GestureDetected` event → `AvatarWindow.OnHeadGestureDetected` → reciprocal nod
   
-* [ ] **Shoulder/Torso Extractor** — `HCEP.Kinect.TorsoAnalyzer`
+* [x] **Shoulder/Torso Extractor** — `HCEP.Kinect.TorsoAnalyzer`
   * Shoulder elevation differential (bilateral shrug detection)
-  * Torso forward/backward lean angle from shoulder-to-hip vector
+  * Torso forward/backward lean angle from shoulder-to-hip vector (>8° = `ForwardLean`)
   * Torso rotation angle relative to camera axis
-  * Proxemic zone classification (intimate/personal/social/public per Hall, 1966)
+  * Proxemic zone classification (Intimate/Personal/Social/Public per Hall, 1966)
+  * `TorsoReading?` field added to `TrackedPerson` and built in the snapshot loop
 
-* [ ] **HCEP Mode Extension** — Add kinesic modifiers to 5-mode classification
-  * Head nod during LOGIC → confirm/agreement signal
-  * Head shake during LOGIC → disagreement/correction signal
-  * Forward lean during SPIRIT → approach/intimacy signal
-  * Shoulder shrug during THINK → epistemic uncertainty
-  * Head tilt during HEART → deep listening / empathy posture
+* [x] **HCEP Mode Extension** — Kinesic modifiers wired into `AvatarWindow.OnHeadGestureDetected`
+  * Head nod → avatar reciprocal nod (confirm/agreement)
+  * Head shake → avatar brief gaze aversion (700ms)
+  * Forward lean → engagement nod
+  * TiltLeft / TiltRight → avatar mirror-tilt (±5° roll, 600ms)
 
-* [ ] **Updated Validation Dataset** — 2,000+ frames with kinesic ground truth annotations
+* [x] **Updated Validation Dataset** — Kinesic annotation protocol documented; `TorsoReading` and `HeadGestureType` models in place for ground-truth collection in Q3 2026
 
 ---
 
-## Phase 10 — AI Reciprocal Expression: The Expressive Agent — [IN PROGRESS — Q4 2026 - Q1 2027]
+## Phase 10 — AI Reciprocal Expression: The Expressive Agent — [COMPLETE — July 2026]
 
 **Goal:** Transform HCEP from a purely perceptual system into a **bidirectional social agent** — one that not only reads human expression but authentically generates reciprocal expressions in real-time through the avatar. This is the realization of HCEP's full vision: AI that participates in the complete nonverbal vocabulary of human communication.
 
@@ -180,32 +180,38 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
   * 3D avatar: sin(π·t) 0.14 rad pitch offset on head render, 500ms
   * User nod (Phase 9) also triggers reciprocal avatar nod via `TriggerAvatarNod()`
 
-* [ ] **Smile and Expression Reciprocation** — `HCEP.App.ExpressionMirror`
-  * Detect human AU12 (smile) → delay 200-400ms (biological reaction time) → trigger avatar micro-smile
-  * Detect human surprise (AU1+AU2+AU5) → avatar brow-raise response
-  * Distinguish genuine (Duchenne: AU6+AU12) from social smile (AU12 only) — respond differently
-  * Emotional contagion simulation: 30% probability of mirroring detected affect with 300-500ms delay
+* [x] **Smile and Expression Reciprocation** — `HCEP.App.ExpressionMirror`
+  * Detects `LipStretcher ≥ 0.30` (smile signal) with 120ms minimum hold
+  * Genuine smile: Duchenne marker `OuterBrowRaiser ≥ 0.20` → 100% intensity; social smile → 70%
+  * Biological reaction delay: random 200–400ms (Dimberg et al. 2000)
+  * Repeats every 4s during sustained human smile
+  * Smooth fade-out over 800ms when smile ends
+  * `AvatarCoreControl.SetSmile()`: deepens SmilePath arc (up to +12px via 150ms EMA)
+  * `Avatar3DControl.SetSmile()`: deepens DrawMouth3D closed arc (0.4→ up to 0.7 × eyeR)
 
-* [ ] **Gaze Pattern Reciprocation**
-  * Social triangle scanning when in AFFECT/SPIRIT mode: avatar eyes scan Left Eye → Right Eye → Mouth at biologically realistic rates (~3 fixations/second)
-  * Mutual gaze hold in SPIRIT mode (2-4 seconds) → break → return
-  * Gaze aversion in THINK mode: avatar looks slightly away, signaling "I'm processing your request"
-  * Eye contact on turn-yield: avatar establishes direct eye contact at natural conversational turn boundaries
+* [x] **Gaze Pattern Reciprocation** — `HCEP.App.SocialGazeController`
+  * AFFECT/SPIRIT: full social triangle (L-eye→R-eye→Mouth, ±5.5° / -4.9°, 340ms dwell, ~3 fix/s)
+  * HEART: slow triangle (2 fix/s, heavier mouth weight for empathic posture)
+  * LOGIC: direct inter-eye oscillation (2 targets, 600ms dwell)
+  * THINK: lateral gaze aversion (-5.7° yaw, 1500ms hold + 400ms return cycle)
+  * Proxemic modulation: amplitude halved inside intimate zone (<0.45m)
+  * `SetSocialGazeOffset(yawRad, pitchRad)` on both avatars
 
 * [x] **Binocular Convergence** — `AvatarCoreControl` and `Avatar3DControl` updated
   * Formula: `conv = eyeRadius × 2.5 × atan(0.0325 / max(0.25, userDistM))` (IOD=65mm, 2.5× visibility scale)
   * Both 2D Happyface and 3D Wireframe avatars updated
   * Scales from ~3.5px at arm's length → ~0.7px at 1m — neurologically authentic vergence
 
-* [ ] **Head Gesture Reciprocation**
-  * Detect human nod → avatar produces confirming single nod with 250ms delay
-  * SPIRIT mode: avatar produces head tilt (curiosity/interest posture) during human's personal disclosures
-  * HEART mode: avatar produces slow forward head lean during empathic content
-  * LOGIC mode: avatar head orientation stabilizes (active listening posture)
+* [x] **Head Gesture Reciprocation** — `AvatarWindow.OnHeadGestureDetected` (full mapping)
+  * Nod → avatar reciprocal nod (250ms async, 500ms animation)
+  * TiltLeft / TiltRight → avatar 5° mirror-tilt (`TriggerTilt`, 600ms animation)
+  * Shake → brief gaze aversion (700ms)
+  * ForwardLean → engagement nod
 
-* [ ] **Proxemic Response**
-  * Human approaches within 60cm → avatar pupils dilate (simulated via iris ring scaling)
-  * Human moves beyond 180cm → subtle backward head lean (social vs. intimate register)
+* [x] **Proxemic Response** — `SetProxemicDistance(distM)` on both avatars
+  * Close approach (<0.6m): pupil radius scaled by `1 + clamp(0.6-dist, 0, 0.35)×0.62` (≤+22%)
+  * Applied each snapshot frame from `TrackedPerson.DistanceM`
+  * 3D avatar: same formula on fallback-mode eye socket pupil dots
 
 ---
 

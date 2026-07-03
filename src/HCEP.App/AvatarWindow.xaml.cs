@@ -62,7 +62,11 @@ public partial class AvatarWindow : Window
 
     // ── Phase 10 — Backchannel engine ──────────────────────────────────
     private readonly BackchannelController _backchannel = new();
-    public AvatarWindow(HCEPPipelineOrchestrator orchestrator)
+    // ── Phase 10 — Expression Mirror (smile reciprocation) ────────────────────
+    private readonly ExpressionMirror _expressionMirror = new();
+
+    // ── Phase 10 — Social Gaze Controller (triangle scanning) ─────────────────
+    private readonly SocialGazeController _socialGaze = new(); public AvatarWindow(HCEPPipelineOrchestrator orchestrator)
     {
         _orchestrator = orchestrator;
         InitializeComponent();
@@ -74,6 +78,8 @@ public partial class AvatarWindow : Window
             _orchestrator.GazeVectorReady -= OnGazeVectorReady;
             _orchestrator.SnapshotReady -= OnSnapshotReady;
             _backchannel.NodRequested -= OnBackchannelNodRequested;
+            _expressionMirror.SmileRequested -= OnSmileRequested;
+            _socialGaze.GazeOffsetChanged -= OnSocialGazeOffsetChanged;
             if (_ttsEngine is not null)
                 _ttsEngine.VisemeChanged -= OnVisemeChanged;
         };
@@ -103,6 +109,8 @@ public partial class AvatarWindow : Window
         // ── Phase 9/10: gesture classifier + backchannel ──────────────────────
         _gestureClassifier.GestureDetected += OnHeadGestureDetected;
         _backchannel.NodRequested += OnBackchannelNodRequested;
+        _expressionMirror.SmileRequested += OnSmileRequested;
+        _socialGaze.GazeOffsetChanged += OnSocialGazeOffsetChanged;
 
         // ── Wire TTS viseme events for lip sync ───────────────────────
         // The TTS engine is exposed by the orchestrator when HCEP.Speech is wired in.
@@ -138,14 +146,41 @@ public partial class AvatarWindow : Window
 
     private void OnHeadGestureDetected(HeadGestureType gesture)
     {
-        // Called from the pipeline thread — route to UI for any future visual feedback.
-        // Currently logs the gesture; future work will map to expressive avatar states.
+        // Called from the pipeline thread — route to UI for avatar controls.
         Dispatcher.BeginInvoke(() =>
         {
-            // Optional: update a debug HUD label or fire an event for the MainViewModel.
-            // For now, a nod from the *user* can optionally trigger a reciprocal avatar nod.
-            if (gesture == HeadGestureType.Nod)
-                TriggerAvatarNod();
+            switch (gesture)
+            {
+                case HeadGestureType.Nod:
+                    // Phase 10: reciprocal nod
+                    TriggerAvatarNod();
+                    break;
+                case HeadGestureType.TiltLeft:
+                    // Phase 10: curiosity/interest posture — mirror the tilt
+                    Avatar.TriggerTilt(-5f);
+                    Avatar3D.TriggerTilt(-5f);
+                    break;
+                case HeadGestureType.TiltRight:
+                    Avatar.TriggerTilt(5f);
+                    Avatar3D.TriggerTilt(5f);
+                    break;
+                case HeadGestureType.Shake:
+                    // Phase 10: brief look-away (gaze aversion) in response to head-shake
+                    Avatar.SetSocialGazeOffset(-0.12f, 0.005f);
+                    Avatar3D.SetSocialGazeOffset(-0.12f, 0.005f);
+                    // Clear the aversion after 700ms
+                    Dispatcher.BeginInvoke(async () =>
+                    {
+                        await System.Threading.Tasks.Task.Delay(700);
+                        Avatar.SetSocialGazeOffset(0f, 0f);
+                        Avatar3D.SetSocialGazeOffset(0f, 0f);
+                    });
+                    break;
+                case HeadGestureType.ForwardLean:
+                    // Phase 10: lean in → subtle forward engagement nod
+                    TriggerAvatarNod();
+                    break;
+            }
         });
     }
 
@@ -161,6 +196,30 @@ public partial class AvatarWindow : Window
     {
         Avatar.TriggerNod();
         Avatar3D.TriggerNod();
+    }
+
+    // ── Phase 10: expression mirror handler ────────────────────────────────
+
+    private void OnSmileRequested(float intensity)
+    {
+        // ExpressionMirror fires from the pipeline thread — dispatch to UI.
+        Dispatcher.BeginInvoke(() =>
+        {
+            Avatar.SetSmile(intensity);
+            Avatar3D.SetSmile(intensity);
+        });
+    }
+
+    // ── Phase 10: social gaze handler ──────────────────────────────────────
+
+    private void OnSocialGazeOffsetChanged(float yawRad, float pitchRad)
+    {
+        // SocialGazeController fires from the pipeline thread — dispatch to UI.
+        Dispatcher.BeginInvoke(() =>
+        {
+            Avatar.SetSocialGazeOffset(yawRad, pitchRad);
+            Avatar3D.SetSocialGazeOffset(yawRad, pitchRad);
+        });
     }
 
     // ── Mode switch ────────────────────────────────────
@@ -294,6 +353,21 @@ public partial class AvatarWindow : Window
 
         // ── Phase 10: feed snapshot to backchannel engine ────────────────────
         _backchannel.OnSnapshot(snapshot);
+
+        // ── Phase 10: feed snapshot to expression mirror ─────────────────────
+        _expressionMirror.OnSnapshot(snapshot);
+
+        // ── Phase 10: update social gaze + proxemic state ────────────────────
+        var hcepMode = snapshot.PrimaryPerson?.LatestHcep?.Mode ?? HCEP.Core.Enums.HcepMode.Unknown;
+        float distM = snapshot.PrimaryPerson?.DistanceM ?? 1.5f;
+        _socialGaze.Update(hcepMode, distM);
+
+        // Push proxemic distance to both avatars
+        Dispatcher.BeginInvoke(() =>
+        {
+            Avatar.SetProxemicDistance(distM);
+            Avatar3D.SetProxemicDistance(distM);
+        });
 
         // 3D wireframe: push live neutral mesh or feature-point fallback
         if (!_is3DMode) return;

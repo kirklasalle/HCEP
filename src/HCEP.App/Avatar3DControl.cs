@@ -181,6 +181,23 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     private const double NodDuration3DMs = 500.0;
     private const float NodAmplitudePitch3DRad = 0.14f; // ~8°
 
+    // ── Head tilt state (Phase 10) ───────────────────────────────────────────
+    private long _tiltStartMs3D = -1;
+    private float _tiltRollRad3D;
+    private const double TiltDuration3DMs = 600.0;
+
+    // ── Expression mirror state (Phase 10) ──────────────────────────────────
+    private float _smileTarget3D;
+    private double _smileSmoothed3D;
+    private long _lastSmileTicks3D;
+
+    // ── Social gaze offset (Phase 10) ────────────────────────────────────────
+    private float _socialGazeYaw3D;
+    private float _socialGazePitch3D;
+
+    // ── Proxemic state (Phase 10) ─────────────────────────────────────────────
+    private float _proxemicDistM3D = 1.5f;
+
     // ── Construction ─────────────────────────────────────────────────────
     public Avatar3DControl()
     {
@@ -400,6 +417,29 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         Dispatcher.BeginInvoke(InvalidateVisual);
     }
 
+    /// <summary>Phase 10 — Triggers a brief 600 ms head-tilt roll animation.</summary>
+    public void TriggerTilt(float rollDeg = 6f)
+    {
+        _tiltRollRad3D = rollDeg * (MathF.PI / 180f);
+        _tiltStartMs3D = Environment.TickCount64;
+        Dispatcher.BeginInvoke(InvalidateVisual);
+    }
+
+    /// <summary>Phase 10 — Expression Mirror: sets the avatar smile target [0..1].</summary>
+    public void SetSmile(float intensity) =>
+        _smileTarget3D = Math.Clamp(intensity, 0f, 1f);
+
+    /// <summary>Phase 10 — Social Gaze Controller: applies gaze offset (radians).</summary>
+    public void SetSocialGazeOffset(float yawRad, float pitchRad)
+    {
+        _socialGazeYaw3D = yawRad;
+        _socialGazePitch3D = pitchRad;
+    }
+
+    /// <summary>Phase 10 — Proxemic Response: updates user distance for pupil dilation.</summary>
+    public void SetProxemicDistance(float distanceM) =>
+        _proxemicDistM3D = Math.Max(0.1f, distanceM);
+
     // ── Render ───────────────────────────────────────────────────
 
     protected override void OnRender(DrawingContext dc)
@@ -503,6 +543,16 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 headPitch += NodAmplitudePitch3DRad * (float)Math.Sin(Math.PI * nodT);
             else
                 _nodStartMs3D = -1;
+        }
+
+        // ── Head tilt (Phase 10): add sin(π·t) roll offset for 600 ms ─────────────────
+        if (_tiltStartMs3D >= 0)
+        {
+            double tiltT = (Environment.TickCount64 - _tiltStartMs3D) / TiltDuration3DMs;
+            if (tiltT <= 1.0)
+                headRoll += _tiltRollRad3D * (float)Math.Sin(Math.PI * tiltT);
+            else
+                _tiltStartMs3D = -1;
         }
 
         double correctionYaw = Math.Clamp(headYaw - _bakedHeadYawRad, -Math.PI / 3, Math.PI / 3);
@@ -672,8 +722,8 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
             double normPitch = Math.Clamp(eyeRelativePitch, -MaxGazeAngle, MaxGazeAngle) / MaxGazeAngle;
 
             var (saccYaw, saccPitch) = UpdateSaccade();
-            normYaw = Math.Clamp(normYaw + saccYaw, -1.0, 1.0);
-            normPitch = Math.Clamp(normPitch + saccPitch, -1.0, 1.0);
+            normYaw = Math.Clamp(normYaw + saccYaw + _socialGazeYaw3D, -1.0, 1.0);
+            normPitch = Math.Clamp(normPitch + saccPitch + _socialGazePitch3D, -1.0, 1.0);
 
             double rotYaw = Math.Sin(normYaw * (Math.PI / 2.0));
             double rotPitch = Math.Sin(normPitch * (Math.PI / 2.0));
@@ -712,7 +762,12 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
             _visemeJaw3D += (_visemeTarget3D.JawOpen - _visemeJaw3D) * visAlpha;
             _visemeRound3D += (_visemeTarget3D.LipRound - _visemeRound3D) * visAlpha;
 
-            DrawMouth3D(dc, leftAnchor, rightAnchor, eyeR, _visemeJaw3D, _visemeRound3D);
+            // Phase 10 smile smoothing (150ms EMA)
+            double smileAlpha3D = 1.0 - Math.Exp(-visDt / 0.150);
+            _smileSmoothed3D += (_smileTarget3D - _smileSmoothed3D) * smileAlpha3D;
+            _lastSmileTicks3D = visNow;
+
+            DrawMouth3D(dc, leftAnchor, rightAnchor, eyeR, _visemeJaw3D, _visemeRound3D, _smileSmoothed3D);
 
             _leftEyeLocalPt = leftAnchor;
             _rightEyeLocalPt = rightAnchor;
@@ -788,8 +843,8 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 
                 // Micro-saccade: reuse the same engine for fallback mode.
                 var (saccYawFb, saccPitchFb) = UpdateSaccade();
-                normYaw = Math.Clamp(normYaw + saccYawFb, -1.0, 1.0);
-                normPitch = Math.Clamp(normPitch + saccPitchFb, -1.0, 1.0);
+                normYaw = Math.Clamp(normYaw + saccYawFb + _socialGazeYaw3D, -1.0, 1.0);
+                normPitch = Math.Clamp(normPitch + saccPitchFb + _socialGazePitch3D, -1.0, 1.0);
 
                 // Travel = fraction of socket half-span pupils move for full-angle gaze.
                 // 0.65 keeps the dot clearly inside the socket at extremes.
@@ -810,7 +865,9 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 double lpy = lcy - normPitch * lTY;
 
                 // Pupil visual radius: ~28% of socket half-width, minimum 4px.
-                double pr = Math.Max(Math.Min(rHW, lHW) * 0.28, 4.0);
+                // Phase 10 proxemic dilation: enlarge at close distances (<0.6m).
+                double proxemicDilate3D = 1.0 + Math.Clamp(0.6 - _proxemicDistM3D, 0.0, 0.35) * 0.62;
+                double pr = Math.Max(Math.Min(rHW, lHW) * 0.28 * proxemicDilate3D, 4.0);
 
                 // ── Eyeball sphere radius for fallback mode ──
                 double eyeR = Math.Max(Math.Min(rHW, lHW) * 0.70, 6.0);
@@ -889,7 +946,7 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     /// </summary>
     private static void DrawMouth3D(
         DrawingContext dc, Point leftAnchor, Point rightAnchor,
-        double eyeR, double jawOpen, double lipRound)
+        double eyeR, double jawOpen, double lipRound, double smileIntensity = 0.0)
     {
         // Mouth centre = midpoint between eye sockets
         double mouthCX = (leftAnchor.X + rightAnchor.X) / 2.0;
@@ -905,13 +962,15 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 
         if (jawOpen < 0.05)
         {
-            // Closed / near-closed: draw the smile arc only
+            // Closed / near-closed: draw the smile arc.
+            // Phase 10: smile deepens the arc (0.4 → up to 0.7 × eyeR).
+            double smileDepth = 0.4 + smileIntensity * 0.30;
             var smileGeo = new StreamGeometry();
             using (var ctx = smileGeo.Open())
             {
                 ctx.BeginFigure(new Point(mouthCX - halfW, upperY), false, false);
                 ctx.QuadraticBezierTo(
-                    new Point(mouthCX, upperY + eyeR * 0.4),
+                    new Point(mouthCX, upperY + eyeR * smileDepth),
                     new Point(mouthCX + halfW, upperY), true, false);
             }
             smileGeo.Freeze();

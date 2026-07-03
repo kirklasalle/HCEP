@@ -58,6 +58,7 @@ public sealed partial class HCEPPipelineOrchestrator : IPipelineOrchestrator, IA
     private volatile SkeletonFrame? _latestSkeleton;
     private volatile FaceFrame? _latestFace;
     private volatile HcepReading? _latestHcep;
+    private readonly HCEP.Kinect.TorsoAnalyzer _torsoAnalyzer = new();
     private readonly FpsCounter _hcepFpsCounter = new();
     private long _faceFrameCount;
     private long _skelFrameCount;

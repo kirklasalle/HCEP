@@ -98,4 +98,10 @@ public sealed record TrackedPerson
     /// <see cref="Vector3.Zero"/> when gaze data is unavailable.
     /// </summary>
     public Vector3 CalibratedGazeDirection { get; init; }
+
+    /// <summary>
+    /// Phase 9 — Torso / body-language analysis from the Kinect skeleton.
+    /// <c>null</c> when skeleton joints are unavailable or below tracking threshold.
+    /// </summary>
+    public TorsoReading? Torso { get; init; }
 }
