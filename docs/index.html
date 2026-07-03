@@ -1,702 +1,813 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HCEP — Human Communication Eye Protocol SDK</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-primary: #0b0f19;
-            --bg-secondary: #161f30;
-            --accent: #6366f1;
-            --accent-glow: rgba(99, 102, 241, 0.15);
-            --text-primary: #f3f4f6;
-            --text-secondary: #9ca3af;
-            --success: #10b981;
-            --border-color: rgba(255, 255, 255, 0.08);
-            --font-display: 'Outfit', sans-serif;
-            --font-sans: 'Inter', sans-serif;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            font-family: var(--font-sans);
-            line-height: 1.6;
-            overflow-x: hidden;
-        }
-
-        .gradient-bg {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 600px;
-            background: radial-gradient(circle at 50% -20%, rgba(99, 102, 241, 0.25) 0%, rgba(11, 15, 25, 0) 70%);
-            z-index: -1;
-            pointer-events: none;
-        }
-
-        header {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-family: var(--font-display);
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: -0.025em;
-            background: linear-gradient(135deg, #a78bfa, #6366f1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .logo-dot {
-            width: 8px;
-            height: 8px;
-            background-color: var(--accent);
-            border-radius: 50%;
-            box-shadow: 0 0 12px var(--accent);
-        }
-
-        nav a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 0.95rem;
-            margin-left: 2rem;
-            transition: color 0.2s;
-            font-weight: 500;
-        }
-
-        nav a:hover {
-            color: var(--text-primary);
-        }
-
-        main {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem 6rem;
-        }
-
-        .hero {
-            text-align: center;
-            padding: 3rem 0 5rem;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-
-        .badge {
-            background-color: rgba(99, 102, 241, 0.1);
-            border: 1px solid rgba(99, 102, 241, 0.2);
-            color: #a5b4fc;
-            padding: 0.35rem 1rem;
-            border-radius: 9999px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            display: inline-block;
-            margin-bottom: 1.5rem;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-        }
-
-        h1 {
-            font-family: var(--font-display);
-            font-size: 3.5rem;
-            line-height: 1.15;
-            font-weight: 700;
-            letter-spacing: -0.03em;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(to right, #ffffff, #d1d5db);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .hero p {
-            font-size: 1.2rem;
-            color: var(--text-secondary);
-            margin-bottom: 2.5rem;
-            font-weight: 300;
-        }
-
-        .cta-group {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 0.8rem 1.8rem;
-            border-radius: 8px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s;
-            font-size: 0.95rem;
-        }
-
-        .btn-primary {
-            background-color: var(--accent);
-            color: white;
-            box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
-        }
-
-        .btn-secondary {
-            background-color: rgba(255, 255, 255, 0.05);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            background-color: rgba(255, 255, 255, 0.08);
-            transform: translateY(-2px);
-        }
-
-        /* Interactive Simulator */
-        .simulator-section {
-            background-color: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 3rem;
-            margin-bottom: 5rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .simulator-grid {
-            display: grid;
-            grid-template-columns: 1.2fr 1fr;
-            gap: 3rem;
-            align-items: center;
-        }
-
-        .sim-visualizer {
-            background-color: #0b0f19;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 1.5rem;
-            text-align: center;
-            position: relative;
-        }
-
-        canvas {
-            background-color: #05070d;
-            border-radius: 8px;
-            display: block;
-            margin: 0 auto;
-            max-width: 100%;
-            cursor: crosshair;
-        }
-
-        .sim-info h3 {
-            font-family: var(--font-display);
-            font-size: 2rem;
-            margin-bottom: 1rem;
-        }
-
-        .sim-info p {
-            color: var(--text-secondary);
-            margin-bottom: 2rem;
-            font-size: 1rem;
-        }
-
-        .toggle-group {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-            background-color: rgba(255, 255, 255, 0.05);
-            padding: 0.25rem;
-            border-radius: 8px;
-            width: fit-content;
-        }
-
-        .toggle-btn {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.85rem;
-            transition: all 0.2s;
-        }
-
-        .toggle-btn.active {
-            background-color: var(--accent);
-            color: white;
-        }
-
-        .sim-stats {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            background: rgba(255, 255, 255, 0.02);
-            padding: 1rem;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.04);
-        }
-
-        .stat-item {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .stat-value {
-            font-size: 1.25rem;
-            font-weight: 700;
-            font-family: var(--font-display);
-            color: var(--success);
-        }
-
-        /* Features */
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 2rem;
-            margin-bottom: 5rem;
-        }
-
-        .feature-card {
-            background-color: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--border-color);
-            padding: 2rem;
-            border-radius: 12px;
-            transition: all 0.3s;
-        }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-            background-color: rgba(255, 255, 255, 0.04);
-            border-color: rgba(99, 102, 241, 0.3);
-        }
-
-        .feature-icon {
-            width: 48px;
-            height: 48px;
-            background-color: var(--accent-glow);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-            color: var(--accent);
-            font-size: 1.25rem;
-            font-weight: bold;
-        }
-
-        .feature-card h3 {
-            font-family: var(--font-display);
-            font-size: 1.3rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .feature-card p {
-            color: var(--text-secondary);
-            font-size: 0.95rem;
-        }
-
-        /* Code Showcase */
-        .code-section {
-            margin-bottom: 5rem;
-        }
-
-        .code-section h2 {
-            font-family: var(--font-display);
-            font-size: 2.2rem;
-            text-align: center;
-            margin-bottom: 2.5rem;
-        }
-
-        .code-tabs {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .code-tab {
-            background: none;
-            border: 1px solid var(--border-color);
-            color: var(--text-secondary);
-            padding: 0.6rem 1.2rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .code-tab.active {
-            background-color: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
-
-        .code-container {
-            background-color: #05070d;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1.5rem;
-            position: relative;
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 0.9rem;
-            overflow-x: auto;
-            max-height: 450px;
-        }
-
-        pre {
-            color: #d1d5db;
-        }
-
-        .keyword { color: #f472b6; }
-        .type { color: #60a5fa; }
-        .string { color: #34d399; }
-        .comment { color: #6b7280; }
-
-        footer {
-            border-top: 1px solid var(--border-color);
-            padding: 3rem 1.5rem;
-            text-align: center;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-        }
-
-        @media (max-width: 768px) {
-            .simulator-grid {
-                grid-template-columns: 1fr;
-            }
-            h1 {
-                font-size: 2.5rem;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HCEP — Human Communication Eye Protocol | True Gaze™ SDK</title>
+  <meta name="description" content="HCEP is the world's first 5-mode cognitive-emotional gaze analysis framework. Validated κ=0.8084. Phase 9/10 Reciprocal AI expression. 20+ LLM providers. Kinect v1 + webcam.">
+  <meta name="keywords" content="eye tracking, gaze analysis, cognitive state, HCEP, True Gaze, LLM, MCP, avatar, Kinect, biometric AI, emotional intelligence, social AI">
+  <meta name="author" content="Kirk LaSalle">
+  <meta property="og:title" content="HCEP — Human Communication Eye Protocol">
+  <meta property="og:description" content="The first AI framework that reads human presence at the biological level — gaze, gesture, expression, voice, and silence.">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #0b0f19;
+      --bg2:     #131a28;
+      --bgc:     #181f30;
+      --acc:     #6366f1;
+      --accg:    rgba(99,102,241,.14);
+      --cy:      #06b6d4;
+      --cyg:     rgba(6,182,212,.12);
+      --gr:      #10b981;
+      --grg:     rgba(16,185,129,.12);
+      --or:      #f59e0b;
+      --re:      #ef4444;
+      --tp:      #f3f4f6;
+      --ts:      #9ca3af;
+      --td:      #6b7280;
+      --bo:      rgba(255,255,255,.07);
+      --ba:      rgba(99,102,241,.25);
+      --fd:      'Outfit',sans-serif;
+      --fs:      'Inter',sans-serif;
+      --fm:      'JetBrains Mono',monospace;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--tp);font-family:var(--fs);line-height:1.65;overflow-x:hidden}
+    .glow{position:fixed;top:0;left:0;right:0;height:100vh;
+      background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(99,102,241,.18) 0%,transparent 70%),
+                 radial-gradient(ellipse 40% 30% at 90% 20%, rgba(6,182,212,.07)  0%,transparent 60%);
+      z-index:-1;pointer-events:none}
+    /* NAV */
+    .nav{position:sticky;top:0;z-index:100;background:rgba(11,15,25,.88);backdrop-filter:blur(14px);border-bottom:1px solid var(--bo)}
+    .nav-i{max-width:1280px;margin:0 auto;padding:0 1.5rem;height:60px;display:flex;align-items:center;justify-content:space-between}
+    .logo{font-family:var(--fd);font-size:1.35rem;font-weight:800;
+      background:linear-gradient(135deg,#a78bfa,#6366f1,#06b6d4);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+      display:flex;align-items:center;gap:.5rem;text-decoration:none}
+    .lp{width:8px;height:8px;border-radius:50%;background:var(--cy);box-shadow:0 0 10px var(--cy);animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.35)}}
+    nav{display:flex;gap:.2rem;align-items:center}
+    nav a{color:var(--ts);text-decoration:none;font-size:.875rem;font-weight:500;padding:.4rem .75rem;border-radius:6px;transition:all .2s}
+    nav a:hover{color:var(--tp);background:rgba(255,255,255,.05)}
+    .na{background:var(--acc);color:#fff !important;padding:.42rem 1rem !important;box-shadow:0 2px 10px rgba(99,102,241,.4)}
+    .na:hover{background:#5052d0 !important}
+    /* LAYOUT */
+    .w{max-width:1280px;margin:0 auto;padding:0 1.5rem}
+    section{padding:5rem 0}
+    .div{height:1px;background:linear-gradient(90deg,transparent,var(--bo),transparent);margin:0 1.5rem}
+    /* HERO */
+    .hero{text-align:center;padding:5rem 0 4rem}
+    .badge{display:inline-flex;align-items:center;gap:.4rem;
+      background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.25);color:#a5b4fc;
+      padding:.3rem .9rem;border-radius:9999px;font-size:.78rem;font-weight:700;
+      letter-spacing:.06em;text-transform:uppercase;margin-bottom:1.5rem}
+    .bd{width:6px;height:6px;border-radius:50%;background:var(--gr);box-shadow:0 0 6px var(--gr)}
+    h1{font-family:var(--fd);font-size:clamp(2.4rem,5vw,4rem);font-weight:800;
+       line-height:1.1;letter-spacing:-.03em;margin-bottom:1.25rem}
+    .hg{background:linear-gradient(135deg,#fff 0%,#c4b5fd 50%,#67e8f9 100%);
+       -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+    .hs{font-size:1.15rem;color:var(--ts);max-width:680px;margin:0 auto 2.5rem;line-height:1.7}
+    .ctas{display:flex;justify-content:center;gap:.75rem;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;gap:.4rem;padding:.75rem 1.75rem;border-radius:8px;
+         font-weight:600;font-size:.95rem;text-decoration:none;transition:all .2s;cursor:pointer;border:none}
+    .bp{background:var(--acc);color:#fff;box-shadow:0 4px 16px rgba(99,102,241,.4)}
+    .bp:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(99,102,241,.6)}
+    .bs{background:rgba(255,255,255,.05);color:var(--tp);border:1px solid var(--bo)}
+    .bs:hover{background:rgba(255,255,255,.09);transform:translateY(-2px)}
+    .bc{background:rgba(6,182,212,.1);color:var(--cy);border:1px solid rgba(6,182,212,.25)}
+    .bc:hover{background:rgba(6,182,212,.18);transform:translateY(-2px)}
+    /* STATS */
+    .stats{background:var(--bg2);border:1px solid var(--bo);border-radius:16px;
+           padding:1.75rem 2.5rem;display:grid;grid-template-columns:repeat(6,1fr);
+           gap:1rem;text-align:center;margin:0 0 4rem}
+    .si{display:flex;flex-direction:column;align-items:center;gap:.25rem}
+    .sn{font-family:var(--fd);font-size:1.8rem;font-weight:800}
+    .sl{font-size:.7rem;color:var(--td);text-transform:uppercase;letter-spacing:.07em;line-height:1.3}
+    .sg{color:var(--gr)}.sc{color:var(--cy)}.si2{color:#a78bfa}.so{color:var(--or)}
+    /* SECTION HEADER */
+    .sh{text-align:center;margin-bottom:3rem}
+    .st{font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cy);margin-bottom:.75rem}
+    h2{font-family:var(--fd);font-size:clamp(1.8rem,3vw,2.5rem);font-weight:700;letter-spacing:-.02em;margin-bottom:.75rem}
+    .ss{font-size:1rem;color:var(--ts);max-width:580px;margin:0 auto}
+    /* SIMULATOR */
+    .simw{background:var(--bg2);border:1px solid var(--bo);border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+    .simh{padding:1.25rem 1.75rem;border-bottom:1px solid var(--bo);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.75rem}
+    .simti{font-family:var(--fd);font-size:1rem;font-weight:700}
+    .stabs{display:flex;gap:.25rem;flex-wrap:wrap}
+    .stab{background:none;border:1px solid var(--bo);color:var(--ts);padding:.35rem .85rem;
+          border-radius:6px;cursor:pointer;font-size:.78rem;font-weight:600;transition:all .2s}
+    .stab.act{background:var(--acc);color:#fff;border-color:var(--acc)}
+    .simb{display:grid;grid-template-columns:1fr 360px;gap:0}
+    .simcw{padding:1.5rem;border-right:1px solid var(--bo);display:flex;flex-direction:column;align-items:center}
+    canvas{border-radius:10px;background:#05070d;display:block;max-width:100%;cursor:crosshair}
+    .ch{font-size:.72rem;color:var(--td);margin-top:.75rem}
+    .simp{padding:1.5rem;display:flex;flex-direction:column;gap:1.1rem}
+    .mdisp{background:rgba(255,255,255,.03);border:1px solid var(--bo);border-radius:10px;padding:.9rem}
+    .ml{font-size:.68rem;color:var(--td);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.35rem}
+    .mv{font-family:var(--fd);font-size:1.5rem;font-weight:800;transition:color .4s}
+    .mb{height:4px;border-radius:2px;margin-top:.45rem;transition:width .6s,background .4s}
+    .mg{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+    .mx{background:rgba(255,255,255,.03);border:1px solid var(--bo);border-radius:8px;padding:.7rem}
+    .mx .l{font-size:.65rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em}
+    .mx .v{font-family:var(--fm);font-size:.95rem;font-weight:700;margin-top:.12rem}
+    .cr{display:flex;gap:.5rem}
+    .cb{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--bo);color:var(--ts);
+        padding:.45rem;border-radius:6px;cursor:pointer;font-size:.73rem;font-weight:600;transition:all .2s}
+    .cb.act{background:var(--accg);border-color:var(--ba);color:#a5b4fc}
+    .rl{display:flex;flex-wrap:wrap;gap:.35rem}
+    .rt{font-size:.68rem;font-weight:600;padding:.18rem .5rem;border-radius:4px;
+        border:1px solid var(--bo);color:var(--td);transition:all .3s}
+    .rt.act{border-color:var(--cy);color:var(--cy);background:var(--cyg)}
+    /* PIPELINE */
+    .pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:0;position:relative}
+    .pipe::after{content:'';position:absolute;top:40px;left:12.5%;right:12.5%;height:2px;
+      background:linear-gradient(90deg,var(--acc),var(--cy));z-index:0}
+    .ps{text-align:center;padding:0 1rem;position:relative;z-index:1}
+    .pic{width:80px;height:80px;border-radius:50%;background:var(--bgc);
+         border:2px solid var(--ba);display:flex;align-items:center;justify-content:center;
+         margin:0 auto 1.25rem;font-size:1.75rem;box-shadow:0 0 20px var(--accg)}
+    .pn{position:absolute;top:0;right:50%;transform:translate(50%,-50%);
+        background:var(--acc);color:#fff;width:22px;height:22px;border-radius:50%;
+        font-size:.68rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+    .ps h4{font-family:var(--fd);font-size:1rem;font-weight:700;margin-bottom:.5rem}
+    .ps p{font-size:.83rem;color:var(--ts);line-height:1.5}
+    /* FEATURES */
+    .fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.4rem}
+    .fc{background:var(--bgc);border:1px solid var(--bo);border-radius:14px;padding:1.65rem;transition:all .3s;position:relative;overflow:hidden}
+    .fc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+      background:linear-gradient(90deg,transparent,var(--acc),transparent);opacity:0;transition:opacity .3s}
+    .fc:hover{transform:translateY(-5px);border-color:var(--ba)}
+    .fc:hover::before{opacity:1}
+    .fi{width:44px;height:44px;border-radius:10px;background:var(--accg);border:1px solid var(--ba);
+        display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:1.1rem}
+    .fic{background:var(--cyg);border-color:rgba(6,182,212,.25)}
+    .fig{background:var(--grg);border-color:rgba(16,185,129,.25)}
+    .fp{font-size:.64rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--td);margin-bottom:.35rem}
+    .fc h3{font-family:var(--fd);font-size:1.05rem;font-weight:700;margin-bottom:.45rem}
+    .fc p{font-size:.855rem;color:var(--ts);line-height:1.6}
+    .fb{display:inline-block;margin-top:.7rem;font-size:.67rem;font-weight:700;
+        text-transform:uppercase;letter-spacing:.05em;padding:.18rem .52rem;border-radius:4px}
+    .fbg{background:var(--grg);color:var(--gr);border:1px solid rgba(16,185,129,.25)}
+    .fbc{background:var(--cyg);color:var(--cy);border:1px solid rgba(6,182,212,.25)}
+    .fbi{background:var(--accg);color:#a5b4fc;border:1px solid rgba(99,102,241,.25)}
+    /* VIDEOS */
+    .vg{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:1.4rem}
+    .vc{background:var(--bgc);border:1px solid var(--bo);border-radius:14px;overflow:hidden;transition:all .3s}
+    .vc:hover{border-color:var(--ba);transform:translateY(-4px)}
+    .ve{position:relative;padding-bottom:56.25%;height:0}
+    .ve iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
+    .vm{padding:1rem 1.2rem}
+    .vm h4{font-family:var(--fd);font-size:.95rem;font-weight:700;margin-bottom:.25rem}
+    .vm p{font-size:.8rem;color:var(--ts)}
+    .cl{display:inline-flex;align-items:center;gap:.5rem;
+        background:rgba(255,0,0,.1);border:1px solid rgba(255,0,0,.25);color:#fca5a5;
+        padding:.5rem 1.1rem;border-radius:8px;text-decoration:none;font-size:.875rem;
+        font-weight:600;transition:all .2s;margin-top:2rem}
+    .cl:hover{background:rgba(255,0,0,.18);transform:translateY(-2px)}
+    /* ROADMAP */
+    .rr{display:flex;gap:.7rem;overflow-x:auto;padding-bottom:1rem;
+        scrollbar-width:thin;scrollbar-color:var(--bo) transparent}
+    .ri{flex:0 0 auto;min-width:162px;background:var(--bgc);border:1px solid var(--bo);
+        border-radius:10px;padding:.9rem 1.1rem;transition:all .2s}
+    .ri.d{border-color:rgba(16,185,129,.25)}
+    .ri.d:hover{border-color:rgba(16,185,129,.5)}
+    .ri.p{opacity:.55}
+    .rp{font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--td);margin-bottom:.22rem}
+    .rt2{font-family:var(--fd);font-size:.85rem;font-weight:700;margin-bottom:.38rem}
+    .rs{font-size:.67rem;font-weight:700;text-transform:uppercase;padding:.14rem .38rem;border-radius:3px}
+    .rs.d{background:var(--grg);color:var(--gr)}
+    .rs.p{background:rgba(107,114,128,.15);color:var(--td)}
+    /* CODE */
+    .ctr{display:flex;gap:.45rem;flex-wrap:wrap;margin-bottom:1rem}
+    .ct{background:none;border:1px solid var(--bo);color:var(--ts);padding:.42rem .95rem;
+        border-radius:7px;cursor:pointer;font-size:.8rem;font-weight:600;transition:all .2s;font-family:var(--fs)}
+    .ct.act{background:var(--acc);color:#fff;border-color:var(--acc)}
+    .cb2{background:#05070d;border:1px solid var(--bo);border-radius:12px;padding:1.4rem;
+         overflow-x:auto;font-family:var(--fm);font-size:.83rem;line-height:1.7;max-height:430px;overflow-y:auto}
+    .cb2 pre{color:#d1d5db;white-space:pre}
+    .kw{color:#f472b6}.ty{color:#60a5fa}.st{color:#34d399}.co{color:#4b5563}.nm{color:#fbbf24}.fn{color:#c084fc}
+    /* SCIENCE */
+    .scg{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:1.1rem}
+    .scc{background:var(--bgc);border:1px solid var(--bo);border-radius:10px;padding:1.1rem}
+    .sca{font-size:.68rem;color:var(--td);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.28rem}
+    .scf{font-size:.865rem;color:var(--tp);font-weight:500;line-height:1.5}
+    .sci{font-size:.78rem;color:var(--ts);margin-top:.38rem}
+    /* FAQ */
+    .fql{display:flex;flex-direction:column;gap:.7rem;max-width:820px;margin:0 auto}
+    .fqi{background:var(--bgc);border:1px solid var(--bo);border-radius:10px;overflow:hidden}
+    .fqq{width:100%;text-align:left;background:none;border:none;cursor:pointer;
+         padding:1.05rem 1.4rem;display:flex;justify-content:space-between;align-items:center;
+         color:var(--tp);font-family:var(--fs);font-size:.93rem;font-weight:600;transition:background .2s}
+    .fqq:hover{background:rgba(255,255,255,.03)}
+    .fqq .ar{color:var(--td);font-size:1.1rem;transition:transform .3s}
+    .fqq.op .ar{transform:rotate(180deg);color:var(--cy)}
+    .fqa{display:none;padding:0 1.4rem 1.05rem;font-size:.89rem;color:var(--ts);line-height:1.72;border-top:1px solid var(--bo)}
+    .fqa.op{display:block}
+    .fqa a{color:var(--cy);text-decoration:none}
+    .fqa a:hover{text-decoration:underline}
+    code{font-family:var(--fm);font-size:.82em;color:var(--cy);background:rgba(6,182,212,.08);padding:.1em .35em;border-radius:3px}
+    /* FOOTER */
+    footer{border-top:1px solid var(--bo);background:var(--bg2);padding:3rem 1.5rem}
+    .fi2{max-width:1280px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:3rem}
+    .fb2 p{font-size:.875rem;color:var(--ts);margin-top:.75rem;max-width:280px;line-height:1.6}
+    .fc2 h5{font-family:var(--fd);font-size:.82rem;font-weight:700;margin-bottom:.8rem;color:var(--tp);text-transform:uppercase;letter-spacing:.07em}
+    .fc2 a{display:block;color:var(--ts);text-decoration:none;font-size:.83rem;margin-bottom:.45rem;transition:color .2s}
+    .fc2 a:hover{color:var(--tp)}
+    .fbot{max-width:1280px;margin:2rem auto 0;padding-top:1.4rem;border-top:1px solid var(--bo);
+          display:flex;justify-content:space-between;align-items:center;font-size:.78rem;color:var(--td);flex-wrap:wrap;gap:.5rem}
+    /* RESPONSIVE */
+    @media(max-width:960px){.stats{grid-template-columns:repeat(3,1fr)}.simb{grid-template-columns:1fr}.pipe{grid-template-columns:repeat(2,1fr);gap:2rem}.pipe::after{display:none}.fi2{grid-template-columns:1fr 1fr;gap:2rem}}
+    @media(max-width:600px){.stats{grid-template-columns:repeat(2,1fr)}.ctas{flex-direction:column;align-items:center}nav{display:none}.fi2{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
-    <div class="gradient-bg"></div>
-    <header>
-        <div class="logo">
-            <div class="logo-dot"></div>
-            HCEP SDK
+<div class="glow"></div>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-i">
+    <a href="#" class="logo"><div class="lp"></div>HCEP SDK</a>
+    <nav>
+      <a href="#sim">Simulator</a>
+      <a href="#pipe">Pipeline</a>
+      <a href="#feat">Features</a>
+      <a href="#vid">Videos</a>
+      <a href="#code">SDK</a>
+      <a href="#sci">Science</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/kirklasalle/HCEP" class="na">GitHub ↗</a>
+    </nav>
+  </div>
+</div>
+
+<!-- HERO -->
+<div class="w">
+<section class="hero">
+  <div class="badge"><div class="bd"></div>v1.2.0 — Phase 9 &amp; 10 Complete</div>
+  <h1><span class="hg">The AI That Reads<br>Human Presence</span></h1>
+  <p class="hs">HCEP is the world's first framework to classify cognitive-emotional state from multi-modal biometric streams in real time — gaze, head gesture, body language, expression, voice, and context — validated at <strong style="color:#a5b4fc">κ&nbsp;=&nbsp;0.8084</strong>, wired to 20+ frontier LLM providers.</p>
+  <div class="ctas">
+    <a href="#sim" class="btn bp">▶ Live Simulator</a>
+    <a href="https://github.com/kirklasalle/HCEP" class="btn bs">⚙ View Source</a>
+    <a href="#vid" class="btn bc">▷ Watch Videos</a>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="si"><span class="sn sg">0.8084</span><span class="sl">Cohen's κ<br>Validation Score</span></div>
+  <div class="si"><span class="sn sg">84.55%</span><span class="sl">Classification<br>Accuracy</span></div>
+  <div class="si"><span class="sn sc">&lt;50ms</span><span class="sl">Pipeline<br>Latency</span></div>
+  <div class="si"><span class="sn si2">193</span><span class="sl">Tests<br>All Passing</span></div>
+  <div class="si"><span class="sn so">20+</span><span class="sl">LLM Providers<br>Supported</span></div>
+  <div class="si"><span class="sn" style="color:#f472b6">12</span><span class="sl">Source Projects<br>in Solution</span></div>
+</div>
+</div>
+
+<!-- SIMULATOR -->
+<div class="w" id="sim">
+<section>
+  <div class="sh"><div class="st">Interactive Demo</div><h2>Experience HCEP Live</h2><p class="ss">Three interactive simulations: True Gaze™ parallax physics, the 5-mode cognitive classifier, and Phase 10 Social Gaze engine.</p></div>
+  <div class="simw">
+    <div class="simh">
+      <span class="simti">HCEP True Gaze™ Simulator v1.2</span>
+      <div class="stabs">
+        <button class="stab act" onclick="swS('pg',this)">Parallax Correction</button>
+        <button class="stab" onclick="swS('mo',this)">5-Mode Classifier</button>
+        <button class="stab" onclick="swS('sg',this)">Social Gaze Engine</button>
+      </div>
+    </div>
+
+    <!-- SIM 1: Parallax -->
+    <div id="s-pg" class="simb">
+      <div class="simcw">
+        <canvas id="pgC" width="460" height="330"></canvas>
+        <p class="ch">Move mouse to simulate off-axis face position and observe True Gaze™ correction.</p>
+      </div>
+      <div class="simp">
+        <div class="mdisp">
+          <div class="ml">True Gaze™ Mode</div>
+          <div class="mv" id="pgM" style="color:var(--gr);font-size:1.05rem">Parallax Correction Active</div>
+          <div class="mb" id="pgB" style="width:95%;background:var(--gr)"></div>
         </div>
-        <nav>
-            <a href="#simulator">Interactive Demo</a>
-            <a href="#features">Features</a>
-            <a href="#code">SDK Reference</a>
-        </nav>
-    </header>
+        <div class="mg">
+          <div class="mx"><div class="l">Gaze Error</div><div class="v" id="gE" style="color:var(--gr)">0.4°</div></div>
+          <div class="mx"><div class="l">Off-Axis Δ</div><div class="v" id="tO" style="color:var(--cy)">0.12mm</div></div>
+          <div class="mx"><div class="l">Socket Δ</div><div class="v" id="sD" style="color:#a78bfa">±2px</div></div>
+          <div class="mx"><div class="l">Depth Est.</div><div class="v" id="dE" style="color:var(--or)">0.82m</div></div>
+        </div>
+        <div class="cr">
+          <button id="pgON" class="cb act" onclick="setP(true)">✓ Correction ON</button>
+          <button id="pgOF" class="cb"     onclick="setP(false)">✗ Raw Coords</button>
+        </div>
+        <p style="font-size:.76rem;color:var(--td);line-height:1.55">
+          <strong style="color:var(--ts)">True Gaze™</strong> computes pupil offset relative to the eye-socket in 3D camera space via a PnP solver and the binocular convergence formula <code>atan(IOD/2 / distM)</code>, eliminating angular error from off-centre camera placement.
+        </p>
+      </div>
+    </div>
 
-    <main>
-        <section class="hero">
-            <div class="badge">Release v1.0.0 Stable</div>
-            <h1>Human Communication Eye Protocol</h1>
-            <p>High-fidelity, platform-agnostic gaze tracking, pupil parallax calibration, and cognitive state analysis designed for robotics, virtual avatars, and LLM orchestration.</p>
-            <div class="cta-group">
-                <a href="#code" class="btn btn-primary">Get Started</a>
-                <a href="https://github.com/kirklasalle/HCEP" class="btn btn-secondary">View Repository</a>
-            </div>
-        </section>
+    <!-- SIM 2: Modes -->
+    <div id="s-mo" class="simb" style="display:none">
+      <div class="simcw">
+        <canvas id="moC" width="460" height="330"></canvas>
+        <p class="ch">Watch the classifier cycle through HCEP's 5 cognitive-emotional modes.</p>
+      </div>
+      <div class="simp">
+        <div class="mdisp">
+          <div class="ml">Detected HCEP Mode</div>
+          <div class="mv" id="moV">LOGIC</div>
+          <div class="mb" id="moB" style="width:82%"></div>
+        </div>
+        <div class="mg">
+          <div class="mx"><div class="l">Confidence</div><div class="v" id="moC2" style="color:var(--gr)">82%</div></div>
+          <div class="mx"><div class="l">Gaze Region</div><div class="v" id="moR" style="color:var(--cy)">L.Eye</div></div>
+          <div class="mx"><div class="l">Blink Rate</div><div class="v" id="moK" style="color:#a78bfa">14/min</div></div>
+          <div class="mx"><div class="l">Valence</div><div class="v" id="moL" style="color:var(--or)">Neutral</div></div>
+        </div>
+        <div class="ml">Gaze Regions Active</div>
+        <div class="rl" id="regs">
+          <span class="rt act">Left Eye</span><span class="rt">Right Eye</span>
+          <span class="rt">Mouth</span><span class="rt">Chin</span>
+          <span class="rt">Away</span><span class="rt">Defocused</span>
+        </div>
+        <p style="font-size:.76rem;color:var(--td);line-height:1.55">
+          A <strong style="color:var(--ts)">5-frame hysteresis buffer</strong> and confidence cone threshold prevent single-frame noise from triggering mode transitions. Validated κ=0.8084 against human raters over 6,000+ labeled frames.
+        </p>
+      </div>
+    </div>
 
-        <section id="simulator" class="simulator-section">
-            <div class="simulator-grid">
-                <div class="sim-visualizer">
-                    <canvas id="parallaxCanvas" width="450" height="350"></canvas>
-                    <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--text-secondary);">
-                        Move your mouse across the canvas to simulate physical face movements.
-                    </div>
-                </div>
-                <div class="sim-info">
-                    <h3>True Gaze™ Parallax Correction</h3>
-                    <p>Standard eye trackers assume direct coaxial alignment between the camera and the eyes, causing significant gaze direction error when users shift off-axis. HCEP solves this by computing physical pupil offsets relative to the eye socket center in 3D space.</p>
-                    
-                    <div class="toggle-group">
-                        <button id="toggleCorrection" class="toggle-btn active">Parallax Correction On</button>
-                        <button id="toggleRaw" class="toggle-btn">Raw Coordinates</button>
-                    </div>
+    <!-- SIM 3: Social -->
+    <div id="s-sg" class="simb" style="display:none">
+      <div class="simcw">
+        <canvas id="sgC" width="460" height="330"></canvas>
+        <p class="ch">Phase 10: social-triangle scanning, backchannel nod, and proxemic dilation.</p>
+      </div>
+      <div class="simp">
+        <div class="mdisp">
+          <div class="ml">Phase 10 — Reciprocal Expression</div>
+          <div class="mv" id="sgM" style="color:var(--cy)">AFFECT Mode</div>
+          <div class="mb" id="sgB" style="width:88%;background:var(--cy)"></div>
+        </div>
+        <div class="mg">
+          <div class="mx"><div class="l">Gaze Target</div><div class="v" id="sgT" style="color:var(--cy)">L.Eye</div></div>
+          <div class="mx"><div class="l">Dwell (ms)</div><div class="v" id="sgD" style="color:var(--gr)">340</div></div>
+          <div class="mx"><div class="l">Smile</div><div class="v" id="sgSm" style="color:var(--or)">0.0</div></div>
+          <div class="mx"><div class="l">Proxemic Zone</div><div class="v" id="sgP" style="color:#a78bfa">Personal</div></div>
+        </div>
+        <div class="cr">
+          <button class="cb act" onclick="setSM('AFFECT',this)">AFFECT</button>
+          <button class="cb"     onclick="setSM('SPIRIT',this)">SPIRIT</button>
+          <button class="cb"     onclick="setSM('THINK',this)">THINK</button>
+        </div>
+        <p style="font-size:.76rem;color:var(--td);line-height:1.55">
+          <strong style="color:var(--ts)">SocialGazeController</strong> drives authentic social-triangle scanning at ~3 fix/sec in AFFECT/SPIRIT (Argyle &amp; Cook, 1976). Amplitude halves inside the 0.45m intimate zone (Hall, 1966).
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
 
-                    <div class="sim-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">Estimated Gaze Angle Error</span>
-                            <span id="gazeError" class="stat-value">0.4°</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Parallax Target Offset</span>
-                            <span id="targetOffset" class="stat-value">0.12mm</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+<!-- PIPELINE -->
+<div class="div"></div>
+<div class="w" id="pipe">
+<section>
+  <div class="sh"><div class="st">Architecture</div><h2>How the Pipeline Works</h2><p class="ss">12 specialized projects co-operate in a real-time async channel pipeline at 30 Hz.</p></div>
+  <div class="pipe">
+    <div class="ps"><div class="pn">1</div><div class="pic">📡</div><h4>Sensor Capture</h4><p>Kinect v1 COM interop via P/Invoke: RGB 640×480 @ 30fps, depth, 20-joint skeleton, FaceTrackLib 87-point mesh. OpenCV webcam fallback.</p></div>
+    <div class="ps"><div class="pn">2</div><div class="pic">👁️</div><h4>True Gaze™ Estimation</h4><p>PnP head-pose solver → eye-socket projection → binocular convergence atan(IOD/2 / distM). Output: pitch/yaw vectors at &lt;50ms.</p></div>
+    <div class="ps"><div class="pn">3</div><div class="pic">🧠</div><h4>HCEP Mode Analysis</h4><p>Multi-modal fusion of gaze region, saccade velocity, AU signals, head kinematics through the 5-mode state machine. κ=0.8084.</p></div>
+    <div class="ps"><div class="pn">4</div><div class="pic">🤖</div><h4>Reciprocal AI Expression</h4><p>Backchannel nods, smile mirroring, social-triangle gaze, head-tilt reciprocation, proxemic pupil dilation — driven by the Reciprocation Pipeline at 10–30Hz.</p></div>
+  </div>
+</section>
+</div>
 
-        <section id="features" class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">👁️</div>
-                <h3>True Gaze™ Geometry</h3>
-                <p>Calculates dynamic gaze parallax by combining 3D face mesh PnP solvers with absolute pupil position mapping, yielding sub-degree precision even with basic webcams.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🤖</div>
-                <h3>LLM & MCP Protocols</h3>
-                <p>Native Model Context Protocol (MCP) server endpoints and OpenAI function schemas let models like Claude and GPT-4 query real-time attention vectors instantly.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">🧠</div>
-                <h3>Cognitive Mode Analysis</h3>
-                <p>Translates spatial metrics, blink behavior, and speech transcripts into HCEP cognitive modalities: Logic, Affect, Spirit, Heart, and Think.</p>
-            </div>
-        </section>
+<!-- FEATURES -->
+<div class="div"></div>
+<div class="w" id="feat">
+<section>
+  <div class="sh"><div class="st">Capabilities</div><h2>World-First Engineering</h2><p class="ss">Every feature built on peer-reviewed science, empirically validated against ground truth.</p></div>
+  <div class="fg">
+    <div class="fc"><div class="fi">👁️</div><div class="fp">Phase 1–3 · Core</div><h3>True Gaze™ Parallax Correction</h3><p>Industry-first off-axis parallax solver: PnP head-pose estimator + binocular vergence <code>atan(IOD/2 / distM)</code> eliminates systematic gaze error from off-centre camera mounting.</p><span class="fb fbg">κ = 0.8084</span></div>
+    <div class="fc"><div class="fi fic">🧠</div><div class="fp">Phase 3 · Validated</div><h3>5-Mode Cognitive Classifier</h3><p>LOGIC · AFFECT · SPIRIT · HEART · THINK — five cognitive-emotional states from gaze regions, saccade dynamics, blink rate, and AU signals. 84.55% accuracy vs. human raters.</p><span class="fb fbc">84.55% Accuracy</span></div>
+    <div class="fc"><div class="fi fig">🦾</div><div class="fp">Phase 9 · Complete</div><h3>Full Kinesics</h3><p><code>HeadGestureClassifier</code>: Nod, Shake, TiltL/R, ForwardLean via velocity+reversal at 30Hz. <code>TorsoAnalyzer</code>: shoulder shrug, lean angle, torso yaw, Hall proxemic zones from Kinect skeleton.</p><span class="fb fbg">NEW · Phase 9</span></div>
+    <div class="fc"><div class="fi">💬</div><div class="fp">Phase 10 · Complete</div><h3>Reciprocal AI Expression</h3><p><code>BackchannelController</code>: biologically-timed nods (Bavelas 2000). <code>ExpressionMirror</code>: Duchenne smile detection + 200–400ms delay mirror. <code>SocialGazeController</code>: social-triangle scanning (Argyle &amp; Cook 1976).</p><span class="fb fbg">NEW · Phase 10</span></div>
+    <div class="fc"><div class="fi fic">🎭</div><div class="fp">Phase 9/10 · Avatar</div><h3>Dual Avatar Engine</h3><p>2D Happy Face (WPF bezier-path) and 3D Wireframe (Candide-3 mesh) — both animate eyebrows, blink, nod, tilt, smile, lip sync, proxemic pupil dilation, and social gaze offsets at 30Hz.</p><span class="fb fbc">2D + 3D</span></div>
+    <div class="fc"><div class="fi fig">🎙️</div><div class="fp">Phase 13 · Lip Sync</div><h3>Phoneme-Accurate Lip Sync</h3><p>SAPI <code>VisemeReached</code> events mapped through a 22-row Preston Blair lookup table, delivering phoneme-accurate mouth animation with 60ms EMA co-articulation (McGurk 1976).</p><span class="fb fbg">Preston Blair Canon</span></div>
+    <div class="fc"><div class="fi">🌍</div><div class="fp">Phase 14 · Intelligence</div><h3>Contextual Intelligence + Silence Protocol</h3><p><code>ContextSnapshot</code> captures time, environment, privacy, and activity. <code>SilenceProtocolEvaluator</code> (7 evidence-based rules, Jaworski 1993) determines <em>when the avatar should not speak</em>.</p><span class="fb fbc">Silence Protocol</span></div>
+    <div class="fc"><div class="fi fic">🔒</div><div class="fp">Phase 8 · Security</div><h3>Enterprise Security</h3><p>API keys stored in <strong>Windows Credential Manager</strong> via P/Invoke — never in plain text or on disk. <code>ApiKey</code> is <code>[JsonIgnore]</code>. DPAPI session protection. GDPR erase methods.</p><span class="fb fbi">WCM + DPAPI</span></div>
+    <div class="fc"><div class="fi">☁️</div><div class="fp">Frontier Cloud</div><h3>20-Provider LLM Roster</h3><p>OpenAI, Anthropic, Gemini, Mistral, xAI, Cohere, OpenRouter, DeepSeek, Groq, Together AI, Fireworks, Perplexity, AI21, Replicate, Hugging Face, Azure, AWS Bedrock, Nvidia NIM, Cerebras, Moonshot AI.</p><span class="fb fbc">OpenRouter ✓</span></div>
+    <div class="fc"><div class="fi fig">🔌</div><div class="fp">Phase 5 · SDK</div><h3>Multi-Platform SDK</h3><p>Python LangChain &amp; LlamaIndex, C# Semantic Kernel, Unity C#, Unreal Engine C++, REST API, WebSocket real-time stream, and Model Context Protocol (MCP) server — 7 first-class integration paths.</p><span class="fb fbg">7 Platforms</span></div>
+    <div class="fc"><div class="fi fic">📊</div><div class="fp">Phase 8 · Telemetry</div><h3>Structured Trace Logging</h3><p>Three Serilog sinks: <code>HCEP-{date}.log</code> (Debug+), <code>HCEP-trace-{date}.log</code> (Verbose), <code>HCEP-json-.jsonl</code> (CLEF). Auto-detects project root. 30-day retention.</p><span class="fb fbi">3 Sinks</span></div>
+    <div class="fc"><div class="fi fic">⚡</div><div class="fp">Phase 8 · Reliability</div><h3>Production Hardening</h3><p>Cloud circuit breaker (3 failures → 30s cooldown), <code>Volatile.Read/Write</code> thread-safety, knowledge store LRU eviction, ArcFace ONNX fault tolerance, correct WebSocket close codes.</p><span class="fb fbc">193 Tests Green</span></div>
+  </div>
+</section>
+</div>
 
-        <section id="code" class="code-section">
-            <h2>Integrate in Seconds</h2>
-            <div class="code-tabs">
-                <button class="code-tab active" onclick="switchTab('mcp')">MCP (JSON-RPC)</button>
-                <button class="code-tab" onclick="switchTab('python')">Python (LangChain)</button>
-                <button class="code-tab" onclick="switchTab('unity')">Unity (C#)</button>
-                <button class="code-tab" onclick="switchTab('unreal')">Unreal Engine (C++)</button>
-            </div>
-            
-            <div id="mcp-code" class="code-container">
-                <pre><code><span class="comment">// Request tools list over HCEP's MCP POST endpoint</span>
-POST /mcp HTTP/1.1
-Host: localhost:5000
-Content-Type: application/json
+<!-- VIDEOS -->
+<div class="div"></div>
+<div class="w" id="vid">
+<section>
+  <div class="sh"><div class="st">Video Explainers</div><h2>See HCEP in Action</h2><p class="ss">In-depth walkthroughs of the theory, engineering, and live demonstrations on the Prism Refraction Agent channel.</p></div>
+  <div class="vg">
+    <div class="vc">
+      <div class="ve">
+        <iframe src="https://www.youtube.com/embed?listType=user_uploads&list=PrismRefractionAgent&rel=0&modestbranding=1" title="HCEP True Gaze Parallax Explainer" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>
+      </div>
+      <div class="vm"><h4>True Gaze™ Parallax Correction — Deep Dive</h4><p>How HCEP solves the off-axis camera angle problem that breaks every standard eye tracker.</p></div>
+    </div>
+    <div class="vc">
+      <div class="ve">
+        <iframe src="https://www.youtube.com/embed?listType=user_uploads&list=PrismRefractionAgent&index=2&rel=0&modestbranding=1" title="HCEP 5-Mode Cognitive Classifier" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>
+      </div>
+      <div class="vm"><h4>5-Mode HCEP Theory — LOGIC, AFFECT, SPIRIT, HEART, THINK</h4><p>The science behind the five cognitive-emotional modes and why κ=0.8084 matters.</p></div>
+    </div>
+    <div class="vc">
+      <div class="ve">
+        <iframe src="https://www.youtube.com/embed?listType=user_uploads&list=PrismRefractionAgent&index=3&rel=0&modestbranding=1" title="Phase 9/10 Kinesics and Reciprocal Expression" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>
+      </div>
+      <div class="vm"><h4>Phase 9/10 — Kinesics &amp; Reciprocal AI Expression</h4><p>Head gestures, torso analysis, backchannel nods, smile mirroring, and social gaze live.</p></div>
+    </div>
+  </div>
+  <div style="text-align:center"><a href="https://www.youtube.com/@PrismRefractionAgent" class="cl" target="_blank" rel="noopener">▶ Subscribe to @PrismRefractionAgent</a></div>
+</section>
+</div>
 
-{
-  <span class="keyword">"jsonrpc"</span>: <span class="string">"2.0"</span>,
-  <span class="keyword">"method"</span>: <span class="string">"tools/list"</span>,
-  <span class="keyword">"id"</span>: 1
-}
+<!-- ROADMAP -->
+<div class="div"></div>
+<div class="w">
+<section>
+  <div class="sh"><div class="st">Development Progress</div><h2>Phase Roadmap</h2><p class="ss">10 phases delivered. Phase 11 (Transformer model) and Phase 12 (domain deployments) in planning.</p></div>
+  <div class="rr">
+    <div class="ri d"><div class="rp">Phase 1</div><div class="rt2">Integration &amp; Runtime</div><span class="rs d">✓ Complete</span></div>
+    <div class="ri d"><div class="rp">Phase 2</div><div class="rt2">Kinect Hardware</div><span class="rs d">✓ Complete</span></div>
+    <div class="ri d"><div class="rp">Phase 3</div><div class="rt2">Theory Validation</div><span class="rs d">✓ κ=0.8084</span></div>
+    <div class="ri d"><div class="rp">Phase 4</div><div class="rt2">Security &amp; Privacy</div><span class="rs d">✓ Complete</span></div>
+    <div class="ri d"><div class="rp">Phase 5</div><div class="rt2">LLM &amp; SDK</div><span class="rs d">✓ Complete</span></div>
+    <div class="ri d"><div class="rp">Phase 6</div><div class="rt2">Commercial Release</div><span class="rs d">✓ v1.0.0</span></div>
+    <div class="ri d"><div class="rp">Phase 7</div><div class="rt2">Avatar Autonomy</div><span class="rs d">✓ Complete</span></div>
+    <div class="ri d"><div class="rp">Phase 8</div><div class="rt2">Production Hardening</div><span class="rs d">✓ Complete</span></div>
+    <div class="ri d"><div class="rp">Phase 9</div><div class="rt2">Full Kinesics</div><span class="rs d">✓ July 2026</span></div>
+    <div class="ri d"><div class="rp">Phase 10</div><div class="rt2">Reciprocal AI</div><span class="rs d">✓ July 2026</span></div>
+    <div class="ri p"><div class="rp">Phase 11</div><div class="rt2">Transformer Model</div><span class="rs p">Q2 2027</span></div>
+    <div class="ri p"><div class="rp">Phase 12</div><div class="rt2">Domain Deployments</div><span class="rs p">2027</span></div>
+  </div>
+</section>
+</div>
 
-<span class="comment">// Response:</span>
-{
-  <span class="keyword">"jsonrpc"</span>: <span class="string">"2.0"</span>,
-  <span class="keyword">"result"</span>: {
-    <span class="keyword">"tools"</span>: [
-      {
-        <span class="keyword">"name"</span>: <span class="string">"get_hcep_state"</span>,
-        <span class="keyword">"description"</span>: <span class="string">"Get the current multi-modal HCEP perception state..."</span>
-      }
-    ]
-  },
-  <span class="keyword">"id"</span>: 1
-}</code></pre>
-            </div>
+<!-- CODE -->
+<div class="div"></div>
+<div class="w" id="code">
+<section>
+  <div class="sh"><div class="st">SDK Reference</div><h2>Integrate in Any Stack</h2><p class="ss">Seven first-class integration paths — from a one-line Python call to native Unreal C++ animation.</p></div>
+  <div class="ctr">
+    <button class="ct act" onclick="swC('mcp',this)">MCP / JSON-RPC</button>
+    <button class="ct" onclick="swC('py',this)">Python LangChain</button>
+    <button class="ct" onclick="swC('sk',this)">Semantic Kernel</button>
+    <button class="ct" onclick="swC('u3',this)">Unity C#</button>
+    <button class="ct" onclick="swC('ue',this)">Unreal C++</button>
+    <button class="ct" onclick="swC('ws',this)">WebSocket</button>
+    <button class="ct" onclick="swC('re',this)">REST API</button>
+  </div>
+  <div id="c-mcp" class="cb2"><pre><code><span class="co">// HCEP MCP server on localhost:5000</span>
+POST /mcp   Content-Type: application/json
 
-            <div id="python-code" class="code-container" style="display:none;">
-                <pre><code><span class="comment"># Import the native HCEP LangChain Tool</span>
-<span class="keyword">from</span> hcep_langchain <span class="keyword">import</span> HcepStateTool
-<span class="keyword">from</span> langchain.agents <span class="keyword">import</span> initialize_agent
+{ <span class="kw">"jsonrpc"</span>:<span class="st">"2.0"</span>, <span class="kw">"method"</span>:<span class="st">"tools/list"</span>, <span class="kw">"id"</span>:<span class="nm">1</span> }
 
-tool = HcepStateTool(base_url=<span class="string">"http://localhost:5000"</span>)
+<span class="co">// Response — LLM can call these natively:</span>
+{ <span class="kw">"tools"</span>: [
+  { <span class="kw">"name"</span>:<span class="st">"get_hcep_state"</span>,     <span class="kw">"description"</span>:<span class="st">"Current HCEP mode, gaze, valence, confidence"</span> },
+  { <span class="kw">"name"</span>:<span class="st">"get_person_knowledge"</span>, <span class="kw">"description"</span>:<span class="st">"Semantic facts about the tracked person"</span> },
+  { <span class="kw">"name"</span>:<span class="st">"get_context_snapshot"</span>,  <span class="kw">"description"</span>:<span class="st">"Time, environment, privacy, silence state"</span> },
+  { <span class="kw">"name"</span>:<span class="st">"get_gaze_estimate"</span>,    <span class="kw">"description"</span>:<span class="st">"Pitch/yaw vectors and user distance"</span> }
+]}</code></pre></div>
+  <div id="c-py" class="cb2" style="display:none"><pre><code><span class="kw">from</span> hcep_langchain <span class="kw">import</span> HcepStateTool, HcepKnowledgeTool
+<span class="kw">from</span> langchain.agents  <span class="kw">import</span> initialize_agent, AgentType
+<span class="kw">from</span> langchain.chat_models <span class="kw">import</span> ChatOpenAI
+
+state_tool    = HcepStateTool(base_url=<span class="st">"http://localhost:5000"</span>)
+knowledge_tool = HcepKnowledgeTool(base_url=<span class="st">"http://localhost:5000"</span>)
+
 agent = initialize_agent(
-    tools=[tool],
-    llm=chat_model,
+    tools=[state_tool, knowledge_tool],
+    llm=ChatOpenAI(model=<span class="st">"gpt-4o"</span>),
     agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION
 )
 
-<span class="comment"># Agent can now query state when user is looking at a specific window!</span>
-agent.run(<span class="string">"Is the user paying attention or distracted right now?"</span>)</code></pre>
-            </div>
+response = agent.run(
+    <span class="st">"The user shifted gaze away — THINK mode or disengaged?"</span>
+)
+<span class="co"># → Agent calls get_hcep_state, reads Mode=Think, Confidence=0.87</span></code></pre></div>
+  <div id="c-sk" class="cb2" style="display:none"><pre><code><span class="kw">using</span> HcepSemanticKernelPlugin;
 
-            <div id="unity-code" class="code-container" style="display:none;">
-                <pre><code><span class="comment">// Attach HcepGazeController to your 3D avatar rig</span>
-<span class="keyword">public class</span> <span class="type">HcepGazeController</span> : <span class="type">MonoBehaviour</span>
+<span class="kw">var</span> kernel = Kernel.CreateBuilder()
+    .AddOpenAIChatCompletion(<span class="st">"gpt-4o"</span>, apiKey)
+    .Build();
+
+kernel.ImportPluginFromObject(
+    <span class="kw">new</span> <span class="ty">HcepPlugin</span>(baseUrl:<span class="st">"http://localhost:5000"</span>), <span class="st">"HCEP"</span>);
+
+<span class="kw">var</span> result = <span class="kw">await</span> kernel.InvokePromptAsync(
+    <span class="st">"{{HCEP.GetState}} Based on the gaze state, what should I say next?"</span>
+);</code></pre></div>
+  <div id="c-u3" class="cb2" style="display:none"><pre><code><span class="kw">public class</span> <span class="ty">HcepGazeController</span> : <span class="ty">MonoBehaviour</span>
 {
-    <span class="keyword">public</span> <span class="type">Transform</span> leftEyeBone;
-    <span class="keyword">public</span> <span class="type">Transform</span> rightEyeBone;
+    <span class="kw">public</span> <span class="ty">Transform</span> leftEyeBone, rightEyeBone;
+    <span class="kw">private</span> <span class="ty">HcepStreamClient</span> _client;
 
-    <span class="keyword">void</span> Update()
+    <span class="kw">void</span> <span class="fn">Start</span>() =>
+        _client = <span class="kw">new</span> <span class="ty">HcepStreamClient</span>(<span class="st">"ws://localhost:5000/ws/stream"</span>);
+
+    <span class="kw">void</span> <span class="fn">Update</span>()
     {
-        <span class="comment">// Reads smooth tracking values fetched from WebSocket stream /ws/stream</span>
-        <span class="type">Quaternion</span> eyeRotation = <span class="type">Quaternion</span>.Euler(eyePitch, eyeYaw, 0f);
-        leftEyeBone.localRotation = eyeRotation;
-        rightEyeBone.localRotation = eyeRotation;
+        <span class="kw">var</span> s = _client.LatestState; <span class="kw">if</span>(s==<span class="kw">null</span>) <span class="kw">return</span>;
+        <span class="ty">Quaternion</span> q = <span class="ty">Quaternion</span>.<span class="fn">Euler</span>(s.PitchDeg, s.YawDeg, <span class="nm">0f</span>);
+        leftEyeBone.localRotation  = <span class="ty">Quaternion</span>.<span class="fn">Slerp</span>(leftEyeBone.localRotation, q, Time.deltaTime*<span class="nm">12f</span>);
+        rightEyeBone.localRotation = <span class="ty">Quaternion</span>.<span class="fn">Slerp</span>(rightEyeBone.localRotation, q, Time.deltaTime*<span class="nm">12f</span>);
+        <span class="kw">if</span>(s.BackchannelNodRequested) GetComponent&lt;<span class="ty">Animator</span>&gt;().<span class="fn">SetTrigger</span>(<span class="st">"Nod"</span>);
     }
-}</code></pre>
-            </div>
-
-            <div id="unreal-code" class="code-container" style="display:none;">
-                <pre><code><span class="comment">// Include HcepGazeController.h inside your Unreal C++ Character / Actor class</span>
-<span class="keyword">void</span> AMyAvatarCharacter::Tick(<span class="keyword">float</span> DeltaTime)
+}</code></pre></div>
+  <div id="c-ue" class="cb2" style="display:none"><pre><code><span class="kw">void</span> AMyAvatar::<span class="fn">Tick</span>(<span class="kw">float</span> dt)
 {
-    Super::Tick(DeltaTime);
+    Super::<span class="fn">Tick</span>(dt);
+    <span class="kw">if</span>(!GazeCtrl) <span class="kw">return</span>;
+    <span class="ty">FRotator</span> EyeRot(-GazeCtrl->PitchDeg, GazeCtrl->YawDeg, <span class="nm">0</span>);
+    <span class="ty">FRotator</span> Smooth = <span class="ty">FMath</span>::<span class="fn">RInterpTo</span>(
+        LeftEye->GetRelativeRotation(), EyeRot, dt, <span class="nm">12.f</span>);
+    LeftEye->SetRelativeRotation(Smooth);
+    RightEye->SetRelativeRotation(Smooth);
+    GetMesh()->GetAnimInstance()->SetVariableFloat(
+        <span class="st">"HcepMode"</span>, (<span class="kw">float</span>)GazeCtrl->CurrentMode);
+    <span class="kw">if</span>(GazeCtrl->bBackchannelNod) <span class="fn">PlayAnimMontage</span>(NodMontage);
+}</code></pre></div>
+  <div id="c-ws" class="cb2" style="display:none"><pre><code><span class="kw">const</span> ws = <span class="kw">new</span> WebSocket(<span class="st">'ws://localhost:5000/ws/stream'</span>);
+ws.onmessage = (ev) => {
+  <span class="kw">const</span> f = JSON.parse(ev.data);
+  <span class="co">// 30 Hz payload:</span>
+  <span class="co">// { mode:"Logic"|"Affect"|"Spirit"|"Heart"|"Think",</span>
+  <span class="co">//   gaze:{ region:"LeftEye", pitchDeg:-2.1, yawDeg:5.4 },</span>
+  <span class="co">//   confidence:0.87, valence:"Positive",</span>
+  <span class="co">//   headGesture:"Nod"|null, silenceProtocolActive:false, distanceM:0.82 }</span>
+  updateMode(f.mode);
+  <span class="kw">if</span>(f.headGesture===<span class="st">'Nod'</span>) triggerAvatarNod();
+  silenceUI.hidden = !f.silenceProtocolActive;
+};</code></pre></div>
+  <div id="c-re" class="cb2" style="display:none"><pre><code><span class="co"># GET /api/state</span>
+curl http://localhost:5000/api/state
 
-    <span class="comment">// Retrieve current gaze target vectors smoothly interpolated by HCEP</span>
-    <span class="type">FVector</span> GazeVector = GazeControllerComponent->TargetGazeDirection;
-    <span class="type">FRotator</span> HeadRot = GazeControllerComponent->TargetHeadRotation;
+{ <span class="st">"hcepMode"</span>:<span class="st">"Affect"</span>, <span class="st">"gazeRegion"</span>:<span class="st">"RightEye"</span>, <span class="st">"confidence"</span>:<span class="nm">0.91</span>,
+  <span class="st">"pitchDeg"</span>:<span class="nm">-1.8</span>, <span class="st">"yawDeg"</span>:<span class="nm">3.2</span>, <span class="st">"distanceM"</span>:<span class="nm">0.78</span>,
+  <span class="st">"silenceActive"</span>:<span class="kw">false</span>,
+  <span class="st">"context"</span>:{ <span class="st">"timeOfDay"</span>:<span class="st">"Evening"</span>, <span class="st">"environment"</span>:<span class="st">"LivingRoom"</span>,
+               <span class="st">"privacy"</span>:<span class="st">"Private"</span>, <span class="st">"register"</span>:<span class="st">"Personal"</span> } }
 
-    <span class="comment">// Rotate eye socket bones and mesh transforms directly in C++ or Blueprint AnimGraph</span>
-    LeftEyeMesh->SetRelativeRotation(GazeVector.Rotation());
-    RightEyeMesh->SetRelativeRotation(GazeVector.Rotation());
-}</code></pre>
-            </div>
-        </section>
-    </main>
+<span class="co"># POST /api/knowledge</span>
+curl -X POST http://localhost:5000/api/knowledge \
+     -d '{"subject":"user","relation":"prefers","object":"visual explanations"}'</code></pre></div>
+</section>
+</div>
 
-    <footer>
-        <p>Copyright &copy; 2026 Kirk LaSalle. All rights reserved. Registered under commercial-proprietary license agreements.</p>
-    </footer>
+<!-- SCIENCE -->
+<div class="div"></div>
+<div class="w" id="sci">
+<section>
+  <div class="sh"><div class="st">Scientific Foundation</div><h2>Built on Peer-Reviewed Research</h2><p class="ss">Every HCEP signal, threshold, and timing value is grounded in the published literature.</p></div>
+  <div class="scg">
+    <div class="scc"><div class="sca">Argyle &amp; Cook (1976)</div><div class="scf">Social Triangle Gaze — humans scan L.Eye→R.Eye→Mouth at ~3 fixations/sec during engaged conversation.</div><div class="sci">→ SocialGazeController 340ms dwell target</div></div>
+    <div class="scc"><div class="sca">Bavelas et al. (2000)</div><div class="scf">Backchannel nods occur at 1–3 per 10 seconds of active listening.</div><div class="sci">→ BackchannelController 2.2s onset, 6.5s repeat</div></div>
+    <div class="scc"><div class="sca">Dimberg et al. (2000)</div><div class="scf">Facial expression mirroring occurs with 200–400ms biological reaction delay (emotional contagion).</div><div class="sci">→ ExpressionMirror reaction delay range</div></div>
+    <div class="scc"><div class="sca">Duncan (1972)</div><div class="scf">Speaker turn-yielding is signalled by gaze toward listener, syntactic completion, and pause.</div><div class="sci">→ Silence Protocol speak-invitation rules</div></div>
+    <div class="scc"><div class="sca">Hall (1966)</div><div class="scf">Proxemic zones: Intimate &lt;0.45m, Personal 0.45–1.2m, Social 1.2–3.7m, Public &gt;3.7m.</div><div class="sci">→ TorsoAnalyzer ProxemicZone + gaze amplitude halving</div></div>
+    <div class="scc"><div class="sca">Jaworski (1993)</div><div class="scf">Silence is among the most powerful communicative acts — not the absence of communication.</div><div class="sci">→ SilenceProtocolEvaluator 7 evidence-based rules</div></div>
+    <div class="scc"><div class="sca">McGurk &amp; MacDonald (1976)</div><div class="scf">Visual mouth movement is a first-class speech perception channel; inaccurate lip sync degrades intelligibility.</div><div class="sci">→ 22-row VisemeController, phoneme-accurate lip sync</div></div>
+    <div class="scc"><div class="sca">Ekman &amp; Friesen (1982)</div><div class="scf">Genuine (Duchenne) smiles involve orbicularis oculi (AU6). Social smiles lack this marker.</div><div class="sci">→ ExpressionMirror Duchenne via OuterBrowRaiser threshold</div></div>
+  </div>
+</section>
+</div>
 
-    <script>
-        // Tab switching
-        function switchTab(lang) {
-            document.querySelectorAll('.code-tab').forEach(b => b.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            document.getElementById('mcp-code').style.display = lang === 'mcp' ? 'block' : 'none';
-            document.getElementById('python-code').style.display = lang === 'python' ? 'block' : 'none';
-            document.getElementById('unity-code').style.display = lang === 'unity' ? 'block' : 'none';
-            document.getElementById('unreal-code').style.display = lang === 'unreal' ? 'block' : 'none';
-        }
+<!-- FAQ -->
+<div class="div"></div>
+<div class="w" id="faq">
+<section>
+  <div class="sh"><div class="st">FAQ</div><h2>Common Questions</h2><p class="ss">Everything you need to know about HCEP, its science, and its engineering.</p></div>
+  <div class="fql">
 
-        // True Gaze Simulation Interactive Canvas
-        const canvas = document.getElementById('parallaxCanvas');
-        const ctx = canvas.getContext('2d');
-        const gazeErrorEl = document.getElementById('gazeError');
-        const targetOffsetEl = document.getElementById('targetOffset');
-        const toggleCorrection = document.getElementById('toggleCorrection');
-        const toggleRaw = document.getElementById('toggleRaw');
+    <div class="fqi">
+      <button class="fqq" onclick="tF(this)">What are the 5 HCEP cognitive-emotional modes? <span class="ar">▾</span></button>
+      <div class="fqa"><strong>LOGIC</strong> — analytical processing; structured gaze, frequent upper-left aversion.<br><strong>AFFECT</strong> — emotional engagement; sustained eye contact, Social Triangle scanning, pupil dilation.<br><strong>SPIRIT</strong> — deep rapport; prolonged mutual gaze, synchronized blink, minimal aversion.<br><strong>HEART</strong> — empathic resonance; soft-focus gaze, lower-face attention, slow saccades.<br><strong>THINK</strong> — internal processing; gaze aversion, defocused, reduced blink rate.<br><br>The classifier uses a 5-frame hysteresis buffer and confidence cone threshold, achieving κ=0.8084 against human raters across 6,000+ labeled frames.</div>
+    </div>
 
-        let correctionEnabled = true;
-        let mouseX = canvas.width / 2;
-        let mouseY = canvas.height / 2;
+    <div class="fqi">
+      <button class="fqq" onclick="tF(this)">What hardware does HCEP require? <span class="ar">▾</span></button>
+      <div class="fqa"><strong>Primary:</strong> Microsoft Kinect v1 (Xbox 360 sensor) via USB. HCEP interfaces directly with the native Kinect 1.0 SDK via COM interop and P/Invoke — no managed SDK wrapper required.<br><br><strong>Fallback:</strong> Any USB webcam supported by OpenCV. The fallback uses a PnP solver on detected face landmarks at reduced accuracy.<br><br><strong>Platform:</strong> Windows 10/11 x64 only (.NET 9.0 runtime required).</div>
+    </div>
 
-        toggleCorrection.addEventListener('click', () => {
-            correctionEnabled = true;
-            toggleCorrection.classList.add('active');
-            toggleRaw.classList.remove('active');
-        });
+    <div class="fqi">
+      <button class="fqq" onclick="tF(this)">How does True Gaze™ differ from standard eye tracking? <span class="ar">▾</span></button>
+      <div class="fqa">Standard trackers assume coaxial alignment between camera and eyes. When the camera is off-centre (laptop webcam, mounted Kinect), standard tracking produces a systematic angular error proportional to the off-axis distance.<br><br>True Gaze™ corrects this by computing the physical pupil offset relative to the eye-socket centre in 3D camera space using a PnP head-pose solver and the binocular convergence formula <code>atan(IOD/2 / distanceM)</code>, then applying a calibrated parallax correction matrix.</div>
+    </div>
 
-        toggleRaw.addEventListener('click', () => {
-            correctionEnabled = false;
-            toggleRaw.classList.add('active');
-            toggleCorrection.classList.remove('active');
-        });
+    <div class="fqi">
+      <button class="fqq" onclick="tF(this)">Which LLM providers does HCEP support? <span class="ar">▾</span></button>
+      <div class="fqa"><strong>Direct API:</strong> OpenAI, Anthropic, Google Gemini<br><strong>OpenAI-compatible:</strong> Mistral, xAI (Grok), Cohere, <strong>OpenRouter</strong>, DeepSeek, Groq, Together AI, Fireworks AI, Perplexity, AI21 Labs, Replicate, Hugging Face, Azure OpenAI, Amazon Bedrock, Nvidia NIM, Cerebras, Moonshot AI<br><strong>Local SLMs:</strong> Ollama and Llama.cpp<br><br>All API keys stored in Windows Credential Manager — never in plain text. A cloud circuit breaker (3 failures → 30s cooldown) prevents hammering failed providers.</div>
+    </div>
 
-        canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
-            mouseX = e.clientX - rect.left;
-            mouseY = e.clientY - rect.top;
-        });
+    <div class="fqi">
+      <button class="fqq" onclick="tF(this)">What is the Silence Protocol? <span class="ar">▾</span></button>
+      <div class="fqa">The Silence Protocol is HCEP's answer to: <em>when should an AI NOT speak?</em><br><br>Seven evidence-based rules (Jaworski 1993; Duncan 1972) determine when <code>SilenceProtocolActive = true</code>:<br>• THINK mode + gaze aversion → user is internally processing<br>• Sustained brow furrow (&gt;3s) → deep cognitive engagement<br>• Speech + away-gaze → user is thinking aloud<br>• Late night (22:00+) + HEART mode → maximum attunement<br>• Direct gaze toward avatar → floor-yield; speak now<br><br>HCEP is the first AI framework that knows when to be silent.</div>
+    </div>
 
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+    <div class="fqi">
+      <button class="fqq" onclick="tF(this)">What is Phase 10 — Reciprocal AI Expression? <span class="ar">▾</span></button>
+      <div class="fqa">Phase 10 transforms HCEP from a <em>perceptual</em> system into a <em>bidirectional social agent</em>:<br><br><strong>BackchannelController:</strong> Generates nods after 2.2s of continuous human speech, repeating every 6.5s — matching natural listening rhythm (Bavelas et al. 2000).<br><br><strong>ExpressionMirror:</strong> Detects LipStretcher ≥0.30 (smile), distinguishes Duchenne from social smiles via OuterBrowRaiser, then mirrors with 200–400ms biological delay (Dimberg et al. 2000).<br><br><strong>SocialGazeController:</strong> In AFFECT/SPIRIT, drives social-triangle scanning ~3 fix/sec. In THINK, lateral gaze aversion. Amplitude halved inside the intimate zone (&lt;0.45m, Hall 1966).</div>
+    </div>
 
-            // Draw Camera Source indicator
-            const camX = canvas.width / 2;
-            const camY = 35;
-            ctx.beginPath();
-            ctx.arc(camX, camY, 8, 0, Math.PI * 2);
-            ctx.fillStyle = '#6366f1';
-            ctx.fill();
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '10px Inter';
-            ctx.fillText("Webcam / Sensor", camX - 45, camY - 15);
+    <div class="fqi">
+      <button class="fqq" onclick="tF(this)">How do I integrate HCEP into Unity or Unreal Engine? <span class="ar">▾</span></button>
+      <div class="fqa"><strong>Unity:</strong> Add <code>HcepGazeController.cs</code> from the SDK to your avatar. Configure WebSocket endpoint (<code>ws://localhost:5000/ws/stream</code>). The script drives eye bone rotations, triggers nod animations, and exposes HCEP mode to your Animator.<br><br><strong>Unreal Engine:</strong> Add <code>HcepGazeController.h/.cpp</code> to your project. Drives MetaHuman eye socket bones directly. Blueprint nodes for expression graph wiring.<br><br>Both are in the <a href="https://github.com/kirklasalle/HCEP/tree/main/sdk" target="_blank">sdk/ folder</a>.</div>
+    </div>
 
-            // Face position (simulated based on mouse)
-            const faceX = mouseX;
-            const faceY = Math.max(mouseY, 150); // Keep below camera
+    <div class="fqi">
+      <button class="fqq" onclick="tF(this)">What is "Agents As A Service" (AaaS)? <span class="ar">▾</span></button>
+      <div class="fqa">AaaS is an architectural paradigm coined by Kirk LaSalle — treating autonomous AI agents as deployable, scalable, orchestratable services rather than monolithic assistants. In HCEP, this means the perception, knowledge, and expression capabilities are discrete services callable by frontier LLM agents via MCP, REST, or WebSocket — enabling a new class of AI applications that are <em>socially grounded</em> rather than purely text-driven.</div>
+    </div>
 
-            // Draw Face Boundary
-            ctx.beginPath();
-            ctx.arc(faceX, faceY, 55, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+    <div class="fqi">
+      <button class="fqq" onclick="tF(this)">Is HCEP open source? What license applies? <span class="ar">▾</span></button>
+      <div class="fqa">The source code is available on <a href="https://github.com/kirklasalle/HCEP" target="_blank">GitHub</a> for inspection and evaluation. The HCEP Theory, True Gaze™ formulation, Permanent Active Directives (PAD), and Body Language Protocols are proprietary trade secrets owned exclusively by Kirk LaSalle.<br><br>Commercial licensing, research partnerships, and deployment agreements are available — contact through the repository.</div>
+    </div>
 
-            // Sockets
-            const leftSocketX = faceX - 22;
-            const rightSocketX = faceX + 22;
-            const eyeY = faceY - 10;
+    <div class="fqi">
+      <button class="fqq" onclick="tF(this)">What is coming in Phase 11 — the Transformer model? <span class="ar">▾</span></button>
+      <div class="fqa">Phase 11 replaces the rule-based 5-mode classifier with a trained transformer: 12-layer, 256-dim, 8-head attention over 150ms temporal windows, trained on 50,000+ labeled multimodal frames.<br><br>Target: κ ≥ 0.92, accuracy ≥ 93% (vs. current κ=0.81, 84.6%). A distilled SLM will be available for on-device deployment (&lt;100MB, &lt;10ms inference). Cultural adaptation heads for East Asian, Western, and MENA interaction norms are planned. ETA: Q2 2027.</div>
+    </div>
 
-            ctx.beginPath();
-            ctx.arc(leftSocketX, eyeY, 12, 0, Math.PI * 2);
-            ctx.arc(rightSocketX, eyeY, 12, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-            ctx.stroke();
+    <div class="fqi">
+      <button class="fqq" onclick="tF(this)">How accurate is face-tracking with a webcam vs. Kinect? <span class="ar">▾</span></button>
+      <div class="fqa"><strong>Kinect v1:</strong> κ=0.8084 and 84.55% mode classification accuracy using depth-assisted PnP and FaceTrackLib's 87-point 3D Candide-3 mesh.<br><br><strong>Webcam (OpenCV fallback):</strong> The True Gaze™ parallax correction still applies, but without depth data the PnP solver relies on 2D landmark distances against anthropometric priors, reducing accuracy by approximately 10–15%.<br><br>For research and clinical applications, Kinect v1 or equivalent structured-light depth sensors are recommended.</div>
+    </div>
 
-            // Calculate look target (screen center)
-            const targetX = canvas.width / 2;
-            const targetY = 0;
+  </div>
+</section>
+</div>
 
-            // Parallax offset
-            const offAxisDistance = faceX - camX;
-            const depth = faceY - camY;
-            const angleOffset = Math.atan2(offAxisDistance, depth);
+<!-- FOOTER -->
+<footer>
+  <div class="fi2">
+    <div class="fb2">
+      <div class="logo" style="font-size:1.1rem"><div class="lp"></div>HCEP SDK</div>
+      <p>The Human Communication Eye Protocol — the first AI framework that reads human presence at the biological level.</p>
+    </div>
+    <div class="fc2"><h5>SDK</h5><a href="#sim">Live Simulator</a><a href="#code">Code Examples</a><a href="https://github.com/kirklasalle/HCEP/tree/main/sdk">SDK Downloads</a><a href="https://github.com/kirklasalle/HCEP">GitHub Repository</a></div>
+    <div class="fc2"><h5>Docs</h5><a href="DEVELOPER_GUIDE.md">Developer Guide</a><a href="USER_GUIDE.md">User Guide</a><a href="ROADMAP.md">Roadmap</a><a href="release_notes_v1.0.0.md">Release Notes</a></div>
+    <div class="fc2"><h5>Science</h5><a href="HCEP_SCIENCE_FOUNDATION.md">Science Foundation</a><a href="empirical_validation_report.md">Validation Report</a><a href="HCEP_THEORY_WHITEPAPER.html">Theory Whitepaper</a><a href="https://www.youtube.com/@PrismRefractionAgent" target="_blank">Videos ↗</a></div>
+  </div>
+  <div class="fbot">
+    <span>Copyright &copy; 2026 Kirk LaSalle. All rights reserved. HCEP Theory, True Gaze™, and PAD are proprietary trade secrets.</span>
+    <span>v1.2.0 · Phase 9 &amp; 10 Complete · κ=0.8084</span>
+  </div>
+</footer>
 
-            let pupilLeftX, pupilRightX, pupilY;
-            let errorAngle = 0;
+<script>
+// ── Sim / Code / FAQ switching ──────────────────────────────
+function swS(n,btn){document.querySelectorAll('.stab').forEach(b=>b.classList.remove('act'));btn.classList.add('act');['pg','mo','sg'].forEach(id=>{document.getElementById('s-'+id).style.display=id===n?'grid':'none'})}
+function swC(n,btn){document.querySelectorAll('.ctr .ct').forEach(b=>b.classList.remove('act'));btn.classList.add('act');['mcp','py','sk','u3','ue','ws','re'].forEach(id=>{document.getElementById('c-'+id).style.display=id===n?'block':'none'})}
+function tF(btn){const a=btn.nextElementSibling,op=a.classList.contains('op');document.querySelectorAll('.fqa.op').forEach(x=>x.classList.remove('op'));document.querySelectorAll('.fqq.op').forEach(x=>x.classList.remove('op'));if(!op){a.classList.add('op');btn.classList.add('op')}}
 
-            if (correctionEnabled) {
-                // True Gaze offsets pupils to compensate for angle
-                const compensation = Math.sin(angleOffset) * 6;
-                pupilLeftX = leftSocketX + compensation;
-                pupilRightX = rightSocketX + compensation;
-                pupilY = eyeY - 2;
-                errorAngle = Math.abs(angleOffset * 0.05) * (180 / Math.PI);
-            } else {
-                // Raw tracking center coordinates (skewed eyes)
-                pupilLeftX = leftSocketX;
-                pupilRightX = rightSocketX;
-                pupilY = eyeY;
-                errorAngle = Math.abs(angleOffset) * (180 / Math.PI);
-            }
+// ══════════════════════════════════════════════════════════
+// SIM 1: True Gaze Parallax
+// ══════════════════════════════════════════════════════════
+const pgCV=document.getElementById('pgC'),pgX=pgCV.getContext('2d');
+let pgOn=true,pgMX=pgCV.width/2,pgMY=pgCV.height/2;
+function setP(v){pgOn=v;document.getElementById('pgON').classList.toggle('act',v);document.getElementById('pgOF').classList.toggle('act',!v)}
+pgCV.addEventListener('mousemove',e=>{const r=pgCV.getBoundingClientRect();pgMX=e.clientX-r.left;pgMY=e.clientY-r.top});
+pgCV.addEventListener('touchmove',e=>{e.preventDefault();const r=pgCV.getBoundingClientRect();pgMX=e.touches[0].clientX-r.left;pgMY=e.touches[0].clientY-r.top},{passive:false});
 
-            // Draw Pupils
-            ctx.beginPath();
-            ctx.arc(pupilLeftX, pupilY, 4, 0, Math.PI * 2);
-            ctx.arc(pupilRightX, pupilY, 4, 0, Math.PI * 2);
-            ctx.fillStyle = '#10b981';
-            ctx.fill();
+function dpg(){
+  const W=pgCV.width,H=pgCV.height;pgX.clearRect(0,0,W,H);
+  const cx=W/2,cy=22;
+  pgX.beginPath();pgX.arc(cx,cy,8,0,Math.PI*2);pgX.fillStyle='#6366f1';pgX.fill();
+  pgX.fillStyle='#9ca3af';pgX.font='11px Inter';pgX.textAlign='center';pgX.fillText('Kinect / Webcam',cx,cy-13);
+  const fx=Math.max(55,Math.min(W-55,pgMX)),fy=Math.max(130,Math.min(H-55,pgMY));
+  pgX.beginPath();pgX.arc(fx,fy,50,0,Math.PI*2);pgX.strokeStyle='rgba(255,255,255,.11)';pgX.lineWidth=1.5;pgX.stroke();
+  const lx=fx-20,rx=fx+20,ey=fy-8;
+  [lx,rx].forEach(ex=>{pgX.beginPath();pgX.arc(ex,ey,10,0,Math.PI*2);pgX.strokeStyle='rgba(255,255,255,.22)';pgX.lineWidth=1;pgX.stroke()});
+  const oa=fx-cx,dep=Math.max(80,fy-cy),ang=Math.atan2(oa,dep),dm=dep/220;
+  let plx,prx,err;
+  if(pgOn){const c=Math.sin(ang)*5;plx=lx+c;prx=rx+c;err=Math.abs(Math.atan(0.0325/Math.max(.25,dm))*.04)*(180/Math.PI)}
+  else{plx=lx;prx=rx;err=Math.abs(ang)*(180/Math.PI)}
+  const py=ey-1;
+  pgX.setLineDash([4,4]);pgX.lineWidth=1.5;pgX.strokeStyle=pgOn?'rgba(16,185,129,.5)':'rgba(239,68,68,.5)';
+  pgX.beginPath();pgX.moveTo(lx,ey);pgX.lineTo(cx,0);pgX.moveTo(rx,ey);pgX.lineTo(cx,0);pgX.stroke();pgX.setLineDash([]);
+  [plx,prx].forEach(px=>{pgX.beginPath();pgX.arc(px,py,4.5,0,Math.PI*2);pgX.fillStyle=pgOn?'#10b981':'#ef4444';pgX.fill()});
+  document.getElementById('gE').innerText=err.toFixed(1)+'°';document.getElementById('gE').style.color=err<2?'#10b981':'#f59e0b';
+  document.getElementById('tO').innerText=(Math.abs(oa)*.025).toFixed(2)+'mm';
+  document.getElementById('sD').innerText='±'+(Math.abs(plx-lx)).toFixed(1)+'px';
+  document.getElementById('dE').innerText=dm.toFixed(2)+'m';
+  requestAnimationFrame(dpg)
+}dpg();
 
-            // Gaze rays pointing towards estimated target
-            ctx.beginPath();
-            ctx.moveTo(leftSocketX, eyeY);
-            ctx.lineTo(targetX, targetY);
-            ctx.moveTo(rightSocketX, eyeY);
-            ctx.lineTo(targetX, targetY);
-            ctx.strokeStyle = correctionEnabled ? 'rgba(16, 185, 129, 0.4)' : 'rgba(239, 68, 68, 0.4)';
-            ctx.setLineDash([5, 5]);
-            ctx.stroke();
-            ctx.setLineDash([]);
+// ══════════════════════════════════════════════════════════
+// SIM 2: 5-Mode Classifier
+// ══════════════════════════════════════════════════════════
+const moCV=document.getElementById('moC'),moX=moCV.getContext('2d');
+const MODES=[
+  {n:'LOGIC', c:'#60a5fa',d:'Analytical · structured gaze',r:'L.Eye',b:'18/min',v:'Neutral', cf:82},
+  {n:'AFFECT',c:'#f472b6',d:'Emotional · social engagement',r:'R.Eye',b:'12/min',v:'Positive',cf:88},
+  {n:'SPIRIT',c:'#a78bfa',d:'Deep rapport · mutual gaze',  r:'L.Eye',b:'9/min', v:'Elated',  cf:91},
+  {n:'HEART', c:'#fb923c',d:'Empathy · lower-face focus',  r:'Mouth', b:'11/min',v:'Empathic',cf:79},
+  {n:'THINK', c:'#94a3b8',d:'Processing · gaze aversion',  r:'Defocus',b:'7/min',v:'Neutral', cf:85},
+];
+const RMAP={LOGIC:'Left Eye',AFFECT:'Right Eye',SPIRIT:'Left Eye',HEART:'Mouth',THINK:'Defocused'};
+let mIdx=0,mT=0,mProg=0,mLT=0;
+function dmo(ts){
+  if(!mLT)mLT=ts;const dt=ts-mLT;mLT=ts;
+  mT+=dt;mProg=Math.min(mT/2000,1);if(mT>2800){mT=0;mIdx=(mIdx+1)%MODES.length}
+  const W=moCV.width,H=moCV.height;moX.clearRect(0,0,W,H);
+  const m=MODES[mIdx],cx=W/2,cy=H/2-20;
+  // hex to rgb helper
+  function hRGB(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)]}
+  const [r,g,b]=hRGB(m.c);
+  moX.beginPath();moX.ellipse(cx,cy,78,96,0,0,Math.PI*2);
+  moX.fillStyle=`rgba(${r},${g},${b},${0.12+mProg*0.18})`;moX.fill();
+  const ley=cy-18;
+  [cx-26,cx+26].forEach(ex=>{
+    moX.beginPath();moX.ellipse(ex,ley,13,9,0,0,Math.PI*2);
+    moX.fillStyle='rgba(5,7,13,.75)';moX.fill();
+    moX.strokeStyle=m.c+'55';moX.lineWidth=1;moX.stroke()
+  });
+  const targs={LOGIC:[cx-26,ley],AFFECT:[cx+26,ley],SPIRIT:[cx,ley],HEART:[cx,cy+28],THINK:[cx+110,cy-50]};
+  const [tX,tY]=targs[m.n]||[cx,ley];
+  const pox=Math.tanh((tX-cx)/55)*7,poy=Math.tanh((tY-cy)/55)*6;
+  [cx-26,cx+26].forEach((ex,i)=>{
+    const px=ex+pox*(i===0?.9:1.1),py=ley+poy;
+    moX.beginPath();moX.arc(px,py,4,0,Math.PI*2);moX.fillStyle=m.c;moX.fill();
+    moX.beginPath();moX.arc(px+1,py-1,1.5,0,Math.PI*2);moX.fillStyle='rgba(255,255,255,.6)';moX.fill()
+  });
+  const mo=m.n==='AFFECT'||m.n==='SPIRIT'?.22:0;
+  moX.beginPath();moX.ellipse(cx,cy+34+mo*8,16*(1+mo),5+mo*9,0,0,Math.PI);
+  moX.strokeStyle=m.c+'88';moX.lineWidth=1.5;moX.stroke();
+  moX.fillStyle=m.c;moX.font='bold 20px Outfit';moX.textAlign='center';moX.fillText(m.n,cx,H-48);
+  moX.fillStyle='#6b7280';moX.font='11px Inter';moX.fillText(m.d,cx,H-30);
+  moX.beginPath();moX.arc(cx,cy,100,-(Math.PI/2),-(Math.PI/2)+Math.PI*2*(m.cf/100)*mProg);
+  moX.strokeStyle=m.c+'33';moX.lineWidth=3;moX.stroke();
+  document.getElementById('moV').innerText=m.n;document.getElementById('moV').style.color=m.c;
+  document.getElementById('moB').style.width=m.cf+'%';document.getElementById('moB').style.background=m.c;
+  document.getElementById('moC2').innerText=m.cf+'%';document.getElementById('moC2').style.color=m.c;
+  document.getElementById('moR').innerText=m.r;document.getElementById('moK').innerText=m.b;document.getElementById('moL').innerText=m.v;
+  document.querySelectorAll('#regs .rt').forEach(t=>t.classList.toggle('act',t.textContent===RMAP[m.n]));
+  requestAnimationFrame(dmo)
+}requestAnimationFrame(dmo);
 
-            // Update stats
-            gazeErrorEl.innerText = errorAngle.toFixed(1) + "°";
-            gazeErrorEl.style.color = errorAngle < 1.5 ? '#10b981' : '#f59e0b';
-            targetOffsetEl.innerText = (Math.abs(offAxisDistance) * 0.03).toFixed(2) + "mm";
-
-            requestAnimationFrame(draw);
-        }
-
-        draw();
-    </script>
+// ══════════════════════════════════════════════════════════
+// SIM 3: Social Gaze
+// ══════════════════════════════════════════════════════════
+const sgCV=document.getElementById('sgC'),sgX=sgCV.getContext('2d');
+const TRI=[{n:'L.Eye',c:'#06b6d4',rx:-28,ry:-20},{n:'R.Eye',c:'#06b6d4',rx:28,ry:-20},{n:'Mouth',c:'#a78bfa',rx:0,ry:30}];
+const SLOW=[{n:'L.Eye',c:'#f472b6',rx:-26,ry:-20},{n:'Mouth',c:'#a78bfa',rx:0,ry:32},{n:'R.Eye',c:'#f472b6',rx:26,ry:-20}];
+const THAVERT={n:'Away',c:'#94a3b8',rx:90,ry:-40};
+let sgMode='AFFECT',sgIdx=0,sgDw=0,smA=0,sgLT2=0;
+function setSM(m,btn){sgMode=m;sgIdx=0;sgDw=0;document.querySelectorAll('.cr .cb').forEach(b=>b.classList.remove('act'));btn.classList.add('act');const mc={AFFECT:'#06b6d4',SPIRIT:'#a78bfa',THINK:'#94a3b8'};document.getElementById('sgM').innerText=m+' Mode';document.getElementById('sgM').style.color=mc[m];document.getElementById('sgB').style.background=mc[m]}
+function dsg(ts){
+  if(!sgLT2)sgLT2=ts;const dt=ts-sgLT2;sgLT2=ts;
+  const dms={AFFECT:340,SPIRIT:440,THINK:1500}[sgMode]||340;
+  sgDw+=dt;if(sgDw>dms){sgDw=0;const tlist=sgMode==='SPIRIT'?SLOW:TRI;sgIdx=(sgIdx+1)%tlist.length}
+  smA=(smA+dt*.001)%(Math.PI*2);
+  const W=sgCV.width,H=sgCV.height;sgX.clearRect(0,0,W,H);
+  const cx=W/2-35,cy=H/2+8;
+  sgX.beginPath();sgX.ellipse(cx,cy,72,90,0,0,Math.PI*2);sgX.strokeStyle='rgba(255,255,255,.11)';sgX.lineWidth=1.5;sgX.stroke();
+  const smd=7+Math.sin(smA)*2.5;
+  sgX.beginPath();sgX.ellipse(cx,cy+32,17,smd,0,0,Math.PI);sgX.strokeStyle='rgba(6,182,212,.65)';sgX.lineWidth=2;sgX.stroke();
+  document.getElementById('sgSm').innerText=(0.52+Math.sin(smA)*.28).toFixed(2);
+  const ey2=cy-16;
+  [cx-25,cx+25].forEach(ex=>{sgX.beginPath();sgX.ellipse(ex,ey2,12,8,0,0,Math.PI*2);sgX.fillStyle='rgba(5,7,13,.8)';sgX.fill();sgX.strokeStyle='rgba(255,255,255,.18)';sgX.lineWidth=1;sgX.stroke()});
+  const tlist2=sgMode==='SPIRIT'?SLOW:TRI;
+  const tgt=sgMode==='THINK'?THAVERT:tlist2[sgIdx];
+  const tGX=cx+tgt.rx*.82,tGY=cy+tgt.ry*.82;
+  const pox2=Math.tanh((tGX-cx)/38)*8,poy2=Math.tanh((tGY-cy)/38)*7;
+  [cx-25,cx+25].forEach(ex=>{const px=ex+pox2,py=ey2+poy2;sgX.beginPath();sgX.arc(px,py,4,0,Math.PI*2);sgX.fillStyle=tgt.c;sgX.fill();sgX.beginPath();sgX.arc(px+1,py-1,1.5,0,Math.PI*2);sgX.fillStyle='rgba(255,255,255,.6)';sgX.fill()});
+  if(sgMode!=='THINK'){
+    const pr=Math.min(sgDw/dms,1);
+    sgX.setLineDash([3,4]);sgX.strokeStyle=tgt.c+'77';sgX.lineWidth=1;
+    sgX.beginPath();sgX.moveTo(cx,ey2);sgX.lineTo(tGX,tGY);sgX.stroke();sgX.setLineDash([]);
+    sgX.beginPath();sgX.arc(tGX,tGY,16,-(Math.PI/2),-(Math.PI/2)+Math.PI*2*pr);sgX.strokeStyle=tgt.c;sgX.lineWidth=2;sgX.stroke();
+    // triangle path
+    sgX.beginPath();tlist2.forEach((t,i)=>{i===0?sgX.moveTo(cx+t.rx*.82,cy+t.ry*.82):sgX.lineTo(cx+t.rx*.82,cy+t.ry*.82)});sgX.closePath();sgX.strokeStyle='rgba(255,255,255,.05)';sgX.lineWidth=1;sgX.stroke()
+  }else{sgX.fillStyle='#94a3b8';sgX.font='11px Inter';sgX.textAlign='center';sgX.fillText('Aversion',cx+80,cy-50)}
+  // avatar panel
+  const avX=W-70;
+  sgX.fillStyle='rgba(99,102,241,.08)';sgX.fillRect(avX-10,12,68,H-24);
+  sgX.fillStyle='rgba(99,102,241,.55)';sgX.font='bold 10px Outfit';sgX.textAlign='center';sgX.fillText('HCEP',avX+24,30);sgX.fillText('Avatar',avX+24,44);
+  [avX+12,avX+36].forEach(ax=>{sgX.beginPath();sgX.arc(ax,H/2-8+poy2,4,0,Math.PI*2);sgX.fillStyle=tgt.c;sgX.fill()});
+  sgX.fillStyle='rgba(6,182,212,.45)';sgX.font='9px Inter';sgX.fillText('↑ Reciprocal',avX+24,H/2+poy2+22);
+  document.getElementById('sgT').innerText=tgt.n;document.getElementById('sgD').innerText=Math.round(sgDw)+'ms';document.getElementById('sgP').innerText='Personal';
+  requestAnimationFrame(dsg)
+}requestAnimationFrame(dsg);
+</script>
 </body>
 </html>
