@@ -115,6 +115,20 @@ public partial class SettingsWindow : Window
             CloudProviderType.Mistral => _configCopy.Mistral,
             CloudProviderType.xAI => _configCopy.xAI,
             CloudProviderType.Cohere => _configCopy.Cohere,
+            CloudProviderType.OpenRouter => _configCopy.OpenRouter,
+            CloudProviderType.DeepSeek => _configCopy.DeepSeek,
+            CloudProviderType.Groq => _configCopy.Groq,
+            CloudProviderType.TogetherAI => _configCopy.TogetherAI,
+            CloudProviderType.FireworksAI => _configCopy.FireworksAI,
+            CloudProviderType.Perplexity => _configCopy.Perplexity,
+            CloudProviderType.AI21Labs => _configCopy.AI21Labs,
+            CloudProviderType.Replicate => _configCopy.Replicate,
+            CloudProviderType.HuggingFace => _configCopy.HuggingFace,
+            CloudProviderType.AzureOpenAI => _configCopy.AzureOpenAI,
+            CloudProviderType.AmazonBedrock => _configCopy.AmazonBedrock,
+            CloudProviderType.NvidiaNIM => _configCopy.NvidiaNIM,
+            CloudProviderType.Cerebras => _configCopy.Cerebras,
+            CloudProviderType.MoonshotAI => _configCopy.MoonshotAI,
             _ => _configCopy.OpenAI
         };
     }
@@ -191,6 +205,20 @@ public partial class SettingsWindow : Window
         CloneSettings(src.Mistral, copy.Mistral);
         CloneSettings(src.xAI, copy.xAI);
         CloneSettings(src.Cohere, copy.Cohere);
+        CloneSettings(src.OpenRouter, copy.OpenRouter);
+        CloneSettings(src.DeepSeek, copy.DeepSeek);
+        CloneSettings(src.Groq, copy.Groq);
+        CloneSettings(src.TogetherAI, copy.TogetherAI);
+        CloneSettings(src.FireworksAI, copy.FireworksAI);
+        CloneSettings(src.Perplexity, copy.Perplexity);
+        CloneSettings(src.AI21Labs, copy.AI21Labs);
+        CloneSettings(src.Replicate, copy.Replicate);
+        CloneSettings(src.HuggingFace, copy.HuggingFace);
+        CloneSettings(src.AzureOpenAI, copy.AzureOpenAI);
+        CloneSettings(src.AmazonBedrock, copy.AmazonBedrock);
+        CloneSettings(src.NvidiaNIM, copy.NvidiaNIM);
+        CloneSettings(src.Cerebras, copy.Cerebras);
+        CloneSettings(src.MoonshotAI, copy.MoonshotAI);
 
         return copy;
     }
@@ -212,6 +240,20 @@ public partial class SettingsWindow : Window
         CloneSettings(src.Mistral, dest.Mistral);
         CloneSettings(src.xAI, dest.xAI);
         CloneSettings(src.Cohere, dest.Cohere);
+        CloneSettings(src.OpenRouter, dest.OpenRouter);
+        CloneSettings(src.DeepSeek, dest.DeepSeek);
+        CloneSettings(src.Groq, dest.Groq);
+        CloneSettings(src.TogetherAI, dest.TogetherAI);
+        CloneSettings(src.FireworksAI, dest.FireworksAI);
+        CloneSettings(src.Perplexity, dest.Perplexity);
+        CloneSettings(src.AI21Labs, dest.AI21Labs);
+        CloneSettings(src.Replicate, dest.Replicate);
+        CloneSettings(src.HuggingFace, dest.HuggingFace);
+        CloneSettings(src.AzureOpenAI, dest.AzureOpenAI);
+        CloneSettings(src.AmazonBedrock, dest.AmazonBedrock);
+        CloneSettings(src.NvidiaNIM, dest.NvidiaNIM);
+        CloneSettings(src.Cerebras, dest.Cerebras);
+        CloneSettings(src.MoonshotAI, dest.MoonshotAI);
     }
 
     private static void CloneSettings(OllamaSettings src, OllamaSettings dest)

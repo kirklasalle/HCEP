@@ -178,9 +178,24 @@ public sealed class HybridLlmEngine : ILlmEngine
                     {
                         CloudProviderType.Anthropic => await CallAnthropicAsync(systemPrompt, userMessage, ct),
                         CloudProviderType.Gemini => await CallGeminiAsync(systemPrompt, userMessage, ct),
+                        // All other providers use the OpenAI-compatible /v1/chat/completions endpoint
                         CloudProviderType.Mistral => await CallOpenAiCompatibleApiAsync(Configuration.Mistral.BaseUrl, Configuration.Mistral.ApiKey, Configuration.Mistral.Model, systemPrompt, userMessage, ct),
                         CloudProviderType.xAI => await CallOpenAiCompatibleApiAsync(Configuration.xAI.BaseUrl, Configuration.xAI.ApiKey, Configuration.xAI.Model, systemPrompt, userMessage, ct),
                         CloudProviderType.Cohere => await CallOpenAiCompatibleApiAsync(Configuration.Cohere.BaseUrl, Configuration.Cohere.ApiKey, Configuration.Cohere.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.OpenRouter => await CallOpenAiCompatibleApiAsync(Configuration.OpenRouter.BaseUrl, Configuration.OpenRouter.ApiKey, Configuration.OpenRouter.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.DeepSeek => await CallOpenAiCompatibleApiAsync(Configuration.DeepSeek.BaseUrl, Configuration.DeepSeek.ApiKey, Configuration.DeepSeek.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.Groq => await CallOpenAiCompatibleApiAsync(Configuration.Groq.BaseUrl, Configuration.Groq.ApiKey, Configuration.Groq.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.TogetherAI => await CallOpenAiCompatibleApiAsync(Configuration.TogetherAI.BaseUrl, Configuration.TogetherAI.ApiKey, Configuration.TogetherAI.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.FireworksAI => await CallOpenAiCompatibleApiAsync(Configuration.FireworksAI.BaseUrl, Configuration.FireworksAI.ApiKey, Configuration.FireworksAI.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.Perplexity => await CallOpenAiCompatibleApiAsync(Configuration.Perplexity.BaseUrl, Configuration.Perplexity.ApiKey, Configuration.Perplexity.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.AI21Labs => await CallOpenAiCompatibleApiAsync(Configuration.AI21Labs.BaseUrl, Configuration.AI21Labs.ApiKey, Configuration.AI21Labs.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.Replicate => await CallOpenAiCompatibleApiAsync(Configuration.Replicate.BaseUrl, Configuration.Replicate.ApiKey, Configuration.Replicate.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.HuggingFace => await CallOpenAiCompatibleApiAsync(Configuration.HuggingFace.BaseUrl, Configuration.HuggingFace.ApiKey, Configuration.HuggingFace.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.AzureOpenAI => await CallOpenAiCompatibleApiAsync(Configuration.AzureOpenAI.BaseUrl, Configuration.AzureOpenAI.ApiKey, Configuration.AzureOpenAI.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.AmazonBedrock => await CallOpenAiCompatibleApiAsync(Configuration.AmazonBedrock.BaseUrl, Configuration.AmazonBedrock.ApiKey, Configuration.AmazonBedrock.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.NvidiaNIM => await CallOpenAiCompatibleApiAsync(Configuration.NvidiaNIM.BaseUrl, Configuration.NvidiaNIM.ApiKey, Configuration.NvidiaNIM.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.Cerebras => await CallOpenAiCompatibleApiAsync(Configuration.Cerebras.BaseUrl, Configuration.Cerebras.ApiKey, Configuration.Cerebras.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.MoonshotAI => await CallOpenAiCompatibleApiAsync(Configuration.MoonshotAI.BaseUrl, Configuration.MoonshotAI.ApiKey, Configuration.MoonshotAI.Model, systemPrompt, userMessage, ct),
                         _ => await CallOpenAiCompatibleApiAsync(Configuration.OpenAI.BaseUrl, Configuration.OpenAI.ApiKey, Configuration.OpenAI.Model, systemPrompt, userMessage, ct)
                     };
 
@@ -411,6 +426,20 @@ public sealed class HybridLlmEngine : ILlmEngine
         CloudProviderType.Mistral => Configuration.Mistral.Model,
         CloudProviderType.xAI => Configuration.xAI.Model,
         CloudProviderType.Cohere => Configuration.Cohere.Model,
+        CloudProviderType.OpenRouter => Configuration.OpenRouter.Model,
+        CloudProviderType.DeepSeek => Configuration.DeepSeek.Model,
+        CloudProviderType.Groq => Configuration.Groq.Model,
+        CloudProviderType.TogetherAI => Configuration.TogetherAI.Model,
+        CloudProviderType.FireworksAI => Configuration.FireworksAI.Model,
+        CloudProviderType.Perplexity => Configuration.Perplexity.Model,
+        CloudProviderType.AI21Labs => Configuration.AI21Labs.Model,
+        CloudProviderType.Replicate => Configuration.Replicate.Model,
+        CloudProviderType.HuggingFace => Configuration.HuggingFace.Model,
+        CloudProviderType.AzureOpenAI => Configuration.AzureOpenAI.Model,
+        CloudProviderType.AmazonBedrock => Configuration.AmazonBedrock.Model,
+        CloudProviderType.NvidiaNIM => Configuration.NvidiaNIM.Model,
+        CloudProviderType.Cerebras => Configuration.Cerebras.Model,
+        CloudProviderType.MoonshotAI => Configuration.MoonshotAI.Model,
         _ => Configuration.OpenAI.Model
     };
 
@@ -436,6 +465,48 @@ public sealed class HybridLlmEngine : ILlmEngine
             CloudProviderType.Cohere =>
                 WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.Cohere, "COHERE_API_KEY", _logger)
                 ?? Configuration.Cohere.ApiKey,
+            CloudProviderType.OpenRouter =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.OpenRouter, "OPENROUTER_API_KEY", _logger)
+                ?? Configuration.OpenRouter.ApiKey,
+            CloudProviderType.DeepSeek =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.DeepSeek, "DEEPSEEK_API_KEY", _logger)
+                ?? Configuration.DeepSeek.ApiKey,
+            CloudProviderType.Groq =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.Groq, "GROQ_API_KEY", _logger)
+                ?? Configuration.Groq.ApiKey,
+            CloudProviderType.TogetherAI =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.TogetherAI, "TOGETHERAI_API_KEY", _logger)
+                ?? Configuration.TogetherAI.ApiKey,
+            CloudProviderType.FireworksAI =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.FireworksAI, "FIREWORKS_API_KEY", _logger)
+                ?? Configuration.FireworksAI.ApiKey,
+            CloudProviderType.Perplexity =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.Perplexity, "PERPLEXITY_API_KEY", _logger)
+                ?? Configuration.Perplexity.ApiKey,
+            CloudProviderType.AI21Labs =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.AI21Labs, "AI21_API_KEY", _logger)
+                ?? Configuration.AI21Labs.ApiKey,
+            CloudProviderType.Replicate =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.Replicate, "REPLICATE_API_TOKEN", _logger)
+                ?? Configuration.Replicate.ApiKey,
+            CloudProviderType.HuggingFace =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.HuggingFace, "HF_API_TOKEN", _logger)
+                ?? Configuration.HuggingFace.ApiKey,
+            CloudProviderType.AzureOpenAI =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.AzureOpenAI, "AZURE_OPENAI_API_KEY", _logger)
+                ?? Configuration.AzureOpenAI.ApiKey,
+            CloudProviderType.AmazonBedrock =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.AmazonBedrock, "AWS_BEARER_TOKEN", _logger)
+                ?? Configuration.AmazonBedrock.ApiKey,
+            CloudProviderType.NvidiaNIM =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.NvidiaNIM, "NVIDIA_API_KEY", _logger)
+                ?? Configuration.NvidiaNIM.ApiKey,
+            CloudProviderType.Cerebras =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.Cerebras, "CEREBRAS_API_KEY", _logger)
+                ?? Configuration.Cerebras.ApiKey,
+            CloudProviderType.MoonshotAI =>
+                WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.MoonshotAI, "MOONSHOT_API_KEY", _logger)
+                ?? Configuration.MoonshotAI.ApiKey,
             _ =>
                 WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.OpenAI, "OPENAI_API_KEY", _logger)
                 ?? Configuration.OpenAI.ApiKey,

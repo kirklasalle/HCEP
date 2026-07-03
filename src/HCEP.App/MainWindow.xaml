@@ -9,7 +9,9 @@
         Height="900"
         Width="1440"
         Background="{StaticResource BackgroundBrush}"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        ToolTipService.ShowDuration="10000"
+        ToolTipService.InitialShowDelay="350">
 
     <Grid>
         <Grid.RowDefinitions>
@@ -96,7 +98,7 @@
                                                 Value="6,3"/>
                                         <Style.Triggers>
                                             <Trigger Property="IsHighlighted"
-                                                    Value="True">
+                                                     Value="True">
                                                 <Setter Property="Background"
                                                         Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
                                                 <Setter Property="Foreground"

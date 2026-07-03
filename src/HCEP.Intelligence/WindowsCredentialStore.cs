@@ -54,6 +54,20 @@ public static class WindowsCredentialStore
     public const string Mistral = "HCEP/Mistral";
     public const string xAI = "HCEP/xAI";
     public const string Cohere = "HCEP/Cohere";
+    public const string OpenRouter = "HCEP/OpenRouter";
+    public const string DeepSeek = "HCEP/DeepSeek";
+    public const string Groq = "HCEP/Groq";
+    public const string TogetherAI = "HCEP/TogetherAI";
+    public const string FireworksAI = "HCEP/FireworksAI";
+    public const string Perplexity = "HCEP/Perplexity";
+    public const string AI21Labs = "HCEP/AI21Labs";
+    public const string Replicate = "HCEP/Replicate";
+    public const string HuggingFace = "HCEP/HuggingFace";
+    public const string AzureOpenAI = "HCEP/AzureOpenAI";
+    public const string AmazonBedrock = "HCEP/AmazonBedrock";
+    public const string NvidiaNIM = "HCEP/NvidiaNIM";
+    public const string Cerebras = "HCEP/Cerebras";
+    public const string MoonshotAI = "HCEP/MoonshotAI";
 
     /// <summary>
     /// Retrieves an API key from Windows Credential Manager.

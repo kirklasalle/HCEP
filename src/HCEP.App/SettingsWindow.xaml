@@ -5,12 +5,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="HCEP — AI &amp; Happyface Settings"
-        Height="540"
-        Width="640"
+        Height="560"
+        Width="680"
         Background="{StaticResource BackgroundBrush}"
         Foreground="{StaticResource TextBrush}"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        ToolTipService.ShowDuration="12000"
+        ToolTipService.InitialShowDelay="350">
 
     <Window.Resources>
         <Style TargetType="TextBlock">
@@ -82,7 +84,8 @@
                    FontSize="18"
                    FontWeight="Bold"
                    Foreground="{StaticResource PrimaryBrush}"
-                   Margin="0,0,0,15"/>
+                   Margin="0,0,0,15"
+                   ToolTip="Configure local SLM engines, frontier cloud providers, avatar emulation, and situational context."/>
 
         <!-- Tabbed Settings Content -->
         <TabControl Grid.Row="1"
@@ -91,7 +94,8 @@
                     Margin="0,0,0,15">
 
             <!-- Local AI Engine Settings -->
-            <TabItem Header="Local Engines">
+            <TabItem Header="Local Engines"
+                     ToolTip="Configure Ollama and Llama.cpp local SLM engines.&#x0a;Local engines run entirely on your machine — no data leaves your device.">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               Padding="15">
                     <Grid>
@@ -119,7 +123,8 @@
                         <ComboBox Grid.Row="0"
                                   Grid.Column="1"
                                   x:Name="LocalEngineCombo"
-                                  Margin="0,5">
+                                  Margin="0,5"
+                                  ToolTip="Choose between Ollama (HTTP API server) or Llama.cpp (direct HTTP server).&#x0a;Only the active engine is used when Prefer Local is enabled.">
                             <ComboBoxItem Content="Ollama"/>
                             <ComboBoxItem Content="LlamaCpp"/>
                         </ComboBox>
@@ -144,7 +149,8 @@
                         <TextBox Grid.Row="3"
                                  Grid.Column="1"
                                  x:Name="OllamaUrlText"
-                                 Margin="0,5"/>
+                                 Margin="0,5"
+                                 ToolTip="Base URL of your local Ollama API server.&#x0a;Default: http://localhost:11434&#x0a;&#x0a;Start Ollama with: ollama serve"/>
 
                         <TextBlock Grid.Row="4"
                                    Grid.Column="0"
@@ -153,7 +159,8 @@
                         <TextBox Grid.Row="4"
                                  Grid.Column="1"
                                  x:Name="OllamaModelText"
-                                 Margin="0,5"/>
+                                 Margin="0,5"
+                                 ToolTip="Model name to pull and run via Ollama.&#x0a;Examples: mistral, llama3, phi3:mini, gemma3:12b, qwen2.5:7b&#x0a;&#x0a;Run 'ollama list' to see available models."/>
 
                         <!-- LlamaCpp Section -->
                         <Border Grid.Row="5"
@@ -175,13 +182,15 @@
                         <TextBox Grid.Row="7"
                                  Grid.Column="1"
                                  x:Name="LlamaCppUrlText"
-                                 Margin="0,5"/>
+                                 Margin="0,5"
+                                 ToolTip="Base URL of your llama.cpp HTTP server.&#x0a;Default: http://localhost:8080&#x0a;&#x0a;Start with: llama-server --model model.gguf --port 8080"/>
                     </Grid>
                 </ScrollViewer>
             </TabItem>
 
             <!-- Frontier Cloud Provider Settings -->
-            <TabItem Header="Frontier Cloud">
+            <TabItem Header="Frontier Cloud"
+                     ToolTip="Configure frontier cloud LLM providers (OpenAI, Anthropic, Gemini, etc.).&#x0a;API keys are stored in Windows Credential Manager.">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               Padding="15">
                     <Grid>
@@ -208,13 +217,48 @@
                         <ComboBox Grid.Row="0"
                                   Grid.Column="1"
                                   x:Name="CloudProviderCombo"
-                                  Margin="0,5">
-                            <ComboBoxItem Content="OpenAI"/>
-                            <ComboBoxItem Content="Anthropic"/>
-                            <ComboBoxItem Content="Gemini"/>
-                            <ComboBoxItem Content="Mistral"/>
-                            <ComboBoxItem Content="xAI"/>
-                            <ComboBoxItem Content="Cohere"/>
+                                  Margin="0,5"
+                                  ToolTip="Active frontier cloud LLM provider.&#x0a;&#x0a;API keys are stored in Windows Credential Manager —&#x0a;never visible in process listings or environment variables.">
+                            <ComboBoxItem Content="OpenAI"
+                                          ToolTip="OpenAI — GPT-4o, GPT-4.1, o3&#x0a;https://api.openai.com/v1"/>
+                            <ComboBoxItem Content="Anthropic"
+                                          ToolTip="Anthropic — Claude Opus/Sonnet/Haiku&#x0a;https://api.anthropic.com/v1"/>
+                            <ComboBoxItem Content="Gemini (Google)"
+                                          ToolTip="Google DeepMind — Gemini 2.5 Pro/Flash&#x0a;https://generativelanguage.googleapis.com/v1beta"/>
+                            <ComboBoxItem Content="Mistral AI"
+                                          ToolTip="Mistral AI — Mistral Large, Codestral&#x0a;https://api.mistral.ai/v1"/>
+                            <ComboBoxItem Content="xAI (Grok)"
+                                          ToolTip="xAI — Grok-2, Grok-3 (Elon Musk)&#x0a;https://api.x.ai/v1"/>
+                            <ComboBoxItem Content="Cohere"
+                                          ToolTip="Cohere — Command R+, Embed&#x0a;https://api.cohere.ai/v1"/>
+                            <ComboBoxItem Content="OpenRouter"
+                                          ToolTip="OpenRouter — Single API for 100+ models&#x0a;Route to any provider via one key&#x0a;https://openrouter.ai/api/v1"/>
+                            <ComboBoxItem Content="DeepSeek"
+                                          ToolTip="DeepSeek — DeepSeek-V3, DeepSeek-R2&#x0a;High-performance Chinese frontier lab&#x0a;https://api.deepseek.com"/>
+                            <ComboBoxItem Content="Groq (Fast LPU)"
+                                          ToolTip="Groq — Ultra-fast LPU inference (700+ tok/s)&#x0a;Llama-3.3-70b, Mixtral, Gemma&#x0a;https://api.groq.com/openai/v1"/>
+                            <ComboBoxItem Content="Together AI"
+                                          ToolTip="Together AI — Open-source model hosting&#x0a;Llama, Mistral, Qwen, DBRX&#x0a;https://api.together.xyz/v1"/>
+                            <ComboBoxItem Content="Fireworks AI"
+                                          ToolTip="Fireworks AI — Low-latency inference&#x0a;Llama, Mixtral, FireLLaVA&#x0a;https://api.fireworks.ai/inference/v1"/>
+                            <ComboBoxItem Content="Perplexity AI"
+                                          ToolTip="Perplexity — Search-augmented LLM&#x0a;Sonar Online + real-time web retrieval&#x0a;https://api.perplexity.ai"/>
+                            <ComboBoxItem Content="AI21 Labs (Jamba)"
+                                          ToolTip="AI21 Labs — Jamba-1.5 hybrid SSM/Transformer&#x0a;256k context, best-in-class efficiency&#x0a;https://api.ai21.com/studio/v1"/>
+                            <ComboBoxItem Content="Replicate"
+                                          ToolTip="Replicate — Model-hosting platform&#x0a;Llama, Stable Diffusion, SDXL, custom&#x0a;https://api.replicate.com/v1"/>
+                            <ComboBoxItem Content="Hugging Face"
+                                          ToolTip="Hugging Face Inference Endpoints&#x0a;Llama, Falcon, Mistral and 100k+ models&#x0a;https://api-inference.huggingface.co/v1"/>
+                            <ComboBoxItem Content="Azure OpenAI"
+                                          ToolTip="Microsoft Azure OpenAI Service&#x0a;GPT-4o, GPT-4.1 via your Azure deployment&#x0a;https://YOUR_RESOURCE.openai.azure.com/..."/>
+                            <ComboBoxItem Content="Amazon Bedrock"
+                                          ToolTip="AWS Amazon Bedrock gateway&#x0a;Claude, Llama, Titan, Mistral on AWS&#x0a;https://bedrock-runtime.us-east-1.amazonaws.com"/>
+                            <ComboBoxItem Content="Nvidia NIM"
+                                          ToolTip="NVIDIA Inference Microservices&#x0a;Llama, Mistral, Nemotron on GPU cloud&#x0a;https://integrate.api.nvidia.com/v1"/>
+                            <ComboBoxItem Content="Cerebras"
+                                          ToolTip="Cerebras — Wafer-scale ultra-fast inference&#x0a;2000+ tok/s on Llama-3.3-70b&#x0a;https://api.cerebras.ai/v1"/>
+                            <ComboBoxItem Content="Moonshot AI (Kimi)"
+                                          ToolTip="Moonshot AI (Kimi) — Chinese frontier lab&#x0a;128k– to 1M-token context windows&#x0a;https://api.moonshot.cn/v1"/>
                         </ComboBox>
 
                         <Border Grid.Row="1"
@@ -236,7 +280,8 @@
                         <TextBox Grid.Row="3"
                                  Grid.Column="1"
                                  x:Name="CloudModelText"
-                                 Margin="0,5"/>
+                                 Margin="0,5"
+                                 ToolTip="Model identifier for the selected provider.&#x0a;&#x0a;Examples:&#x0a;• OpenAI: gpt-4o, gpt-4o-mini&#x0a;• Anthropic: claude-opus-4-5, claude-sonnet-4-5&#x0a;• Google: gemini-2.5-pro, gemini-2.0-flash&#x0a;• Mistral: mistral-large-latest"/>
 
                         <TextBlock Grid.Row="4"
                                    Grid.Column="0"
@@ -245,7 +290,8 @@
                         <TextBox Grid.Row="4"
                                  Grid.Column="1"
                                  x:Name="CloudApiKeyText"
-                                 Margin="0,5"/>
+                                 Margin="0,5"
+                                 ToolTip="API key for the selected provider.&#x0a;&#x0a;Saved to Windows Credential Manager (WCM) on Save.&#x0a;Encrypted at rest — never stored in plain text or config files."/>
 
                         <TextBlock Grid.Row="5"
                                    Grid.Column="0"
@@ -255,13 +301,14 @@
                                  Grid.Column="1"
                                  x:Name="CloudUrlText"
                                  Margin="0,5"
-                                 ToolTip="Leave blank for provider default endpoint"/>
+                                 ToolTip="Override the default API endpoint for this provider.&#x0a;&#x0a;Leave blank to use the standard endpoint.&#x0a;Useful for Azure OpenAI, custom proxies, or local LiteLLM."/>
                     </Grid>
                 </ScrollViewer>
             </TabItem>
 
             <!-- Happyface & Mirroring Settings -->
-            <TabItem Header="Happyface / Emulation">
+            <TabItem Header="Happyface / Emulation"
+                     ToolTip="Configure avatar expression mirroring, LLM routing, and response timing.">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               Padding="15">
                     <Grid>
@@ -288,7 +335,8 @@
                                   Grid.Column="1"
                                   x:Name="PreferLocalCheck"
                                   Content="Route requests locally when possible"
-                                  Margin="0,5"/>
+                                  Margin="0,5"
+                                  ToolTip="When enabled, all LLM requests are routed to the local SLM engine first.&#x0a;Cloud providers are used only as fallback when local is unavailable.&#x0a;&#x0a;Recommended: ON for privacy-sensitive deployments."/>
 
                         <TextBlock Grid.Row="1"
                                    Grid.Column="0"
@@ -299,7 +347,8 @@
                                   Grid.Column="1"
                                   x:Name="AgenticToolCheck"
                                   Content="Allow LLM to call local HCEP tools"
-                                  Margin="0,5"/>
+                                  Margin="0,5"
+                                  ToolTip="Enables the Agentic Tool Use system.&#x0a;&#x0a;The LLM can call HCEP built-in tools:&#x0a;• Gaze region and mode queries&#x0a;• Person knowledge store lookups&#x0a;• Context snapshot introspection&#x0a;• Silence protocol state&#x0a;&#x0a;Disable to force purely generative responses."/>
 
                         <!-- Emulation weight -->
                         <Border Grid.Row="2"
@@ -313,7 +362,8 @@
                                    Text="Somatic Emulation Weight"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"/>
+                                   Margin="0,5"
+                                   ToolTip="Controls how strongly Happyface mirrors the user's detected emotional state.&#x0a;&#x0a;0.0 → purely neutral expression&#x0a;0.5 → moderate somatic mirroring&#x0a;1.0 → full emotional contagion (Hatfield et al. 1993)"/>
                         <Grid Grid.Row="3"
                               Grid.Column="1"
                               Margin="0,5">
@@ -327,7 +377,8 @@
                                     Maximum="1"
                                     TickFrequency="0.05"
                                     IsSnapToTickEnabled="True"
-                                    VerticalAlignment="Center"/>
+                                    VerticalAlignment="Center"
+                                    ToolTip="Somatic Emulation Weight [0.0 – 1.0]&#x0a;&#x0a;How strongly Happyface mirrors detected emotions.&#x0a;Recommended: 0.40 – 0.65 for natural mirroring."/>
                             <TextBlock Grid.Column="1"
                                        Text="{Binding ElementName=EmuWeightSlider, Path=Value, StringFormat={}{0:F2}}"
                                        HorizontalAlignment="Right"
@@ -339,7 +390,8 @@
                                    Text="Reflection Delay (ms)"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"/>
+                                   Margin="0,5"
+                                   ToolTip="Milliseconds the LLM waits before generating a reply.&#x0a;&#x0a;Higher values → more reflective, measured responses.&#x0a;Recommended: 150–400ms for natural conversation pacing."/>
                         <Grid Grid.Row="4"
                               Grid.Column="1"
                               Margin="0,5">
@@ -353,7 +405,8 @@
                                     Maximum="1000"
                                     TickFrequency="25"
                                     IsSnapToTickEnabled="True"
-                                    VerticalAlignment="Center"/>
+                                    VerticalAlignment="Center"
+                                    ToolTip="Reflection Delay [50 – 1000 ms]&#x0a;&#x0a;LLM waits this long before generating a response.&#x0a;50ms = near-instant  •  400ms = natural  •  1000ms = contemplative"/>
                             <TextBlock Grid.Column="1"
                                        Text="{Binding ElementName=DelaySlider, Path=Value, StringFormat={}{0:F0}}"
                                        HorizontalAlignment="Right"
@@ -365,12 +418,14 @@
                                    Text="Somatic Blink Sync"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"/>
+                                   Margin="0,5"
+                                   ToolTip="Synchronize Happyface eye blinks with the user's detected blinks.&#x0a;A subtle somatic mirroring cue (Bavelas et al. 2000)."/>
                         <CheckBox Grid.Row="5"
                                   Grid.Column="1"
                                   x:Name="SyncBlinksCheck"
                                   Content="Synchronize Happyface eye blinks with user"
-                                  Margin="0,5"/>
+                                  Margin="0,5"
+                                  ToolTip="When ON: Happyface blinks in synchrony with the user's detected eye blinks.&#x0a;Creates a subtle but powerful sense of shared presence."/>
                     </Grid>
                 </ScrollViewer>
             </TabItem>
@@ -378,7 +433,8 @@
             <!-- ════════════════════════════════════════════════════════════ -->
             <!--  Context tab — Phase 14 time/space/situation awareness      -->
             <!-- ════════════════════════════════════════════════════════════ -->
-            <TabItem Header="Context">
+            <TabItem Header="Context"
+                     ToolTip="Set the situational context (environment, activity, privacy).&#x0a;This is injected into the LLM system prompt and governs the Silence Protocol.">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               Padding="12,8">
                     <Grid>
@@ -415,7 +471,8 @@
                                   Margin="0,5"
                                   Background="#252540"
                                   Foreground="{StaticResource TextBrush}"
-                                  BorderBrush="{StaticResource AccentBrush}">
+                                  BorderBrush="{StaticResource AccentBrush}"
+                                  ToolTip="Physical environment type where HCEP is running.&#x0a;&#x0a;Affects the Silence Protocol:&#x0a;• Bedroom + Late Night → maximum attunement (avatar stays silent)&#x0a;• Office/Lab → formal register, professional responses&#x0a;• LivingRoom/Studio → relaxed, informal register">
                             <ComboBoxItem Content="Unknown"/>
                             <ComboBoxItem Content="Bedroom"/>
                             <ComboBoxItem Content="LivingRoom"/>
@@ -440,7 +497,8 @@
                                   Margin="0,5"
                                   Background="#252540"
                                   Foreground="{StaticResource TextBrush}"
-                                  BorderBrush="{StaticResource AccentBrush}">
+                                  BorderBrush="{StaticResource AccentBrush}"
+                                  ToolTip="Current activity context.&#x0a;&#x0a;Informs the LLM's communication register and urgency:&#x0a;• Working / Learning → professional, concise responses&#x0a;• Relaxing / Socializing → warm, conversational tone&#x0a;• Creating → open, exploratory register">
                             <ComboBoxItem Content="Unknown"/>
                             <ComboBoxItem Content="Working"/>
                             <ComboBoxItem Content="Relaxing"/>
@@ -464,7 +522,8 @@
                                   Margin="0,5"
                                   Background="#252540"
                                   Foreground="{StaticResource TextBrush}"
-                                  BorderBrush="{StaticResource AccentBrush}">
+                                  BorderBrush="{StaticResource AccentBrush}"
+                                  ToolTip="Privacy level of the current interaction.&#x0a;&#x0a;• Private → intimate register, Silence Protocol maximally sensitive&#x0a;• SemiPrivate → blended informal/professional&#x0a;• Public → formal register enforced, Silence Protocol relaxed">
                             <ComboBoxItem Content="Private"/>
                             <ComboBoxItem Content="SemiPrivate"/>
                             <ComboBoxItem Content="Public"/>
@@ -480,7 +539,7 @@
                                  Grid.Column="1"
                                  x:Name="LocationLabelText"
                                  Margin="0,5"
-                                 ToolTip="Optional friendly name for this location (e.g. 'Home Studio', 'University Lab')"/>
+                                 ToolTip="Optional friendly name for this location.&#x0a;Surfaced directly in the LLM system prompt.&#x0a;&#x0a;Examples: Home Studio, University Lab, Dad's Kitchen&#x0a;&#x0a;Leave blank to omit from context."/>
                     </Grid>
                 </ScrollViewer>
             </TabItem>
@@ -498,14 +557,16 @@
                     Padding="15,6"
                     Margin="0,0,10,0"
                     Cursor="Hand"
-                    FontWeight="SemiBold"/>
+                    FontWeight="SemiBold"
+                    ToolTip="Apply all settings and close.&#x0a;Changes take effect immediately — no restart required."/>
             <Button Content="Cancel"
                     Click="Cancel_Click"
                     Background="#2A2A40"
                     Foreground="{StaticResource TextBrush}"
                     BorderThickness="0"
                     Padding="15,6"
-                    Cursor="Hand"/>
+                    Cursor="Hand"
+                    ToolTip="Discard all changes and close."/>
         </StackPanel>
     </Grid>
 </Window>

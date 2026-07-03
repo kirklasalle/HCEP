@@ -27,15 +27,30 @@ public enum LocalEngineType
 
 /// <summary>
 /// Supported frontier cloud LLM providers.
+/// Ordinal values MUST match the ComboBox SelectedIndex order in SettingsWindow.xaml.
 /// </summary>
 public enum CloudProviderType
 {
-    OpenAI,
-    Anthropic,
-    Gemini,
-    Mistral,
-    xAI,
-    Cohere
+    OpenAI = 0,
+    Anthropic = 1,
+    Gemini = 2,
+    Mistral = 3,
+    xAI = 4,
+    Cohere = 5,
+    OpenRouter = 6,   // Aggregator — routes to 100+ models via single API
+    DeepSeek = 7,   // High-performance Chinese lab (OpenAI-compat)
+    Groq = 8,   // Ultra-fast LPU inference
+    TogetherAI = 9,   // Open-source model hosting
+    FireworksAI = 10,  // Low-latency inference platform
+    Perplexity = 11,  // Search-augmented LLM
+    AI21Labs = 12,  // Jamba hybrid SSM
+    Replicate = 13,  // Model-hosting platform
+    HuggingFace = 14,  // Inference Endpoints
+    AzureOpenAI = 15,  // Microsoft Azure OpenAI Service
+    AmazonBedrock = 16, // AWS Bedrock gateway
+    NvidiaNIM = 17,  // NVIDIA Inference Microservices
+    Cerebras = 18,  // Wafer-scale ultra-fast inference
+    MoonshotAI = 19,  // Kimi long-context Chinese lab
 }
 
 /// <summary>
@@ -92,6 +107,91 @@ public sealed class LlmConfiguration
     {
         BaseUrl = "https://api.cohere.ai/v1",
         Model = "command-r-plus"
+    };
+
+    // ── Extended Frontier Providers (Phase 8+) ───────────────────────
+    public CloudProviderSettings OpenRouter { get; set; } = new()
+    {
+        BaseUrl = "https://openrouter.ai/api/v1",
+        Model = "meta-llama/llama-3.3-70b-instruct"
+    };
+
+    public CloudProviderSettings DeepSeek { get; set; } = new()
+    {
+        BaseUrl = "https://api.deepseek.com",
+        Model = "deepseek-chat"
+    };
+
+    public CloudProviderSettings Groq { get; set; } = new()
+    {
+        BaseUrl = "https://api.groq.com/openai/v1",
+        Model = "llama-3.3-70b-versatile"
+    };
+
+    public CloudProviderSettings TogetherAI { get; set; } = new()
+    {
+        BaseUrl = "https://api.together.xyz/v1",
+        Model = "meta-llama/Llama-3-70b-chat-hf"
+    };
+
+    public CloudProviderSettings FireworksAI { get; set; } = new()
+    {
+        BaseUrl = "https://api.fireworks.ai/inference/v1",
+        Model = "accounts/fireworks/models/llama-v3p3-70b-instruct"
+    };
+
+    public CloudProviderSettings Perplexity { get; set; } = new()
+    {
+        BaseUrl = "https://api.perplexity.ai",
+        Model = "llama-3.1-sonar-large-128k-online"
+    };
+
+    public CloudProviderSettings AI21Labs { get; set; } = new()
+    {
+        BaseUrl = "https://api.ai21.com/studio/v1",
+        Model = "jamba-1.5-large"
+    };
+
+    public CloudProviderSettings Replicate { get; set; } = new()
+    {
+        BaseUrl = "https://api.replicate.com/v1",
+        Model = "meta/llama-3-70b-instruct"
+    };
+
+    public CloudProviderSettings HuggingFace { get; set; } = new()
+    {
+        BaseUrl = "https://api-inference.huggingface.co/v1",
+        Model = "meta-llama/Llama-3.3-70B-Instruct"
+    };
+
+    public CloudProviderSettings AzureOpenAI { get; set; } = new()
+    {
+        BaseUrl = "https://YOUR_RESOURCE.openai.azure.com/openai/deployments/YOUR_DEPLOYMENT",
+        Model = "gpt-4o"
+    };
+
+    public CloudProviderSettings AmazonBedrock { get; set; } = new()
+    {
+        BaseUrl = "https://bedrock-runtime.us-east-1.amazonaws.com",
+        Model = "anthropic.claude-3-5-sonnet-20241022-v2:0"
+    };
+
+    public CloudProviderSettings NvidiaNIM { get; set; } = new()
+    {
+        BaseUrl = "https://integrate.api.nvidia.com/v1",
+        Model = "meta/llama-3.3-70b-instruct"
+    };
+
+    public CloudProviderSettings Cerebras { get; set; } = new()
+    {
+        BaseUrl = "https://api.cerebras.ai/v1",
+        Model = "llama3.3-70b"
+    };
+
+    public CloudProviderSettings MoonshotAI { get; set; } = new()
+    {
+        BaseUrl = "https://api.moonshot.cn/v1",
+        Model = "moonshot-v1-32k"
     };
 }
 

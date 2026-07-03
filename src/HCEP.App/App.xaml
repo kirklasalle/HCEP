@@ -3,194 +3,254 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:HCEP.App"
              Startup="Application_Startup">
-    <Application.Resources>
-        <!-- HCEP Dark Theme -->
-        <SolidColorBrush x:Key="BackgroundBrush"
-                         Color="#1E1E2E"/>
-        <SolidColorBrush x:Key="SurfaceBrush"
-                         Color="#282840"/>
-        <SolidColorBrush x:Key="PrimaryBrush"
-                         Color="#7C3AED"/>
-        <SolidColorBrush x:Key="AccentBrush"
-                         Color="#06B6D4"/>
-        <SolidColorBrush x:Key="TextBrush"
-                         Color="#E2E8F0"/>
-        <SolidColorBrush x:Key="TextDimBrush"
-                         Color="#94A3B8"/>
-        <SolidColorBrush x:Key="SuccessBrush"
-                         Color="#22C55E"/>
-        <SolidColorBrush x:Key="WarningBrush"
-                         Color="#F59E0B"/>
-        <SolidColorBrush x:Key="ErrorBrush"
-                         Color="#EF4444"/>
+        <Application.Resources>
+                <!-- HCEP Dark Theme -->
+                <SolidColorBrush x:Key="BackgroundBrush"
+                                 Color="#1E1E2E"/>
+                <SolidColorBrush x:Key="SurfaceBrush"
+                                 Color="#282840"/>
+                <SolidColorBrush x:Key="PrimaryBrush"
+                                 Color="#7C3AED"/>
+                <SolidColorBrush x:Key="AccentBrush"
+                                 Color="#06B6D4"/>
+                <SolidColorBrush x:Key="TextBrush"
+                                 Color="#E2E8F0"/>
+                <SolidColorBrush x:Key="TextDimBrush"
+                                 Color="#94A3B8"/>
+                <SolidColorBrush x:Key="SuccessBrush"
+                                 Color="#22C55E"/>
+                <SolidColorBrush x:Key="WarningBrush"
+                                 Color="#F59E0B"/>
+                <SolidColorBrush x:Key="ErrorBrush"
+                                 Color="#EF4444"/>
 
-        <!-- Dark Menu Style -->
-        <Style TargetType="Menu">
-            <Setter Property="Background"
-                    Value="#181828"/>
-            <Setter Property="Foreground"
-                    Value="#E2E8F0"/>
-            <Setter Property="BorderThickness"
-                    Value="0"/>
-            <Setter Property="Padding"
-                    Value="4,2"/>
-        </Style>
-        <Style x:Key="MenuSeparatorStyle"
-               TargetType="Separator">
-            <Setter Property="Background"
-                    Value="#3A3A5A"/>
-            <Setter Property="Margin"
-                    Value="4,2"/>
-        </Style>
+                <!-- Dark Menu Style -->
+                <Style TargetType="Menu">
+                        <Setter Property="Background"
+                                Value="#181828"/>
+                        <Setter Property="Foreground"
+                                Value="#E2E8F0"/>
+                        <Setter Property="BorderThickness"
+                                Value="0"/>
+                        <Setter Property="Padding"
+                                Value="4,2"/>
+                </Style>
+                <Style x:Key="MenuSeparatorStyle"
+                       TargetType="Separator">
+                        <Setter Property="Background"
+                                Value="#3A3A5A"/>
+                        <Setter Property="Margin"
+                                Value="4,2"/>
+                </Style>
 
-        <!-- Dark MenuItem Template -->
-        <SolidColorBrush x:Key="MenuPopupBrush"
-                         Color="#252540"/>
-        <SolidColorBrush x:Key="MenuHoverBrush"
-                         Color="#35355A"/>
-        <SolidColorBrush x:Key="MenuBorderBrush"
-                         Color="#3A3A5A"/>
+                <!-- Dark MenuItem Template -->
+                <SolidColorBrush x:Key="MenuPopupBrush"
+                                 Color="#252540"/>
+                <SolidColorBrush x:Key="MenuHoverBrush"
+                                 Color="#35355A"/>
+                <SolidColorBrush x:Key="MenuBorderBrush"
+                                 Color="#3A3A5A"/>
 
-        <Style TargetType="MenuItem">
-            <Setter Property="Foreground"
-                    Value="#E2E8F0"/>
-            <Setter Property="Background"
-                    Value="Transparent"/>
-            <Setter Property="FontSize"
-                    Value="12"/>
-            <Setter Property="Padding"
-                    Value="8,4"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="MenuItem">
-                        <Grid>
-                            <!-- Top-level menu item (no parent MenuItem) -->
-                            <Border x:Name="Bd"
-                                    Background="{TemplateBinding Background}"
-                                    BorderBrush="Transparent"
-                                    BorderThickness="0"
-                                    Padding="{TemplateBinding Padding}">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"
-                                                          SharedSizeGroup="Icon"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"
-                                                          SharedSizeGroup="Shortcut"/>
-                                        <ColumnDefinition Width="13"/>
-                                    </Grid.ColumnDefinitions>
+                <Style TargetType="MenuItem">
+                        <Setter Property="Foreground"
+                                Value="#E2E8F0"/>
+                        <Setter Property="Background"
+                                Value="Transparent"/>
+                        <Setter Property="FontSize"
+                                Value="12"/>
+                        <Setter Property="Padding"
+                                Value="8,4"/>
+                        <Setter Property="Template">
+                                <Setter.Value>
+                                        <ControlTemplate TargetType="MenuItem">
+                                                <Grid>
+                                                        <!-- Top-level menu item (no parent MenuItem) -->
+                                                        <Border x:Name="Bd"
+                                                                Background="{TemplateBinding Background}"
+                                                                BorderBrush="Transparent"
+                                                                BorderThickness="0"
+                                                                Padding="{TemplateBinding Padding}">
+                                                                <Grid>
+                                                                        <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="Auto"
+                                                                                                  SharedSizeGroup="Icon"/>
+                                                                                <ColumnDefinition Width="*"/>
+                                                                                <ColumnDefinition Width="Auto"
+                                                                                                  SharedSizeGroup="Shortcut"/>
+                                                                                <ColumnDefinition Width="13"/>
+                                                                        </Grid.ColumnDefinitions>
 
-                                    <ContentPresenter x:Name="Icon"
-                                                      Grid.Column="0"
-                                                      ContentSource="Icon"
-                                                      VerticalAlignment="Center"
-                                                      Width="16"
-                                                      Height="16"
-                                                      Margin="0,0,6,0"
-                                                      Visibility="Collapsed"/>
+                                                                        <ContentPresenter x:Name="Icon"
+                                                                                          Grid.Column="0"
+                                                                                          ContentSource="Icon"
+                                                                                          VerticalAlignment="Center"
+                                                                                          Width="16"
+                                                                                          Height="16"
+                                                                                          Margin="0,0,6,0"
+                                                                                          Visibility="Collapsed"/>
 
-                                    <Path x:Name="CheckMark"
-                                          Grid.Column="0"
-                                          Data="M 0,5 L 3,8 L 8,0"
-                                          Stroke="#06B6D4"
-                                          StrokeThickness="1.5"
-                                          Margin="0,0,6,0"
-                                          VerticalAlignment="Center"
-                                          Visibility="Collapsed"/>
+                                                                        <Path x:Name="CheckMark"
+                                                                              Grid.Column="0"
+                                                                              Data="M 0,5 L 3,8 L 8,0"
+                                                                              Stroke="#06B6D4"
+                                                                              StrokeThickness="1.5"
+                                                                              Margin="0,0,6,0"
+                                                                              VerticalAlignment="Center"
+                                                                              Visibility="Collapsed"/>
 
-                                    <ContentPresenter Grid.Column="1"
-                                                      ContentSource="Header"
-                                                      RecognizesAccessKey="True"
-                                                      VerticalAlignment="Center"/>
+                                                                        <ContentPresenter Grid.Column="1"
+                                                                                          ContentSource="Header"
+                                                                                          RecognizesAccessKey="True"
+                                                                                          VerticalAlignment="Center"/>
 
-                                    <TextBlock x:Name="GestureText"
-                                               Grid.Column="2"
-                                               Text="{TemplateBinding InputGestureText}"
-                                               Foreground="#64748B"
-                                               VerticalAlignment="Center"
-                                               Margin="16,0,0,0"/>
+                                                                        <TextBlock x:Name="GestureText"
+                                                                                   Grid.Column="2"
+                                                                                   Text="{TemplateBinding InputGestureText}"
+                                                                                   Foreground="#64748B"
+                                                                                   VerticalAlignment="Center"
+                                                                                   Margin="16,0,0,0"/>
 
-                                    <Path x:Name="SubArrow"
-                                          Grid.Column="3"
-                                          Data="M 0,0 L 4,3.5 L 0,7"
-                                          Fill="#94A3B8"
-                                          VerticalAlignment="Center"
-                                          HorizontalAlignment="Right"
-                                          Visibility="Collapsed"/>
-                                </Grid>
-                            </Border>
+                                                                        <Path x:Name="SubArrow"
+                                                                              Grid.Column="3"
+                                                                              Data="M 0,0 L 4,3.5 L 0,7"
+                                                                              Fill="#94A3B8"
+                                                                              VerticalAlignment="Center"
+                                                                              HorizontalAlignment="Right"
+                                                                              Visibility="Collapsed"/>
+                                                                </Grid>
+                                                        </Border>
 
-                            <!-- Submenu popup -->
-                            <Popup x:Name="PART_Popup"
-                                   IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
-                                   Placement="Bottom"
-                                   AllowsTransparency="True"
-                                   Focusable="False"
-                                   PopupAnimation="Fade">
-                                <Border Background="{StaticResource MenuPopupBrush}"
-                                        BorderBrush="{StaticResource MenuBorderBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="4"
-                                        Padding="2"
-                                        SnapsToDevicePixels="True">
-                                    <StackPanel IsItemsHost="True"
-                                                KeyboardNavigation.DirectionalNavigation="Cycle"/>
-                                </Border>
-                            </Popup>
-                        </Grid>
+                                                        <!-- Submenu popup -->
+                                                        <Popup x:Name="PART_Popup"
+                                                               IsOpen="{Binding IsSubmenuOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                                                               Placement="Bottom"
+                                                               AllowsTransparency="True"
+                                                               Focusable="False"
+                                                               PopupAnimation="Fade">
+                                                                <Border Background="{StaticResource MenuPopupBrush}"
+                                                                        BorderBrush="{StaticResource MenuBorderBrush}"
+                                                                        BorderThickness="1"
+                                                                        CornerRadius="4"
+                                                                        Padding="2"
+                                                                        SnapsToDevicePixels="True">
+                                                                        <StackPanel IsItemsHost="True"
+                                                                                    KeyboardNavigation.DirectionalNavigation="Cycle"/>
+                                                                </Border>
+                                                        </Popup>
+                                                </Grid>
 
-                        <ControlTemplate.Triggers>
-                            <!-- Show checkmark when checked -->
-                            <Trigger Property="IsCheckable"
-                                     Value="True">
-                                <Setter TargetName="CheckMark"
-                                        Property="Visibility"
-                                        Value="Visible"/>
-                            </Trigger>
-                            <Trigger Property="IsChecked"
-                                     Value="False">
-                                <Setter TargetName="CheckMark"
-                                        Property="Visibility"
-                                        Value="Collapsed"/>
-                            </Trigger>
+                                                <ControlTemplate.Triggers>
+                                                        <!-- Show checkmark when checked -->
+                                                        <Trigger Property="IsCheckable"
+                                                                 Value="True">
+                                                                <Setter TargetName="CheckMark"
+                                                                        Property="Visibility"
+                                                                        Value="Visible"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsChecked"
+                                                                 Value="False">
+                                                                <Setter TargetName="CheckMark"
+                                                                        Property="Visibility"
+                                                                        Value="Collapsed"/>
+                                                        </Trigger>
 
-                            <!-- Icon visibility -->
-                            <Trigger Property="Icon"
-                                     Value="{x:Null}">
-                                <Setter TargetName="Icon"
-                                        Property="Visibility"
-                                        Value="Collapsed"/>
-                            </Trigger>
+                                                        <!-- Icon visibility -->
+                                                        <Trigger Property="Icon"
+                                                                 Value="{x:Null}">
+                                                                <Setter TargetName="Icon"
+                                                                        Property="Visibility"
+                                                                        Value="Collapsed"/>
+                                                        </Trigger>
 
-                            <!-- Show sub-arrow for items with children -->
-                            <Trigger Property="Role"
-                                     Value="SubmenuHeader">
-                                <Setter TargetName="SubArrow"
-                                        Property="Visibility"
-                                        Value="Visible"/>
-                                <Setter TargetName="PART_Popup"
-                                        Property="Placement"
-                                        Value="Right"/>
-                            </Trigger>
+                                                        <!-- Show sub-arrow for items with children -->
+                                                        <Trigger Property="Role"
+                                                                 Value="SubmenuHeader">
+                                                                <Setter TargetName="SubArrow"
+                                                                        Property="Visibility"
+                                                                        Value="Visible"/>
+                                                                <Setter TargetName="PART_Popup"
+                                                                        Property="Placement"
+                                                                        Value="Right"/>
+                                                        </Trigger>
 
-                            <!-- Hover highlight -->
-                            <Trigger Property="IsHighlighted"
-                                     Value="True">
-                                <Setter TargetName="Bd"
-                                        Property="Background"
-                                        Value="{StaticResource MenuHoverBrush}"/>
-                            </Trigger>
+                                                        <!-- Hover highlight -->
+                                                        <Trigger Property="IsHighlighted"
+                                                                 Value="True">
+                                                                <Setter TargetName="Bd"
+                                                                        Property="Background"
+                                                                        Value="{StaticResource MenuHoverBrush}"/>
+                                                        </Trigger>
 
-                            <!-- Disabled state -->
-                            <Trigger Property="IsEnabled"
-                                     Value="False">
-                                <Setter Property="Foreground"
-                                        Value="#4A4A6A"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </Application.Resources>
+                                                        <!-- Disabled state -->
+                                                        <Trigger Property="IsEnabled"
+                                                                 Value="False">
+                                                                <Setter Property="Foreground"
+                                                                        Value="#4A4A6A"/>
+                                                        </Trigger>
+                                                </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                </Setter.Value>
+                        </Setter>
+                </Style>
+
+                <!-- ══════════════════════════════════════════════════════════════════
+             HCEP Global Tooltip Style
+             Dark #16162A body  ·  Cyan (#06B6D4) border  ·  drop shadow
+             Applied automatically to every ToolTip in the application.
+        ══════════════════════════════════════════════════════════════════ -->
+                <Style TargetType="ToolTip">
+                        <Setter Property="HasDropShadow"
+                                Value="True"/>
+                        <Setter Property="Background"
+                                Value="Transparent"/>
+                        <Setter Property="BorderBrush"
+                                Value="Transparent"/>
+                        <Setter Property="BorderThickness"
+                                Value="0"/>
+                        <Setter Property="Padding"
+                                Value="0"/>
+                        <Setter Property="Template">
+                                <Setter.Value>
+                                        <ControlTemplate TargetType="ToolTip">
+                                                <!-- Outer glow / accent border -->
+                                                <Border Background="#16162A"
+                                                        BorderBrush="#1AFFFFFF"
+                                                        BorderThickness="1"
+                                                        CornerRadius="5"
+                                                        SnapsToDevicePixels="True">
+                                                        <Border.Effect>
+                                                                <DropShadowEffect Color="#000000"
+                                                                                  BlurRadius="16"
+                                                                                  ShadowDepth="4"
+                                                                                  Opacity="0.75"
+                                                                                  Direction="270"/>
+                                                        </Border.Effect>
+                                                        <!-- Inner accent-left stripe + content -->
+                                                        <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="3"/>
+                                                                        <ColumnDefinition Width="*"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <!-- Left accent bar (teal) -->
+                                                                <Rectangle Grid.Column="0"
+                                                                           Fill="#06B6D4"
+                                                                           RadiusX="4"
+                                                                           RadiusY="4"/>
+                                                                <!-- Content area — TextBlock supports TextWrapping for string content -->
+                                                                <TextBlock Grid.Column="1"
+                                                                           Text="{TemplateBinding Content}"
+                                                                           Margin="9,7,10,7"
+                                                                           Foreground="#E2E8F0"
+                                                                           FontSize="12"
+                                                                           LineHeight="18"
+                                                                           TextWrapping="Wrap"
+                                                                           MaxWidth="290"/>
+                                                        </Grid>
+                                                </Border>
+                                        </ControlTemplate>
+                                </Setter.Value>
+                        </Setter>
+                </Style>
+
+        </Application.Resources>
 </Application>
