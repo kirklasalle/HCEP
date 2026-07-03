@@ -172,6 +172,15 @@ public sealed class HybridLlmEngine : ILlmEngine
             }
             else
             {
+                var activeSettings = GetActiveCloudProviderSettings();
+                _logger.LogDebug(
+                    "Cloud call → provider={Provider} model={Model} url={BaseUrl} hasKey={HasKey} promptLen={PromptLen}",
+                    Configuration.ActiveCloudProvider,
+                    activeSettings.Model,
+                    activeSettings.BaseUrl,
+                    !string.IsNullOrEmpty(activeApiKey),
+                    userMessage.Length);
+
                 try
                 {
                     string response = Configuration.ActiveCloudProvider switch
@@ -201,6 +210,11 @@ public sealed class HybridLlmEngine : ILlmEngine
 
                     // Success — reset circuit breaker
                     _cloudConsecutiveFailures = 0;
+                    var latency = DateTimeOffset.UtcNow - start;
+                    _logger.LogDebug(
+                        "Cloud call succeeded — provider={Provider} model={Model} responseLen={ResponseLen} latency={Latency}ms",
+                        Configuration.ActiveCloudProvider, activeSettings.Model,
+                        response.Length, (int)latency.TotalMilliseconds);
 
                     return new LlmExchange
                     {
@@ -210,7 +224,7 @@ public sealed class HybridLlmEngine : ILlmEngine
                         Response = response,
                         ModelId = GetActiveCloudModel(),
                         IsLocal = false,
-                        Latency = DateTimeOffset.UtcNow - start,
+                        Latency = latency,
                         Timestamp = start,
                     };
                 }
@@ -419,8 +433,33 @@ public sealed class HybridLlmEngine : ILlmEngine
         _ => Configuration.Ollama.Model
     };
 
-    private string GetActiveCloudModel() => Configuration.ActiveCloudProvider switch
-    {
+    /// <summary>Returns the active cloud provider's CloudProviderSettings for trace logging.</summary>
+    private HCEP.Core.Models.CloudProviderSettings GetActiveCloudProviderSettings() =>
+        Configuration.ActiveCloudProvider switch
+        {
+            CloudProviderType.Anthropic    => Configuration.Anthropic,
+            CloudProviderType.Gemini       => Configuration.Gemini,
+            CloudProviderType.Mistral      => Configuration.Mistral,
+            CloudProviderType.xAI          => Configuration.xAI,
+            CloudProviderType.Cohere       => Configuration.Cohere,
+            CloudProviderType.OpenRouter   => Configuration.OpenRouter,
+            CloudProviderType.DeepSeek     => Configuration.DeepSeek,
+            CloudProviderType.Groq         => Configuration.Groq,
+            CloudProviderType.TogetherAI   => Configuration.TogetherAI,
+            CloudProviderType.FireworksAI  => Configuration.FireworksAI,
+            CloudProviderType.Perplexity   => Configuration.Perplexity,
+            CloudProviderType.AI21Labs     => Configuration.AI21Labs,
+            CloudProviderType.Replicate    => Configuration.Replicate,
+            CloudProviderType.HuggingFace  => Configuration.HuggingFace,
+            CloudProviderType.AzureOpenAI  => Configuration.AzureOpenAI,
+            CloudProviderType.AmazonBedrock => Configuration.AmazonBedrock,
+            CloudProviderType.NvidiaNIM    => Configuration.NvidiaNIM,
+            CloudProviderType.Cerebras     => Configuration.Cerebras,
+            CloudProviderType.MoonshotAI   => Configuration.MoonshotAI,
+            _                              => Configuration.OpenAI,
+        };
+
+    private string GetActiveCloudModel() => Configuration.ActiveCloudProvider switch    {
         CloudProviderType.Anthropic => Configuration.Anthropic.Model,
         CloudProviderType.Gemini => Configuration.Gemini.Model,
         CloudProviderType.Mistral => Configuration.Mistral.Model,
@@ -612,6 +651,21 @@ public sealed class HybridLlmEngine : ILlmEngine
     /// </summary>
     private async Task<string> CallOpenAiCompatibleApiAsync(string baseUrl, string apiKey, string model, string system, string userMessage, CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(baseUrl))
+        {
+            _logger.LogError(
+                "CallOpenAiCompatibleApiAsync called with empty baseUrl — model={Model} provider={Provider}. " +
+                "Open Settings and verify the Base URL for this provider.",
+                model, Configuration.ActiveCloudProvider);
+            throw new InvalidOperationException(
+                $"Cloud provider '{Configuration.ActiveCloudProvider}' has an empty Base URL. " +
+                "Open Settings > Frontier Cloud and enter the correct endpoint.");
+        }
+
+        _logger.LogTrace(
+            "OAI-compat request — url={BaseUrl}/chat/completions model={Model} hasKey={HasKey}",
+            baseUrl, model, !string.IsNullOrEmpty(apiKey));
+
         var messages = new List<OpenAiMessage>
         {
             new() { Role = "system", Content = system },

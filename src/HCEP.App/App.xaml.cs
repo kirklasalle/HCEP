@@ -52,12 +52,13 @@ public partial class App : Application
             .ConfigureServices((ctx, services) =>
             {
                 // -- Logging ------------------------------------
-                var minLogLevel = LogLevel.Information;
+                var minLogLevel = LogLevel.Debug;
                 string? logLevelEnv = Environment.GetEnvironmentVariable("HCEP_LOG_LEVEL");
                 if (!string.IsNullOrEmpty(logLevelEnv) && Enum.TryParse<LogLevel>(logLevelEnv, true, out var parsedLevel))
                 {
                     minLogLevel = parsedLevel;
                 }
+                // Log directory auto-detected from HCEP.sln tree; override via HCEP_LOG_DIR
                 string? logDirEnv = Environment.GetEnvironmentVariable("HCEP_LOG_DIR");
                 var loggerFactory = LoggingConfiguration.CreateLoggerFactory(logDirectory: logDirEnv, minimumLevel: minLogLevel);
                 services.AddSingleton(loggerFactory);
@@ -179,13 +180,13 @@ public partial class App : Application
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        _appLogger?.LogCritical(e.Exception, "FATAL unhandled UI exception");
-        try
-        {
-            // Flush Serilog so the crash is written before the process dies
-            Serilog.Log.CloseAndFlush();
-        }
-        catch { /* best-effort */ }
+        _appLogger?.LogCritical(e.Exception,
+            "FATAL unhandled UI exception — Type={Type} Message={Message}",
+            e.Exception.GetType().FullName, e.Exception.Message);
+        try { Serilog.Log.CloseAndFlush(); } catch { /* best-effort */ }
+        // Mark handled so WPF does not terminate the process immediately;
+        // the user will see a degraded app rather than a silent crash.
+        e.Handled = true;
     }
 
     private void OnAppDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)

@@ -16,6 +16,7 @@ using System.Windows.Controls;
 using HCEP.Core.Interfaces;
 using HCEP.Core.Models;
 using HCEP.Intelligence;
+using Microsoft.Extensions.Logging;
 
 namespace HCEP.App;
 
@@ -28,12 +29,16 @@ public partial class SettingsWindow : Window
     private readonly LlmConfiguration _configCopy;
     private CloudProviderType _currentSelectedCloudProvider;
     private readonly TimeContextProvider? _contextProvider;
+    /// <summary>True while Loaded is populating controls; suppresses SelectionChanged save.</summary>
+    private bool _isInitializing;
+    private readonly ILogger<SettingsWindow> _logger;
 
-    public SettingsWindow(ILlmEngine llmEngine, TimeContextProvider contextProvider)
+    public SettingsWindow(ILlmEngine llmEngine, TimeContextProvider contextProvider, ILogger<SettingsWindow> logger)
     {
         InitializeComponent();
         _llmEngine = llmEngine as HybridLlmEngine;
         _contextProvider = contextProvider;
+        _logger = logger;
 
         // Create a deep copy of the configuration so we can discard edits on Cancel
         if (_llmEngine is not null)
@@ -59,7 +64,15 @@ public partial class SettingsWindow : Window
 
         // 2. Cloud Provider Selection
         _currentSelectedCloudProvider = _configCopy.ActiveCloudProvider;
-        CloudProviderCombo.SelectedIndex = (int)_configCopy.ActiveCloudProvider;
+        _isInitializing = true;         // prevent SelectionChanged from wiping fields
+        try
+        {
+            CloudProviderCombo.SelectedIndex = (int)_configCopy.ActiveCloudProvider;
+        }
+        finally
+        {
+            _isInitializing = false;
+        }
         LoadCloudProviderFields(_currentSelectedCloudProvider);
 
         // 3. Happyface & Emulation
@@ -81,6 +94,11 @@ public partial class SettingsWindow : Window
 
     private void CloudProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
+        // Guard: during Loaded, SelectedIndex is set programmatically.
+        // Without this guard, SaveCloudProviderFields runs with empty text boxes
+        // and overwrites the model / API key / base URL to empty strings.
+        if (_isInitializing) return;
+
         // Save fields of the previous provider before switching
         SaveCloudProviderFields(_currentSelectedCloudProvider);
 
@@ -135,8 +153,12 @@ public partial class SettingsWindow : Window
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
+        _logger.LogDebug("SettingsWindow.Save_Click started — provider={Provider} preferLocal={PreferLocal}",
+            _currentSelectedCloudProvider, PreferLocalCheck.IsChecked);
+
         if (_llmEngine is null)
         {
+            _logger.LogWarning("Save_Click: _llmEngine is null — closing without saving");
             Close();
             return;
         }
@@ -160,6 +182,25 @@ public partial class SettingsWindow : Window
         _configCopy.ReflectionDelayMs = (int)DelaySlider.Value;
         _configCopy.SyncBlinksToUser = SyncBlinksCheck.IsChecked == true;
 
+        // Log every setting at trace level for diagnostics
+        var activeSettings = GetCloudSettings(_configCopy.ActiveCloudProvider);
+        _logger.LogTrace(
+            "Settings being saved: provider={Provider} model={Model} url={BaseUrl} " +
+            "hasKey={HasKey} preferLocal={PreferLocal} agentic={Agentic} " +
+            "emulation={Emulation:F2} delay={Delay}ms syncBlinks={SyncBlinks} " +
+            "localEngine={LocalEngine} ollamaModel={OllamaModel}",
+            _configCopy.ActiveCloudProvider,
+            activeSettings.Model,
+            activeSettings.BaseUrl,
+            !string.IsNullOrEmpty(activeSettings.ApiKey),
+            _configCopy.PreferLocal,
+            _llmEngine.AgenticToolUseEnabled,
+            _configCopy.EmulationBlendWeight,
+            _configCopy.ReflectionDelayMs,
+            _configCopy.SyncBlinksToUser,
+            _configCopy.ActiveLocalEngine,
+            _configCopy.Ollama.Model);
+
         // Apply context settings (Phase 14)
         if (_contextProvider is not null)
         {
@@ -172,6 +213,12 @@ public partial class SettingsWindow : Window
 
         // Copy everything back to the engine
         CopyConfig(_configCopy, _llmEngine.Configuration);
+
+        _logger.LogInformation(
+            "Settings saved — provider={Provider} model={Model} preferLocal={PreferLocal}",
+            _configCopy.ActiveCloudProvider,
+            GetCloudSettings(_configCopy.ActiveCloudProvider).Model,
+            _configCopy.PreferLocal);
 
         DialogResult = true;
         Close();
