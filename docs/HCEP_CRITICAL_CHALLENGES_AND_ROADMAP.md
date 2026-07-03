@@ -1,8 +1,98 @@
 # HCEP Critical Gaps, Challenges, & Multi-Domain Roadmap
 **Document Type:** Strategic Technical Audit & Ethical Safety Plan  
 **Target Domains:** 3D Game Engines, Embodied Robotics, Agentic AI Architectures  
-**Author:** Kirk LaSalle & Antigravity AI  
-**Date:** June 3, 2026
+**Author:** Kirk LaSalle  
+**Original Date:** June 3, 2026 | **Updated:** July 3, 2026
+
+---
+
+## Status Update — July 2026
+
+Since this document was written, significant progress has been made on the challenges identified below:
+
+| Challenge | Status | Resolution |
+|---|---|---|
+| Calibration sign bug | ✅ **FIXED** | `t >= 0f` guard corrected to `t <= 0f`; camera Z offset now configurable |
+| Avatar head frozen | ✅ **FIXED** | `TrackingInfluence` 0.04→0.15; `HeadFollowTimeConstantSec` 12.0→0.8s |
+| Avatar no lip sync | ✅ **FIXED** | Phase 13: `VisemeController` + `HCEP.Speech` project — phoneme-accurate |
+| Avatar no eyebrows | ✅ **FIXED** | Eyebrow animation on both 2D and 3D avatars |
+| No context awareness | ✅ **FIXED** | Phase 14: `ContextSnapshot`, `TimeContextProvider`, `SilenceProtocolEvaluator` |
+| Thread-safety race | ✅ **FIXED** | `Volatile.Read/Write` on all `VisionPipeline` shared-state |
+| API key security | ✅ **FIXED** | Windows Credential Manager integration |
+| Memory unbounded | ✅ **FIXED** | `InMemoryKnowledgeStore` capacity limits + LRU eviction |
+| No circuit breaker | ✅ **FIXED** | Cloud LLM circuit breaker (3 failures, 30s cooldown) |
+| Head gesture detection | 🔄 Planned Phase 9 | Velocity-threshold classifier (nod/shake/tilt) |
+| Full body kinesics | 🔄 Planned Phase 9 | Shoulder/torso extractor from Kinect skeleton |
+| Backchannel engine | 🔄 Planned Phase 10 | AI nods, smile reciprocation |
+
+---
+
+## Executive Summary (Original)
+
+The Human Communication Eye Protocol (HCEP) represents a paradigm shift in human-computer interaction (HCI) by turning gaze coordinates and kinesic postures into state-based prompts for AI models. However, moving HCEP from a desktop prototype to **3D game engines**, **physical robotics**, and **commercial agentic loops** exposes structural gaps, hardware limitations, and profound ethical perils. 
+
+This document challenges the core assumptions of HCEP, maps out the technical bottlenecks in each target domain, and provides a concrete architectural roadmap to handle this commercial opportunity safely, legally, and profitably.
+
+---
+
+## 1. Theoretical Challenges & Core Gaps
+
+### 1.1 The "Hawthorne Effect" & Behavioral Corruption
+- **The Gap:** Once users realize an agent is monitoring their gaze to adapt its behavior, they will consciously or unconsciously alter their eye patterns. 
+- **Mitigation (implemented):** The Silence Protocol — the avatar's primary response to THINK mode is silence, not a visible reaction, reducing the incentive to "game" the gaze tracker.
+
+### 1.2 Cognitive Overload & Hysteresis Jitter
+- **The Gap:** Human eye movement is characterized by rapid saccades. Mapping these shifts directly to LLM routing creates state thrashing.
+- **Mitigation (implemented):** `ModeStabilityFrames = 5` (~167ms hysteresis); `ModeTransitionMinConfidence = 0.4`; circuit breaker prevents repeated cloud calls.
+
+### 1.3 Hemispheric Lateralization Over-Simplification
+- **The Gap:** Left Eye → Left Hemisphere / Right Eye → Right Hemisphere split over-simplifies distributed cognition.
+- **Mitigation:** HCEP uses the full 13-region `GazeRegion` taxonomy (not just left/right binary) and blends with AU data, speech VAD, and temporal patterns.
+
+---
+
+## 2. Technical Audits by Domain
+
+### 2.1 3D Game Engines & Animation (Unity, Unreal) — PARTIALLY RESOLVED
+- **Frustum Projection Mismatch** → SDK wrappers (`HcepGazeController.cs` for Unity, `UHcepGazeController` for Unreal) handle the coordinate transform
+- **Robotic IK Blending** → Implemented: `GazeHeadFollower` with eye-lead deadzone and head follow time constant; micro-saccade controller
+- **Vergence-Accommodation** → Binocular convergence in roadmap (Phase 10)
+
+### 2.2 Robotics — ARCHITECTURE READY
+- ROS2 integration planned (Phase 12)
+- HCEP Plugin API (REST/WebSocket/MCP) provides language-agnostic interface for robot controllers
+
+### 2.3 Agentic AI — SUBSTANTIALLY RESOLVED
+- `HybridLlmEngine` with circuit breaker, WCM key management, context injection
+- `SilenceProtocolEvaluator` handles turn-taking
+- `ContextSnapshot` provides temporal + spatial context
+
+---
+
+## 3. Current Phase Status (July 2026)
+
+| Phase | Description | Status |
+|---|---|---|
+| 1-7 | Core pipeline through avatar | ✅ Complete |
+| 8 | Production hardening (21 fixes) | ✅ Complete |
+| 9 | Full kinesics (head gestures, torso) | 🔄 Planned Q3-Q4 2026 |
+| 10 | AI reciprocal expression (backchannel) | 🔄 Planned Q4 2026 |
+| 11 | Multi-modal transformer (κ≥0.92) | 🔄 Planned Q2 2027 |
+| 12 | Domain deployments (medical, ASD, games, robots) | 🔄 Planned 2027 |
+| 13 | Phoneme viseme lip sync | ✅ Complete |
+| 14 | Contextual intelligence + silence protocol | ✅ Complete |
+
+See `ROADMAP.md` for full milestone details.
+
+---
+
+## 4. Ethical Safety Framework — PAD (Permanent Active Directives)
+
+The 10 Augmented Laws are enforced at startup via SHA-256 hash verification of `Permanent_Active_Directives.txt`. If the file is modified, the application halts and enters a safe diagnostic state.
+
+All biometric data (face embeddings) requires explicit user consent dialog before capture (GDPR Art. 9, BIPA compliance).
+
+*Copyright © 2026 Kirk LaSalle. All rights reserved.*
 
 ---
 
