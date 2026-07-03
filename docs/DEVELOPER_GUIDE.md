@@ -15,7 +15,7 @@
 4. [Running Tests](#4-running-tests)
 5. [Layer-by-Layer Deep Dive](#5-layer-by-layer-deep-dive)
 6. [Data Flow & Pipeline](#6-data-flow--pipeline)
-7. [Extending HCEP](#7-extending-HCEP)
+7. [Extending HCEP](#7-extending-hcep)
 8. [Key Design Decisions](#8-key-design-decisions)
 9. [Coding Conventions](#9-coding-conventions)
 10. [Dependency Management](#10-dependency-management)
@@ -120,9 +120,9 @@ D:\Projects\HCEP\
 
 | Tool | Version | Installation |
 |---|---|---|
-| .NET SDK | 9.0.311+ | https://dotnet.microsoft.com/download/dotnet/9.0 |
-| Kinect SDK v1.8 | 1.8 | https://www.microsoft.com/en-us/download/details.aspx?id=40278 |
-| Kinect Developer Toolkit | 1.8 | https://www.microsoft.com/en-us/download/details.aspx?id=40276 |
+| .NET SDK | 9.0.311+ | <https://dotnet.microsoft.com/download/dotnet/9.0> |
+| Kinect SDK v1.8 | 1.8 | <https://www.microsoft.com/en-us/download/details.aspx?id=40278> |
+| Kinect Developer Toolkit | 1.8 | <https://www.microsoft.com/en-us/download/details.aspx?id=40276> |
 | Visual Studio 2022 | 17.x | (Optional, for IDE experience) |
 
 ### Build Commands
@@ -200,6 +200,7 @@ dotnet test HCEP.sln --filter "FullyQualifiedName~Knowledge"
 ### Writing New Tests
 
 Follow the existing conventions:
+
 - One test class per production class
 - Tests organized in directories mirroring `src/` structure
 - Use `[Fact]` for single-case tests, `[Theory]` for parameterized tests
@@ -242,12 +243,14 @@ public class MyNewTests
 The foundation layer. Zero external dependencies. Defines:
 
 **Enums:**
+
 - `HcepMode` — LOGIC, AFFECT, SPIRIT, HEART, THINK (the 5 HCEP modes)
 - `GazeRegion` — 13 gaze targets (LeftEye, RightEye, NasalBridge, Mouth, Forehead, Chin, PeripheralLeft, PeripheralRight, Above, Below, Defocused, FaceCenter, Unknown)
 - `CognitiveState` — 12 cognitive classifications
 - `TrackingState`, `SensorState`, `SaccadePhase`, `ActionUnit` (6 AUs)
 
 **Models:**
+
 - `HcepReading` — Sealed record, the primary output of the HCEP analyzer. Contains mode, gaze region, confidence, cognitive state, emotional valence. `HcepReading.Empty` provides a null-safe default.
 - `TrackedPerson` — Person identity with `State` property (type `TrackingState`)
 - `FaceFrame` — 87+ feature points, 6 AUs, pupil indices 69/73, `CyclopeanPoint3D`
@@ -256,6 +259,7 @@ The foundation layer. Zero external dependencies. Defines:
 - `LlmExchange` — Input/output/model record for conversation history
 
 **Interfaces (the contracts):**
+
 - `ISensorSource` — `StartAsync()`, `StopAsync()`, sensor state events
 - `IGazeEstimator` — `Estimate(FaceFrame, SkeletonFrame) → GazeEstimate`
 - `IHcepAnalyzer` — `Analyze(SceneSnapshot) → HcepReading`
@@ -267,6 +271,7 @@ The foundation layer. Zero external dependencies. Defines:
 - `ITelemetryService` — `RecordLatency`, `RecordFrame`, `GetFps`
 
 **Channels:**
+
 - `HCEPChannels` — Factory creating `Channel<T>` instances for inter-layer async data flow
 
 ### 5.2 HCEP.Telemetry
@@ -307,7 +312,7 @@ Computer vision: face recognition and HCEP classification. References `HCEP.Core
   - Transition threshold: `ModeTransitionMinConfidence = 0.4`
   - Mode detection logic:
     - THINK: Gaze aversion (PeripheralLeft/Right, Above, Below, Defocused)
-    - AFFECT: Social Triangle (alternating eyes + mouth) 
+    - AFFECT: Social Triangle (alternating eyes + mouth)
     - SPIRIT: Sustained high-confidence mutual gaze
     - HEART: Lower-face attention + empathic AU markers
     - LOGIC: Default engaged on-face gaze
@@ -466,6 +471,7 @@ Channels use `BoundedChannelOptions` with `FullMode.DropOldest` to prevent pipel
 ### 7.2 Adding a New Agentic Tool
 
 1. Define the tool schema in `AgenticToolDefinitions.cs`:
+
    ```csharp
    new AgenticTool
    {
@@ -488,6 +494,7 @@ Channels use `BoundedChannelOptions` with `FullMode.DropOldest` to prevent pipel
    ```
 
 2. Add dispatch case in `AgenticToolExecutor.ExecuteAsync()`:
+
    ```csharp
    "my_new_tool" => HandleMyNewTool(arguments),
    ```
@@ -532,6 +539,7 @@ Channels use `BoundedChannelOptions` with `FullMode.DropOldest` to prevent pipel
 ### Why Strategy D for UKS?
 
 BrainSim III's Universal Knowledge Store (UKS) is MIT-licensed and provides rich knowledge graph capabilities, but:
+
 - It's not on NuGet — requires DLL reference
 - Its API may change between versions
 - Not all users will have it installed
@@ -547,6 +555,7 @@ Strategy D: late-bind via reflection, auto-fallback to `InMemoryKnowledgeStore`.
 ### Why Channels over Events?
 
 `System.Threading.Channels` provides:
+
 - Backpressure (bounded channels with `DropOldest`)
 - Async-native (`ReadAllAsync()`)
 - Single-producer/multi-consumer naturally
@@ -647,10 +656,12 @@ The app auto-detects Kinect availability. If not found, it silently uses `Simula
 ### Logs
 
 Serilog writes to:
+
 - Console (when running from terminal)
 - `logs/HCEP-{Date}.log` (rolling file)
 
 Enable verbose logging by changing the minimum level in `LoggingConfiguration`:
+
 ```csharp
 .MinimumLevel.Debug()  // or .Verbose() for maximum detail
 ```
@@ -669,6 +680,7 @@ A moderate vulnerability advisory exists. We use the latest version (3.1.7) at t
 ### Debugging the Agentic Loop
 
 The agentic LLM loop in `HybridLlmEngine.CallOpenAiAsync()` runs up to 5 steps. To debug:
+
 1. Set breakpoint in `CallOpenAiAsync` at the `while` loop
 2. Inspect `response.Choices[0].Message.ToolCalls` to see what tools the LLM wants to call
 3. Inspect `AgenticToolExecutor.ExecuteAsync()` results
@@ -720,18 +732,21 @@ The agentic LLM loop in `HybridLlmEngine.CallOpenAiAsync()` runs up to 5 steps. 
 To enable downstream clients (such as 3D game engines, robotics controllers, and external agent scripts) to interface with the HCEP runtime:
 
 ### 13.1 Model Context Protocol (MCP) Server
+
 The HTTP server (registered in `PluginApiServer.cs`) exposes a JSON-RPC 2.0 endpoint at `POST /mcp` conforming to the Anthropics Model Context Protocol (MCP):
-*   **Discovery (`tools/list`):** Lists all available agent tools (e.g. `get_hcep_state`, `query_knowledge`).
-*   **Execution (`tools/call`):** Invokes tools dynamically, passing arguments to the `AgenticToolExecutor` and returning structured text snapshots.
+- **Discovery (`tools/list`):** Lists all available agent tools (e.g. `get_hcep_state`, `query_knowledge`).
+- **Execution (`tools/call`):** Invokes tools dynamically, passing arguments to the `AgenticToolExecutor` and returning structured text snapshots.
 
 ### 13.2 OpenAI Tool Schemas
+
 A dedicated endpoint at `GET /api/tools/openai` outputs valid JSON schemas for OpenAI function calling.
 
 ### 13.3 Multi-Platform SDK Wrappers
-*   **Python (`sdk/python/`):** Contains `HcepStateTool` and `hcep_llamaindex` integration models to inject real-time gaze state into LangChain and LlamaIndex agent prompts.
-*   **C# (`sdk/csharp/`):** Exposes `HcepSemanticKernelPlugin` to map HCEP tools to Microsoft Semantic Kernel.
-*   **Unity (`sdk/unity/`):** Provides a MonoBehaviour component `HcepGazeController.cs` that parses live telemetry WebSockets (`ws://localhost:5000/ws/stream`) and applies real-time bone rotations to avatar rigs.
-*   **Unreal Engine (`sdk/unreal/`):** Features a native C++ `UActorComponent` driving character eyes and head sockets with configurable interpolation speeds.
+
+* **Python (`sdk/python/`):** Contains `HcepStateTool` and `hcep_llamaindex` integration models to inject real-time gaze state into LangChain and LlamaIndex agent prompts.
+- **C# (`sdk/csharp/`):** Exposes `HcepSemanticKernelPlugin` to map HCEP tools to Microsoft Semantic Kernel.
+- **Unity (`sdk/unity/`):** Provides a MonoBehaviour component `HcepGazeController.cs` that parses live telemetry WebSockets (`ws://localhost:5000/ws/stream`) and applies real-time bone rotations to avatar rigs.
+- **Unreal Engine (`sdk/unreal/`):** Features a native C++ `UActorComponent` driving character eyes and head sockets with configurable interpolation speeds.
 
 ---
 
@@ -777,6 +792,7 @@ WindowsTtsSynthesizer.SpeakAsync(text)
 ### Extending TTS
 
 To add a new TTS backend:
+
 1. Implement `ISpeechSynthesizer`
 2. For phoneme-accurate visemes: fire `VisemeChanged` from phoneme timing data
 3. For amplitude-only: fire `VisemeChanged` with `VisemeController.FromSapiViseme(1, durationMs)` as a voiced proxy and `VisemeData.Silence` at the end
@@ -834,6 +850,7 @@ if (!silent) await ttsEngine.SpeakAsync(llmResponse);
 ```
 
 The evaluator checks 7 rules in priority order:
+
 1. Direct gaze → override silence (floor yielded)
 2. Raised brows + direct gaze → override silence (question)
 3. THINK mode + gaze aversion → silence

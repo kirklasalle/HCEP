@@ -271,6 +271,7 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 **Goal:** Give the HCEP avatar a biologically authentic mouth — one whose movements are precisely synchronized to each phoneme of its speech output, driven by the 21-viseme SAPI taxonomy mapped to the Preston Blair animation canon. Combined with the TTS system (Phase 10 speech), this completes the avatar's expressive speech loop: the avatar speaks, and its mouth moves with the exact shape each sound requires.
 
 **Scientific Basis:**
+
 * **McGurk Effect** (McGurk & MacDonald, 1976): Visual mouth movement is a first-class speech perception channel. When auditory and visual phonemes conflict, listeners perceive a blend. Incorrect or absent lip sync actively *degrades* speech intelligibility — not merely aesthetics.
 * **Preston Blair (1949)**: Established the canonical 18 mouth-shape key poses used in Disney and Warner Bros. animation. Each pose is a distinct visual configuration of the oral articulators corresponding to one or more phonemes.
 * **Cohen & Massaro (1994) DOMINANCE Model**: Audiovisual speech integration is weighted by channel reliability. In noise or at distance, visual lip movement *dominates* — making accurate lip sync even more critical in real-world deployment scenarios.
@@ -327,12 +328,14 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 > The most sophisticated communicative act available to the avatar is not speech — it is *knowing when to be silent*. Every existing AI speaks when asked. HCEP's avatar will also know when to simply *be present*, driven by real-time facial cues.
 
 **Silence triggers (avatar should NOT initiate speech):**
+
 * THINK mode (gaze aversion + defocus) → user is internally processing; any AI speech interrupts
 * Sustained brow furrow (AU4 > 3s) → deep cognitive engagement; user has not invited response
 * Speech accompanied by away-gaze → user is verbalizing for themselves (thinking aloud)
 * Late night (22:00+) + HEART mode → maximum attunement; presence matters more than words
 
 **Speak-invitation signals (avatar CAN respond):**
+
 * Direct sustained gaze toward avatar → floor-yield; user awaits response
 * Raised brows (AU1+AU2) + direct gaze → question; response invited
 * Head tilt toward avatar + pause → "what do you think?" posture

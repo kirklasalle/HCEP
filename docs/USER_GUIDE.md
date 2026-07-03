@@ -30,6 +30,7 @@ HCEP (Human Communication Eye Points) is a desktop application that watches your
 HCEP implements Kirk LaSalle's HCEP (Human Communication Eye Points) theory: a classification of five fundamental communication modes that people naturally cycle through during face-to-face conversation — **Logic, Affect, Spirit, Heart,** and **Think**.
 
 The application:
+
 - Tracks your face, eyes, and body in real-time at 30 frames per second
 - Classifies which of the 5 HCEP modes you're in right now
 - Recognizes who you are across sessions
@@ -101,23 +102,24 @@ HCEP uses a multi-drive architecture with separate SSDs for isolation and perfor
 ### Step 1: Install Prerequisites
 
 1. **Install .NET 9.0 Desktop Runtime (x64)**
-   - Download from: https://dotnet.microsoft.com/download/dotnet/9.0
+   - Download from: <https://dotnet.microsoft.com/download/dotnet/9.0>
    - Select: ".NET Desktop Runtime 9.0.x — Windows x64"
    - Run the installer
 
 2. **Install Kinect for Windows SDK v1.8**
-   - Download from: https://www.microsoft.com/en-us/download/details.aspx?id=40278
+   - Download from: <https://www.microsoft.com/en-us/download/details.aspx?id=40278>
    - Run `KinectSDK-v1.8-Setup.exe`
    - Restart your computer if prompted
 
 3. **Install Kinect Developer Toolkit v1.8**
-   - Download from: https://www.microsoft.com/en-us/download/details.aspx?id=40276
+   - Download from: <https://www.microsoft.com/en-us/download/details.aspx?id=40276>
    - Run the installer
 
 ### Step 2: Install HCEP
 
 1. Extract `HCEP-v0.1.0.zip` to a folder (e.g., `C:\HCEP`)
 2. Or, if building from source:
+
    ```
    cd D:\Projects\HCEP
    dotnet build HCEP.sln -c Release
@@ -136,6 +138,7 @@ HCEP uses a multi-drive architecture with separate SSDs for isolation and perfor
 ### Step 4: Install AI Models (Optional)
 
 **For local AI (Ollama):**
+
 ```powershell
 # Install Ollama from https://ollama.com
 # Then pull the default model:
@@ -143,13 +146,16 @@ ollama pull llama3:8b
 ```
 
 **For cloud AI (GPT-5-mini):**
+
 - Set environment variable: `OPENAI_API_KEY=sk-your-key-here`
 
 **For speech recognition:**
+
 - Download `ggml-base.en.bin` from the Whisper.net releases
 - Place in: `models/ggml-base.en.bin` (next to the executable)
 
 **For face recognition:**
+
 - Download `arcfaceresnet100-11-int8.onnx` from the ONNX Model Zoo
 - Place in: `models/arcfaceresnet100-11-int8.onnx`
 
@@ -184,30 +190,35 @@ HCEP (Human Communication Eye Protocol) is Kirk LaSalle's theory that eye contac
 ### The 5 Modes
 
 #### LOGIC Mode
+
 - **Eye Pattern:** Structured, engaged gaze staying on the face
 - **What it means:** You're thinking analytically, processing facts, working through a problem
 - **AI responds with:** Clear, precise, factual information — numbered lists, direct answers
 - **Example:** "How does the gaze estimation algorithm work?"
 
 #### AFFECT Mode
+
 - **Eye Pattern:** Social Triangle — eyes cycle between the other person's eyes and mouth
 - **What it means:** You're emotionally engaged, feeling something about the conversation
 - **AI responds with:** Warm, empathetic language — acknowledges feelings first, then content
 - **Example:** "I'm really excited about this project!"
 
 #### SPIRIT Mode
+
 - **Eye Pattern:** Sustained deep mutual gaze, high confidence, minimal saccades
 - **What it means:** Deep authentic connection — genuine rapport, vulnerability
 - **AI responds with:** Personal, genuine, unstructured conversation — no bullet points, just real talk
 - **Example:** Sharing something meaningful during deep conversation
 
 #### HEART Mode
+
 - **Eye Pattern:** Lower-face attention, empathic facial markers
 - **What it means:** You're in an empathic space — caring, supportive, nurturing
 - **AI responds with:** Supportive, validating language — "I hear you," "That makes sense"
 - **Example:** Listening to someone share a difficult experience
 
 #### THINK Mode
+
 - **Eye Pattern:** Gaze aversion, defocused eyes, looking away
 - **What it means:** Internal processing — you're thinking, remembering, constructing ideas
 - **AI responds with:** Brief, non-intrusive responses — gives you space to think
@@ -226,12 +237,14 @@ HCEP uses temporal hysteresis (a 5-frame stability window) to prevent noisy flic
 The HCEP dashboard is a dark-themed WPF window with a 3-column resizable layout. All panel boundaries can be dragged to resize using the visible grip handles between columns and rows.
 
 ### Header Bar
+
 - **Application title:** "◉ HCEP — Human Communication Eye Protocol"
 - **Window launchers:** Sensor Streams, Kinect Video
 - **Full Body toggle:** Switches between 20-joint full-body and 10-joint seated skeleton tracking
 - **Sensor status:** Green dot = connected, Red = disconnected
 
 ### Left Column — Sensor Feed
+
 - Live RGB video from the Kinect camera (640×480 @ 30fps)
 - **Skeleton wireframe overlay:** Green lines connecting 20 joints (solid = tracked, dashed = inferred)
 - **Posture label:** "STANDING" / "SITTING (full)" / "UPPER BODY" near hip center
@@ -240,6 +253,7 @@ The HCEP dashboard is a dark-themed WPF window with a 3-column resizable layout.
 - **Pupil markers:** Magenta dots marking pupil positions
 
 ### Center Column — HCEP Analysis
+
 - **HCEP Mode:** Current mode name (LOGIC / AFFECT / SPIRIT / HEART / THINK) with confidence percentage bar
 - **State Grid:** Gaze Region, Cognitive State, and Emotional Valence indicators
 - **Gaze Visualization:** Interactive face schematic panel showing:
@@ -256,10 +270,12 @@ The HCEP dashboard is a dark-themed WPF window with a 3-column resizable layout.
 - **Speech Log:** Real-time transcript of recognized speech
 
 ### Right Column — Metrics & AI
+
 - **Pipeline Metrics:** FPS, vision latency (ms), tracked persons, audio beam angle
 - **LLM Assistant:** Chat interface for conversing with the AI; responses adapt to your current HCEP mode
 
 ### Status Bar
+
 - Pipeline status message
 - Kinect tilt angle
 - Copyright notice
@@ -269,12 +285,15 @@ The HCEP dashboard is a dark-themed WPF window with a 3-column resizable layout.
 ## 7. Having a Conversation
 
 ### Natural Conversation
+
 Simply talk naturally while facing the Kinect. HCEP listens through Whisper speech recognition and responds through the AI engine. The AI adapts its conversation style in real-time to match your HCEP mode.
 
 ### Typed Input
+
 You can also type in the chat panel. The AI still uses your current HCEP mode (from gaze analysis) to modulate its response style.
 
 ### Multi-Person
+
 Kinect v1 supports tracking up to 2 people simultaneously. Each person gets their own identity, knowledge store, and HCEP mode tracking.
 
 ---
@@ -337,6 +356,7 @@ HCEP now understands *when* and *where* it is. This modulates the AI's conversat
 **Setting your environment:**
 
 Configure in Settings → Context:
+
 - **Environment type**: Bedroom, Living Room, Office, Laboratory, Studio, Outdoors, Public Space
 - **Activity**: Working, Relaxing, Socializing, Creating, Learning, etc.
 - **Location label**: Any free text (e.g. "my studio", "home office")
@@ -355,12 +375,14 @@ Configure in Settings → Context:
 The most sophisticated feature in HCEP: the avatar knows when *not* to speak.
 
 **When the avatar stays silent:**
+
 - You're in THINK mode (gaze averted, brow furrowed) — you're processing; interruption is unwelcome
 - HEART mode at night in a private space — presence matters more than words
 - You're looking away while speaking — you're verbalizing for yourself, not inviting response
 - Bedroom at night without direct gaze toward the avatar
 
 **When the avatar may respond:**
+
 - You look directly at the avatar (floor yield — Duncan, 1972 primary cue)
 - You raise your brows while looking at the avatar (question signal)
 - You complete a sentence and pause with direct gaze
@@ -401,6 +423,7 @@ The Silence Protocol is driven entirely by your face — no manual configuration
 **Symptoms:** App shows "Simulated" mode, no live video
 
 **Solutions:**
+
 1. Check USB connection — green light should be on
 2. Check Device Manager for Kinect entries
 3. Reinstall Kinect SDK v1.8
@@ -412,6 +435,7 @@ The Silence Protocol is driven entirely by your face — no manual configuration
 **Symptoms:** You speak but nothing appears in transcript
 
 **Solutions:**
+
 1. Verify `ggml-base.en.bin` is in the `models/` directory
 2. Check that the Kinect audio array is not muted in Windows Sound settings
 3. Speak clearly at a normal volume, 1.5–3 meters from the sensor
@@ -422,6 +446,7 @@ The Silence Protocol is driven entirely by your face — no manual configuration
 **Symptoms:** Face tracked but shows "Unknown"
 
 **Solutions:**
+
 1. Verify `arcfaceresnet100-11-int8.onnx` is in the `models/` directory
 2. Ensure good lighting (avoid backlight)
 3. Face the Kinect directly
@@ -432,6 +457,7 @@ The Silence Protocol is driven entirely by your face — no manual configuration
 **Symptoms:** Chat input accepted but no AI response
 
 **Solutions:**
+
 1. **For local AI:** Verify Ollama is running (`ollama list` in terminal)
 2. **For cloud AI:** Verify `OPENAI_API_KEY` environment variable is set
 3. Check logs for HTTP errors or timeouts
@@ -440,6 +466,7 @@ The Silence Protocol is driven entirely by your face — no manual configuration
 ### App Crashes on Startup
 
 **Solutions:**
+
 1. Verify .NET 9.0 Desktop Runtime (x64) is installed
 2. Run from command line to see error output: `dotnet run --project src/HCEP.App`
 3. Check `logs/` directory for Serilog output
@@ -448,6 +475,7 @@ The Silence Protocol is driven entirely by your face — no manual configuration
 ### High Latency / Low FPS
 
 **Solutions:**
+
 1. Close other applications using the Kinect
 2. Ensure adequate lighting (IR sensor works better with some ambient light)
 3. For local AI: ensure Ollama has GPU access

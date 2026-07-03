@@ -9,6 +9,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 ## [Unreleased] — 2026-07-03
 
 ### Added — Avatar Expression System (v1.2 work)
+
 - **Eyebrow animation** — Both `AvatarCoreControl` (2D) and `Avatar3DControl` (3D) now animate eyebrows driven by Kinect AU3 (BrowLowerer) + AU5 (OuterBrowRaiser) and autonomous HCEP-mode targets (LOGIC/THINK → furrow; HEART → empathy raise; AFFECT → open). 150ms EMA smoothing; quadratic bezier paths rebuilt at 30Hz. `IAvatarComponent.SetBrows()` added to shared interface.
 - **Phoneme-accurate lip sync** (Phase 13 complete) — `ISpeechSynthesizer.VisemeChanged` per-phoneme event wired end-to-end: `WindowsTtsSynthesizer` maps SAPI `VisemeReached` events through `VisemeController` (22-row Preston Blair lookup table) → `IAvatarComponent.SetViseme()` → avatar mouth animation. 2D Happy Face: `MouthFill` Ellipse + reshaped `SmilePath` arc. 3D Wireframe: `DrawMouth3D()` proportional bezier mouth. 60ms EMA co-articulation on both avatars. `AvatarWindow` subscribes to `orchestrator.TtsEngine.VisemeChanged`.
 - **HCEP.Speech project** — New project (`src/HCEP.Speech/`) with `ISpeechSynthesizer` interface, `VisemeData` struct, `VisemeController` lookup table, `WindowsTtsSynthesizer` (SAPI offline), `OpenAiTtsSynthesizer` (streaming cloud), `ElevenLabsTtsSynthesizer` (streaming, lowest latency), `HybridTtsEngine` (priority routing with `VisemeChanged` relay).
@@ -18,6 +19,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - **`HCEP.App` references `HCEP.Speech`** — project reference added to `HCEP.App.csproj`.
 
 ### Security
+
 - **[CRITICAL]** Replaced incorrect `Interlocked.CompareExchange(ref obj, null!, null!)` pattern (which is *not* a volatile read) with `Volatile.Read` / `Volatile.Write` on all four cross-thread shared-state properties in `VisionPipeline`: `LatestSpeech`, `LatestColor`, `LatestRecognition`, `PendingEnrollmentName`. Eliminates a race condition where written values were silently invisible to reader threads, causing dropped speech and recognition results.
 - **`WindowsCredentialStore`** — New class (`HCEP.Intelligence.WindowsCredentialStore`) wrapping Windows Credential Manager (`advapi32.dll`) via P/Invoke. API keys are now read from the WCM vault first, falling back to environment variables, then `LlmConfiguration` properties. Keys stored in WCM are never visible in process listings or environment dumps. Well-known target names: `HCEP/OpenAI`, `HCEP/Anthropic`, `HCEP/Gemini`, `HCEP/Mistral`, `HCEP/xAI`, `HCEP/Cohere`. Includes a `LoadWithFallback()` helper for zero-friction adoption.
 - **`EncryptedStorageProvider`** — Documented the DPAPI `CurrentUser` scope limitation with explicit upgrade-path notes pointing to `WindowsCredentialStore` for API keys and a future per-session AES-256-GCM key for biometric embeddings.
