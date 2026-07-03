@@ -1,4 +1,5 @@
 # HCEP Local SLM Agentic Integration & Engineering Plan
+
 **Document Type:** Technical Architecture & Implementation Plan  
 **Target Architecture:** Local SLM (Small Language Model) Controller & Kinect v1 Integration  
 **Focus:** Privacy-First Local Learning, Ocular-Skeletal Math Foundations  
@@ -63,7 +64,9 @@ To ensure absolute privacy ("only track me for learning") while achieving high-s
 Before the SLM receives any data, the sensor stream from the Kinect and camera is formalized into a deterministic, normalized **Oculo-Postural Vector (OPV)**. This ensures that the system is driven by explicit physics and geometry, not heuristic guesses.
 
 ### 2.1 Postural Physics Formulations
+
 Given the Kinect's 3D joint coordinate outputs (represented as $(x, y, z)$ in meters):
+
 * $J_{head}$: Coordinates of the head center.
 * $J_{spine}$: Coordinates of the spine center.
 * $J_{shoulder\_c}$: Coordinates of the shoulder center (clavicle).
@@ -78,11 +81,13 @@ $$\theta_{lean} = \arccos\left(\frac{\vec{V}_{torso} \cdot \vec{u}_{g}}{\|\vec{V
 A forward lean ($\theta_{lean} > 0$ relative to rest state) indicates high attention/empathy; a backward lean ($\theta_{lean} < 0$) indicates cognitive deflection or retreat.
 
 ### 2.2 Saccadic Metrics & Blink Frequency
+
 * **Peak Saccadic Velocity ($V_{peak}$):** Derived from sequential frame delta displacements of pupil center vectors:
   $$V_{peak} = \max \left( \frac{\|\vec{P}_{pupil}(t) - \vec{P}_{pupil}(t-\Delta t)\|}{\Delta t} \right)$$
 * **Blink Rate ($f_{blink}$):** Calculated as blinks per minute over a sliding 60-second window, used as a direct proxy for cognitive load and fatigue.
 
 ### 2.3 The Compiled Oculo-Postural Vector (OPV)
+
 Every $100\text{ms}$, the system compiles the normalized vector:
 
 $$\mathbf{v}_{OPV} = \left[ \theta_{lean}, \text{yaw}_{head}, \text{pitch}_{head}, \text{dist}_{user}, f_{blink}, \text{dwell}_{zone}, \Delta_{vergence} \right]$$
@@ -91,15 +96,18 @@ $$\mathbf{v}_{OPV} = \left[ \theta_{lean}, \text{yaw}_{head}, \text{pitch}_{head
 
 ## 3. Local SLM Driver Loop Integration
 
-Instead of sending the raw coordinates to the SLM, we serialize $\mathbf{v}_{OPV}$ into a structured semantic format and inject it directly into the local model's system prompt context. 
+Instead of sending the raw coordinates to the SLM, we serialize $\mathbf{v}_{OPV}$ into a structured semantic format and inject it directly into the local model's system prompt context.
 
 ### 3.1 Targeted SLM Selection
+
 We leverage **Microsoft Phi-3-mini (3.8B parameters)** or **Llama-3.1-8B-Instruct**, quantized to 4-bit (GGUF or ONNX Runtime). These models:
+
 * Run at $>45$ tokens/second on standard local hardware (RTX 3060/4060 or Apple Silicon).
 * Native support for structured JSON schema outputs and function calling.
 * Extremely low context-switch latency.
 
 ### 3.2 System Prompt Integration Pattern
+
 On every conversational step, the prompt builder compiles the system context as:
 
 ```json
@@ -116,6 +124,7 @@ On every conversational step, the prompt builder compiles the system context as:
 ```
 
 ### 3.3 Agentic Output Model (JSON Driving Format)
+
 The local SLM is constrained to output responses in JSON format, containing both the **verbal response** and the **avatar behavioral drivers**:
 
 ```json
@@ -165,17 +174,20 @@ To satisfy "only track me for learning", no data must leave the machine. Adaptat
 To make the AI avatar fully autonomous and decoupled while allowing it to actively mirror or emulate the user for rapport, HCEP introduces the **Somatic Emulation & Mirroring Loop**. Instead of the user's movements simply acting as a passive input, the local SLM uses the user's oculo-postural vector (OPV) to drive the avatar's physical animation parameters—mimicking, echoing, or playfully "mocking" the user's states in real-time.
 
 ### 5.1 Mathematical Mimicry Formulation
+
 The avatar's target physical posture vector $\mathbf{v}_{avatar}(t)$ is calculated as a blend between its autonomous baseline posture $\mathbf{v}_{baseline}$ and the user's postural vector $\mathbf{v}_{user}$ at a specific delay offset $\tau$:
 
 $$\mathbf{v}_{avatar}(t) = (1 - w_{emu}) \cdot \mathbf{v}_{baseline} + w_{emu} \cdot \mathbf{v}_{user}(t - \tau)$$
 
 Where:
+
 * **$w_{emu} \in [0, 1]$ (Emulation Blend Weight):** Controls the scale of the mirroring. A weight of `0.0` represents a completely decoupled, autonomous AI posture; a weight of `1.0` is an absolute real-time shadow mirror of the user's physical joints.
-* **$\tau$ (Temporal Offset):** Defines the reflection lag (latency). 
+* **$\tau$ (Temporal Offset):** Defines the reflection lag (latency).
   * *Empathy/Rapport Mode ($\tau \approx 300\text{ms} - 500\text{ms}$):* Subtle, delayed mirroring of posture (leaning, tilting) which is proven to build trust in human psychology.
   * *Mimicry/Mocking Mode ($\tau \le 100\text{ms}$):* Rapid, synchronized copying of the user's head tilts, blinks, and gaze aversion zones.
 
 ### 5.2 SLM Control Interface
+
 The local SLM updates the mirroring dynamics dynamically via its JSON control blocks:
 
 ```json
@@ -194,6 +206,7 @@ This ensures the AI remains the **sole driver** of its physical presence, active
 ## 6. Phase-by-Phase Engineering Work Plan
 
 ### Phase 1: Local SLM Engine Setup (Q3 2026)
+
 * **Goal:** Configure local SLM execution to bypass external API networks.
 * **Actions:**
   1. Add a local controller option inside `HybridLlmEngine` to force routing through `Ollama` (`llama3:8b` or `phi3:mini`).
@@ -201,6 +214,7 @@ This ensures the AI remains the **sole driver** of its physical presence, active
   3. Write fallback handlers if local LLM latency spikes above $2000\text{ms}$.
 
 ### Phase 2: Kinect Mathematical Vectorization (Q3 2026)
+
 * **Goal:** Implement the physical coordinate calculations from the active Kinect stream.
 * **Actions:**
   1. Update `HCEP.Kinect` to read 3D joints (`JointType.Spine`, `JointType.ShoulderCenter`, `JointType.HipCenter`).
@@ -208,6 +222,7 @@ This ensures the AI remains the **sole driver** of its physical presence, active
   3. Build a debug view overlay inside `VideoOverlayControl` showing torso angles and real-time head yaw/pitch metrics.
 
 ### Phase 3: Somatic Mirroring and Animation Blending (Q4 2026)
+
 * **Goal:** Implement the real-time posture replication equations.
 * **Actions:**
   1. Update `AvatarCoreControl.xaml.cs` to store a history buffer of user skeletal and eye positions (holding the last $1000\text{ms}$ of frames).
@@ -215,9 +230,9 @@ This ensures the AI remains the **sole driver** of its physical presence, active
   3. Validate that blink events are mirrored or synchronized when `sync_blinks_to_user` is flagged.
 
 ### Phase 4: Local Learning & Adaptation Loop (Q4 2026)
+
 * **Goal:** Implement the local storage and learning heuristics.
 * **Actions:**
   1. Extend `UksKnowledgeAdapter` (or `InMemoryKnowledgeStore`) to serialize user baseline profiles (averages of blink frequency, lean offsets, and preferred HCEP modes).
   2. Write an active optimizer in `HCEP.Core` that reads these baselines on startup to dynamically adjust the spatial confidence cones (e.g., widening targets if the user exhibits higher natural drift).
   3. Validate that no network requests are dispatched during learning profiling.
-

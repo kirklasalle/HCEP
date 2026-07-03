@@ -1,4 +1,5 @@
 # HCEP Empirical Validation Study Report
+
 **Protocol Version:** 1.0.0  
 **Dataset Duration:** 10 minutes (6,000 frames @ 10 Hz)  
 **Original Date:** June 6, 2026 | **Updated:** July 3, 2026  
@@ -8,13 +9,15 @@
 
 ## 1. Executive Summary
 
-This report documents the empirical validation of the **Human Communication Eye Protocol (HCEP)** 5-mode state machine classification. The validation study utilized a 10-minute annotated conversation dataset (6,000 frames) evaluated by three independent expert human raters. 
+This report documents the empirical validation of the **Human Communication Eye Protocol (HCEP)** 5-mode state machine classification. The validation study utilized a 10-minute annotated conversation dataset (6,000 frames) evaluated by three independent expert human raters.
 
 The evaluation proves that HCEP's classification pipeline achieves high reliability and accuracy:
+
 - **Inter-Rater Reliability (Mean Cohen's Kappa):** **0.8084** (Target: ≥ 0.70 — achieved excellent agreement)
 - **HCEP Classification Accuracy:** **84.55%** (Target: ≥ 80.0%)
 
 ### July 2026 Update
+
 These results remain the validated baseline. All architectural changes since June 2026 (security hardening, eyebrow animation, lip sync, context intelligence) have been additive — they do not alter the core 5-mode classification pipeline. The validated κ=0.8084 and 84.55% accuracy figures remain current.
 
 ---
@@ -77,6 +80,7 @@ These empirically derived thresholds are documented in `HcepModeAnalyzer.cs`:
 ## 6. Roadmap for Validation v2.0
 
 Phase 11 targets κ ≥ 0.92 and accuracy ≥ 93% via a learned transformer model:
+
 - 50,000+ frames across diverse demographics
 - Full multimodal features: gaze + head kinematics + AUs + torso + speech prosody
 - Cultural adaptation (East Asian, Western, MENA interaction norms)
@@ -89,9 +93,10 @@ See `ROADMAP.md` §Phase 11 for details.
 
 ## 1. Executive Summary
 
-This report documents the empirical validation of the **Human Communication Eye Protocol (HCEP)** 5-mode state machine classification. The validation study utilized a 10-minute annotated conversation dataset (6,000 frames) evaluated by three independent expert human raters. 
+This report documents the empirical validation of the **Human Communication Eye Protocol (HCEP)** 5-mode state machine classification. The validation study utilized a 10-minute annotated conversation dataset (6,000 frames) evaluated by three independent expert human raters.
 
 The evaluation proves that HCEP's classification pipeline achieves high reliability and accuracy:
+
 - **Inter-Rater Reliability (Mean Cohen's Kappa):** **0.808** (Target: $\ge 0.70$, achieved excellent agreement).
 - **HCEP Classification Accuracy:** **84.55%** (Target: $\ge 80.0\%$).
 
@@ -117,6 +122,7 @@ To establish objective ground truth, the conversation logs were coded frame-by-f
 The HCEP model predictions were compared against the **majority-vote consensus** of the three human raters.
 
 ### Overall Performance
+
 - **Overall Accuracy:** 84.55%
 - **Total Samples:** 6,000 frames
 

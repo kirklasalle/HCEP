@@ -1,9 +1,11 @@
 # HCEP Project Audit & Research Whitepaper Summary
+
 **Last Updated:** July 3, 2026 | **Version:** v1.2.0
 
 ## Current Project State (July 2026)
 
 Since this audit was completed, HCEP has shipped:
+
 - **v1.0.0** (June 2026): Full pipeline, empirically validated (κ=0.8084, 84.55% accuracy), Plugin API, multi-language SDK
 - **v1.1.0** (July 2026): 21 security/reliability fixes — thread-safety, WCM key storage, circuit breaker, capacity limits
 - **v1.2.0** (July 2026): Full avatar expression (eyebrows + lip sync + contextual intelligence)
@@ -12,7 +14,7 @@ All v0.2.0 recommendations from the original audit have been implemented. See `C
 
 ---
 
-A comprehensive audit of the **Human Communication Eye Protocol (HCEP)** project and a publication-grade academic whitepaper have been compiled and generated. 
+A comprehensive audit of the **Human Communication Eye Protocol (HCEP)** project and a publication-grade academic whitepaper have been compiled and generated.
 
 The primary deliverable is a premium, fully rich interactive HTML document available in the repository at [HCEP_THEORY_WHITEPAPER.html](file:///d:/Projects/HCEP/docs/HCEP_THEORY_WHITEPAPER.html).
 
@@ -21,6 +23,7 @@ The primary deliverable is a premium, fully rich interactive HTML document avail
 ## 1. Key Technical Accomplishments
 
 ### Theoretical Formulation
+
 - **The 5-Mode Classification Mapping:** Formalized the neurological, kinesic, and conversational mappings for the **LOGIC**, **AFFECT**, **SPIRIT**, **HEART**, and **THINK** modes.
 - **Contralateral Hemispheric Validation:** Mathematically justified the left/right eye target lateralization through contralateral routing:
   - User Left Eye $\to$ Right Visual Field $\to$ Left Brain Hemisphere (governing analytical, syntax, and logic).
@@ -29,6 +32,7 @@ The primary deliverable is a premium, fully rich interactive HTML document avail
 - **Skeletal Body Language Integration:** Documented the Xbox 360 Kinect skeletal tracking framework (in-progress development) mapping postural lean (torso pitch), shoulder squaring (yaw), arm crossing (proximity), and automatic sitting vs. standing classifiers.
 
 ### Codebase Auditing
+
 - **11-Project Solution Map:** Audited the directory structure (`HCEP.sln` targeting C# 13 and .NET 9.0-windows, locked to `x64` due to Kinect v1 dependencies).
 - **Presentation Layer Validation:** Verified WPF component behaviors, specifically:
   - `AvatarCoreControl` drawing 3D iris/pupil spheres inside a dynamically projected 2D face grid, and resolving physical screen pixel coordinates using `PointToScreen`.
