@@ -1,10 +1,10 @@
 # HCEP — Product Requirements Document (PRD)
 
 **Product Name:** HCEP — Human Communication Eye Protocol  
-**Version:** 1.1.0 (Production Hardened)  
+**Version:** 1.2.0 (Avatar Expression + Contextual Intelligence)  
 **Author:** Kirk LaSalle  
 **Date:** July 3, 2026  
-**Status:** Active Development — Phases 9-12 Planned  
+**Status:** Active Development — Phases 9-12 Planned, Phases 13-14 Complete  
 
 ---
 
@@ -391,6 +391,76 @@ The core innovation is Kirk LaSalle's HCEP (Human Communication Eye Points) clas
 |---|---|---|
 | Product Owner | Kirk LaSalle | Feb 22, 2026 |
 | Technical Lead | Kirk LaSalle | Feb 22, 2026 |
+| Phase 13-14 Review | Kirk LaSalle | July 3, 2026 |
+
+---
+
+## 13. Phase 13 — Phoneme-to-Viseme Lip Sync (Implemented July 2026)
+
+### 13.1 Requirement
+
+The avatar's mouth must move with phoneme-accurate synchronization to its speech output. Incorrect or absent lip sync actively degrades speech intelligibility (McGurk & MacDonald, 1976) and triggers uncanny valley responses (Tinwell et al., 2011).
+
+### 13.2 Functional Requirements
+
+| ID | Requirement | Status |
+|---|---|---|
+| FR-V01 | `ISpeechSynthesizer.VisemeChanged` event fires per-phoneme during TTS synthesis | ✅ Implemented |
+| FR-V02 | `VisemeData` struct encodes: JawOpen, LipRound, LipSpread, LipCompressed, UpperLipRetract | ✅ Implemented |
+| FR-V03 | `VisemeController` maps all 21 SAPI phoneme groups to `VisemeData` per Preston Blair (1949) | ✅ Implemented |
+| FR-V04 | `AvatarCoreControl.SetViseme()` animates 2D Happy Face mouth (MouthFill + SmilePath) | ✅ Implemented |
+| FR-V05 | `Avatar3DControl.SetViseme()` draws proportional bezier mouth arc on wireframe | ✅ Implemented |
+| FR-V06 | Co-articulation blending: 60ms EMA between successive phoneme shapes | ✅ Implemented |
+| FR-V07 | Windows SAPI backend: per-phoneme timing, ★★★★★ accuracy | ✅ Implemented |
+| FR-V08 | Cloud TTS backends: amplitude-driven approximate visemes, ★★☆☆☆ accuracy | ✅ Implemented |
+| FR-V09 | `HybridTtsEngine` relays `VisemeChanged` from whichever backend is active | ✅ Implemented |
+| FR-V10 | `AvatarWindow` subscribes to `orchestrator.TtsEngine.VisemeChanged`; dispatches to both avatars | ✅ Implemented |
+
+### 13.3 Scientific Basis
+
+- **McGurk & MacDonald (1976)**: Visual mouth movement is processed by auditory cortex as a genuine speech signal. Wrong lip sync degrades intelligibility.
+- **Sumby & Pollack (1954)**: Accurate lip sync provides up to 15 dB SNR improvement in noisy environments.
+- **Preston Blair (1949)**: 18 canonical mouth shapes governing animation lip sync since Disney's golden age.
+- **Cohen & Massaro (1994)**: DOMINANCE model — co-articulation means mouth shapes carry predictive information about upcoming sounds.
+
+---
+
+## 14. Phase 14 — Contextual Intelligence: Time, Space & Situation (Implemented July 2026)
+
+### 14.1 Requirement
+
+The avatar must be aware of *when* and *where* it exists — time of day, physical environment, activity context, and privacy level. This information must modulate the AI's conversational register and activate the Silence Protocol when appropriate.
+
+### 14.2 Functional Requirements
+
+| ID | Requirement | Status |
+|---|---|---|
+| FR-C01 | `ContextSnapshot` model captures Time × Space × Situation with `ToPromptString()` | ✅ Implemented |
+| FR-C02 | `TimeContextProvider` classifies time-of-day band, day type, season from system clock | ✅ Implemented |
+| FR-C03 | User-configurable: EnvironmentType, Activity, UserDefinedLocation, Privacy | ✅ Implemented |
+| FR-C04 | `CommunicationRegister` derived from time + environment (Professional/Personal/Intimate/Formal) | ✅ Implemented |
+| FR-C05 | `SilenceProtocolEvaluator` — 7 evidence-based rules from HCEP mode + facial AUs + context | ✅ Implemented |
+| FR-C06 | LLM context injection: `ContextSnapshot.ToPromptString()` injected into every `PromptAsync()` | ✅ Implemented |
+| FR-C07 | "SILENCE PROTOCOL: ACTIVE" message in LLM prompt when `SilenceProtocolActive = true` | ✅ Implemented |
+| FR-C08 | Direct gaze to avatar overrides silence protocol (Duncan, 1972 primary floor-yield cue) | ✅ Implemented |
+
+### 14.3 The Silence Protocol — Rules (Priority Order)
+
+1. Direct gaze toward avatar → override; avatar may respond
+2. Raised brows (AU5) + direct gaze → override; question signal
+3. THINK mode + gaze aversion → silence (processing silence, Jaworski 1993)
+4. HEART mode + evening/night + no direct gaze → silence (empathic presence)
+5. Bedroom + night + no direct gaze → affiliative silence
+6. Sustained brow furrow (AU3) + gaze aversion → deep work silence
+7. Lab/Studio environment + no direct gaze → deep work silence
+
+### 14.4 Scientific Basis
+
+- **Hall (1959, 1983)** Chronemics: time is a silent communication medium with cross-cultural norms.
+- **Barker (1968)** Behavior Settings: physical spaces prescribe appropriate behaviors.
+- **Jaworski (1993)** The Power of Silence: 6 types of meaningful silence; none = absence of communication.
+- **Sacks, Schegloff & Jefferson (1974)** Turn-Taking: gaze is the primary floor-yield signal.
+- **Duncan (1972)** Speaker Yield Cues: 6 signals, gaze toward listener is the most reliable.
 
 ---
 

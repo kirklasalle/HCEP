@@ -97,10 +97,10 @@ public sealed record ContextSnapshot
     /// <summary>Compact summary string injected into LLM system prompts.</summary>
     public string ToPromptString()
     {
-        var env   = Environment == EnvironmentType.Unknown ? "unknown location" : Environment.ToString();
-        var loc   = UserDefinedLocation is not null ? $" ({UserDefinedLocation})" : "";
-        var act   = Activity != SituationActivity.Unknown ? $" · {Activity}" : "";
-        var tz    = TimezoneId;
+        var env = Environment == EnvironmentType.Unknown ? "unknown location" : Environment.ToString();
+        var loc = UserDefinedLocation is not null ? $" ({UserDefinedLocation})" : "";
+        var act = Activity != SituationActivity.Unknown ? $" · {Activity}" : "";
+        var tz = TimezoneId;
         return
             $"[{TimeOfDay} | {DayType} | {Season} | {env}{loc}{act} | " +
             $"Privacy: {Privacy} | Register: {Register} | " +

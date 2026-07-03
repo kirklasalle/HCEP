@@ -1,9 +1,9 @@
 # HCEP — Developer Guide
 
 **Product:** HCEP — Human Communication Eye Protocol  
-**Version:** 1.0.0 (Stable)  
+**Version:** 1.2.0  
 **Author:** Kirk LaSalle  
-**Last Updated:** June 6, 2026  
+**Last Updated:** July 3, 2026  
 
 ---
 
@@ -64,32 +64,51 @@ HCEP follows a layered architecture with strict dependency flow (bottom → top)
 
 ```
 D:\Projects\HCEP\
-├── HCEP.sln                         # Root solution (11 projects)
+├── HCEP.sln                         # Root solution (12 projects)
 ├── Directory.Build.props            # Shared MSBuild properties
+├── CHANGELOG.md                     # Full version history
 ├── docs/                            # Documentation
 │   ├── PRD.md
 │   ├── ROADMAP.md
 │   ├── USER_GUIDE.md
-│   └── DEVELOPER_GUIDE.md
+│   ├── DEVELOPER_GUIDE.md
+│   ├── HCEP_SCIENCE_FOUNDATION.md      # 100+ citation research compendium
+│   └── Sensory_Integration.md
 ├── src/
 │   ├── HCEP.Core/                   # Enums, models, interfaces, channels
-│   │   ├── Enums/                   # HcepMode, GazeRegion, CognitiveState, etc.
-│   │   ├── Models/                  # TrackedPerson, FaceFrame, HcepReading, etc.
-│   │   ├── Interfaces/             # ISensorSource, IGazeEstimator, ILlmEngine, etc.
+│   │   ├── Enums/                   # HcepMode, GazeRegion, ActionUnit, etc.
+│   │   ├── Models/                  # TrackedPerson, FaceFrame, HcepReading,
+│   │   │                            #   ContextSnapshot, SceneSnapshot, ...
+│   │   ├── Interfaces/             # ISensorSource, IGazeEstimator, ILlmEngine
 │   │   └── Channels/              # HCEPChannels factory
 │   ├── HCEP.Telemetry/             # Logging, metrics, FPS
-│   ├── HCEP.Spatial/               # Gaze estimation, coordinate mapping, PnP
-│   ├── HCEP.Kinect/                # Sensor access (real + simulated)│   ├── HCEP.Kinect.Bridge/         # .NET Framework 4.8.1 bridge for managed Kinect SDK│   ├── HCEP.Vision/                # Face recognition, HCEP mode analysis
-│   ├── HCEP.Audio/                 # Speech recognition, audio pipeline
-│   ├── HCEP.Knowledge/             # Knowledge store, UKS adapter, person knowledge
-│   ├── HCEP.Intelligence/          # LLM engine, agentic tools, prompt bridge
-│   └── HCEP.App/                   # WPF application, DI host, orchestrator
+│   ├── HCEP.Spatial/               # Gaze estimation, PnP solver, confidence cone
+│   ├── HCEP.Kinect/                # Sensor access (real + simulated)
+│   ├── HCEP.Kinect.Bridge/         # .NET Framework 4.8.1 bridge for managed SDK
+│   ├── HCEP.Vision/                # Face recognition, HCEP mode analysis
+│   ├── HCEP.Audio/                 # Speech recognition (STT), audio pipeline
+│   ├── HCEP.Speech/                # ★ NEW: TTS + Viseme lip sync
+│   │   ├── ISpeechSynthesizer.cs   # Interface with VisemeChanged event + VisemeData
+│   │   ├── VisemeController.cs     # 22-row phoneme→mouth-parameter lookup table
+│   │   ├── WindowsTtsSynthesizer.cs# SAPI offline — phoneme-accurate
+│   │   ├── OpenAiTtsSynthesizer.cs # Cloud streaming TTS
+│   │   ├── ElevenLabsTtsSynthesizer.cs # Cloud highest quality
+│   │   └── HybridTtsEngine.cs      # Priority routing + event relay
+│   ├── HCEP.Knowledge/             # Knowledge store, UKS adapter, person memory
+│   ├── HCEP.Intelligence/          # LLM engine, agentic tools, context providers
+│   │   ├── HybridLlmEngine.cs      # Cloud + local routing with circuit breaker
+│   │   ├── TimeContextProvider.cs  # ★ NEW: time/space/situation context snapshot
+│   │   └── SilenceProtocolEvaluator.cs # ★ NEW: when not to speak
+│   └── HCEP.App/                   # WPF application, DI host, orchestrator, avatars
+│       ├── AvatarCoreControl.xaml(.cs) # 2D avatar: gaze+blinks+brows+viseme
+│       ├── Avatar3DControl.cs       # 3D wireframe avatar: mesh+eyes+brows+viseme
+│       └── IAvatarComponent.cs      # Interface: SetGaze+SetBrows+SetViseme+ResetGaze
 └── tests/
-    └── HCEP.Tests/                  # xUnit test project (169 tests)
-        ├── Spatial/                 # RayPlane, CoordinateMapper, PnP, ConfidenceCone tests
-        ├── Knowledge/               # InMemoryStore, UKS adapter, PersonKnowledge tests
-        ├── Intelligence/            # AgenticTools, PromptBridge, ToolDefinitions tests
-        ├── Vision/                  # HcepModeAnalyzer tests
+    └── HCEP.Tests/                  # xUnit test project (193 tests)
+        ├── Spatial/                 # RayPlane, CoordinateMapper, PnP, ConfidenceCone
+        ├── Knowledge/               # InMemoryStore CRUD, stress/concurrency, capacity
+        ├── Intelligence/            # AgenticTools, PromptBridge, circuit breaker
+        ├── Vision/                  # HcepModeAnalyzer, ArcFace negative paths, concurrency
         └── Core/                    # Model/enum tests
 ```
 
@@ -171,12 +190,12 @@ dotnet test HCEP.sln --filter "FullyQualifiedName~Knowledge"
 | Directory | Tests | What's Tested |
 |---|---|---|
 | `Spatial/` | 23 | Ray-plane math, coordinate mapping, PnP head pose, confidence cone |
-| `Knowledge/` | 27 | In-memory store CRUD, UKS fallback, person knowledge, JSON roundtrip |
-| `Intelligence/` | 20 | Agentic tool executor, prompt bridge, tool definitions |
-| `Vision/` | 8 | HCEP mode analyzer state machine |
-| `Core/` | 24 | Models, enums, constants, anthropometrics |
-| `Integration/` | 67 | End-to-end API server, MCP endpoints, and pipeline execution |
-| **Total** | **169** | All passing |
+| `Knowledge/` | 35 | In-memory store CRUD + stress/concurrency, capacity limits, circuit breaker, person knowledge |
+| `Intelligence/` | 24 | Agentic tool executor, prompt bridge, tool definitions, circuit breaker |
+| `Vision/` | 18 | HCEP mode analyzer, ArcFace negative paths, concurrency stress |
+| `Core/` | 24 | Models, enums, constants |
+| `Integration/` | 69 | End-to-end API server, MCP endpoints, pipeline execution |
+| **Total** | **193** | All passing |
 
 ### Writing New Tests
 
@@ -713,6 +732,115 @@ A dedicated endpoint at `GET /api/tools/openai` outputs valid JSON schemas for O
 *   **C# (`sdk/csharp/`):** Exposes `HcepSemanticKernelPlugin` to map HCEP tools to Microsoft Semantic Kernel.
 *   **Unity (`sdk/unity/`):** Provides a MonoBehaviour component `HcepGazeController.cs` that parses live telemetry WebSockets (`ws://localhost:5000/ws/stream`) and applies real-time bone rotations to avatar rigs.
 *   **Unreal Engine (`sdk/unreal/`):** Features a native C++ `UActorComponent` driving character eyes and head sockets with configurable interpolation speeds.
+
+---
+
+## 14. HCEP.Speech — TTS, Viseme Lip Sync (Phase 13)
+
+### Architecture
+
+`HCEP.Speech` is a standalone project referenced by `HCEP.App`. It has no dependency on WPF and can be used from any .NET 9 Windows application.
+
+```
+HCEP.Speech
+├── ISpeechSynthesizer    — interface with VisemeChanged event + VisemeData struct
+├── VisemeData            — 6-parameter mouth shape (JawOpen, LipRound, LipSpread,
+│                           LipCompressed, UpperLipRetract, DurationMs)
+├── VisemeController      — static: 22-row Preston Blair / SAPI lookup table + Lerp()
+├── WindowsTtsSynthesizer — SAPI offline; phoneme-accurate via VisemeReached events
+├── OpenAiTtsSynthesizer  — cloud streaming (tts-1/tts-1-hd); amplitude-fallback visemes
+├── ElevenLabsTtsSynthesizer — cloud streaming; amplitude-fallback visemes
+└── HybridTtsEngine       — routes ElevenLabs → OpenAI → Windows SAPI; relays all events
+```
+
+### Wiring in the App
+
+1. Register `HybridTtsEngine` in DI (App.xaml.cs)
+2. Set `orchestrator.TtsEngine = ttsEngine` after construction
+3. `AvatarWindow.Window_Loaded()` subscribes to `_ttsEngine.VisemeChanged` and dispatches to `Avatar.SetViseme()` + `Avatar3D.SetViseme()`
+
+### Per-Phoneme Event Flow
+
+```
+WindowsTtsSynthesizer.SpeakAsync(text)
+    → SpeechSynthesizer.SpeakAsync() [SAPI]
+        → VisemeReached fires per phoneme (~50–200ms)
+            → VisemeController.FromSapiViseme(visemeId, durationMs)
+                → VisemeData { JawOpen, LipRound, LipSpread, LipCompressed, UpperLipRetract }
+                    → VisemeChanged event
+                        → AvatarWindow.OnVisemeChanged(viseme)
+                            → Dispatcher.BeginInvoke
+                                → Avatar.SetViseme(viseme) [2D]
+                                → Avatar3D.SetViseme(viseme) [3D]
+```
+
+### Extending TTS
+
+To add a new TTS backend:
+1. Implement `ISpeechSynthesizer`
+2. For phoneme-accurate visemes: fire `VisemeChanged` from phoneme timing data
+3. For amplitude-only: fire `VisemeChanged` with `VisemeController.FromSapiViseme(1, durationMs)` as a voiced proxy and `VisemeData.Silence` at the end
+4. Register in `HybridTtsEngine` constructor priority list
+
+---
+
+## 15. Contextual Intelligence — Time, Space & Situation (Phase 14)
+
+### ContextSnapshot Model
+
+`ContextSnapshot` is defined in `HCEP.Core.Models` and captures the full context quadrant:
+
+```csharp
+// Build a snapshot from the current system clock + user settings:
+var ctx = timeContextProvider.BuildSnapshot(
+    silenceProtocolActive: SilenceProtocolEvaluator.ShouldBeSilent(
+        hcepReading, context, actionUnits));
+
+// Inject into LLM:
+llmEngine.CurrentContext = ctx;
+// → automatically included in every PromptAsync() system prompt as:
+// [Evening | Friday | Summer | LivingRoom (my studio) | Relaxing | Register:Personal |
+//  SilenceProtocol:inactive | TZ:America/New_York]
+```
+
+### TimeContextProvider
+
+Located in `HCEP.Intelligence`. Configure via its public properties:
+
+```csharp
+var provider = new TimeContextProvider
+{
+    Environment = EnvironmentType.Office,
+    UserDefinedLocation = "standing desk",
+    Activity = SituationActivity.Working,
+    Privacy = SituationPrivacy.Private,
+};
+ContextSnapshot ctx = provider.BuildSnapshot();
+```
+
+Call `BuildSnapshot()` approximately once per second (e.g. in `RefreshMetrics()`).
+
+### SilenceProtocolEvaluator
+
+Fully static. Call at each HCEP reading to determine whether the avatar should initiate speech:
+
+```csharp
+bool silent = SilenceProtocolEvaluator.ShouldBeSilent(
+    reading: latestHcepReading,        // from pipeline
+    context: currentContext,            // from TimeContextProvider
+    actionUnits: faceFrame.ActionUnits  // from Kinect
+);
+if (!silent) await ttsEngine.SpeakAsync(llmResponse);
+```
+
+The evaluator checks 7 rules in priority order:
+1. Direct gaze → override silence (floor yielded)
+2. Raised brows + direct gaze → override silence (question)
+3. THINK mode + gaze aversion → silence
+4. HEART mode + evening/night + no direct gaze → silence
+5. Bedroom + night + no direct gaze → silence
+6. Sustained brow furrow + gaze aversion → silence
+7. Lab/Studio context + no direct gaze → silence
 
 ---
 

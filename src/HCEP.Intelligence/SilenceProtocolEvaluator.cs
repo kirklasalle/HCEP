@@ -51,13 +51,13 @@ public static class SilenceProtocolEvaluator
     {
         // ── Floor-yield overrides (avatar CAN speak) ──────────────────
         // Any of these signals mean the user has handed the floor.
-        if (directGazeAtAvatar && !gazeAversion)  return false;
-        if (raisedBrows && directGazeAtAvatar)     return false;
+        if (directGazeAtAvatar && !gazeAversion) return false;
+        if (raisedBrows && directGazeAtAvatar) return false;
 
         // ── Hard silence signals (avatar must not speak) ──────────────
         // THINK mode is the clearest: gaze aversion + defocus = processing.
-        if (mode == HcepMode.Think && gazeAversion)   return true;
-        if (mode == HcepMode.Think && browFurrowed)   return true;
+        if (mode == HcepMode.Think && gazeAversion) return true;
+        if (mode == HcepMode.Think && browFurrowed) return true;
 
         // HEART mode at night: be present, not verbose.
         if (mode == HcepMode.Heart

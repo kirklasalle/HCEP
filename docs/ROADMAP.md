@@ -1,9 +1,9 @@
 # HCEP — Development Roadmap
 
-**Product:** HCEP — Human Communication Eye Points  
-**Version:** v1.0.0 (Stable Release)  
+**Product:** HCEP — Human Communication Eye Protocol  
+**Version:** v1.2.0  
 **Author:** Kirk LaSalle  
-**Last Updated:** June 6, 2026  
+**Last Updated:** July 3, 2026  
 
 ---
 

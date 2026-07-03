@@ -106,24 +106,16 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
   - **Windows SAPI** (offline, always available) — phoneme-accurate lip sync via `VisemeReached`
   - **OpenAI TTS** (`tts-1`, `tts-1-hd`) — high-quality cloud voices, 6 voice options
   - **ElevenLabs** (`eleven_turbo_v2_5`) — highest quality, lowest latency streaming
-- **Phoneme-to-Viseme Lip Sync** *(Phase 13 — in progress)*:
+- **Phoneme-to-Viseme Lip Sync** ✅ *Implemented (Phase 13)*:
   - `VisemeController` maps all 21 SAPI phoneme groups to 5 normalised mouth parameters (jaw open, lip round, lip spread, lip compressed, upper lip retract) per the Preston Blair animation canon (1949)
-  - Scientific basis: McGurk & MacDonald (1976) — visual mouth movement is a first-class speech channel that directly affects intelligibility. Sumby & Pollack (1954) — accurate lip sync provides up to 15 dB SNR improvement in noise.
-  - Co-articulation blending: `VisemeController.Lerp()` smooths transitions between phonemes at 30Hz
-  - **Windows SAPI**: phoneme-accurate (per-phoneme timing from `VisemeReached` event)
-  - **Cloud TTS**: amplitude-driven approximate visemes (fallback until phoneme-alignment API available)
-
-### Contextual Intelligence — Time, Space & Situation *(Phase 14 — planned)*
-
-- **Chronemics Awareness** (Hall, 1959): time of day, day of week, season — modulates conversational register
-- **Geographic Context**: Windows Location API (opt-in) → city, country, timezone
-- **Physical Environment**: user-configured or inferred environment type (bedroom, office, lab, outdoor, public)
-- **The Silence Protocol**: real-time rule engine driven by HCEP facial cues determines when the avatar should be present but silent — the most sophisticated communicative act in the system
-  - THINK mode + gaze aversion → do not interrupt
-  - HEART mode at night → maximum attunement, minimal words
-  - Direct gaze + raised brows → floor yielded, respond now
-- **Turn-taking detection** based on Duncan (1972) 6 speaker-yield cues, with HCEP gaze as the primary signal
-- **LLM context injection**: `ContextSnapshot` enriches every system prompt with time, space, and situation
+  - `ISpeechSynthesizer.VisemeChanged` fires per-phoneme at ~50–200ms intervals during TTS synthesis
+  - 2D Happy Face: `MouthFill` Ellipse opens with jaw; `SmilePath` reshaped per viseme; 60ms EMA co-articulation
+  - 3D Wireframe: `DrawMouth3D()` draws proportional bezier mouth arc scaled to eye socket radius
+  - Scientific basis: McGurk & MacDonald (1976) — visual mouth movement is a first-class speech channel. Sumby & Pollack (1954) — accurate lip sync provides up to 15 dB SNR improvement in noise.
+- **Eyebrow Animation** ✅ *Implemented*:
+  - Both avatars animate AU3 (BrowLowerer) and AU5 (OuterBrowRaiser) from Kinect
+  - Autonomous HCEP-mode driven expressions: LOGIC/THINK → furrow; HEART → empathy raise; AFFECT → open/engaged
+  - 150ms EMA smoothing; quadratic bezier geometry rebuilt at 30Hz
 
 ### Intelligence Layer
 
@@ -133,6 +125,10 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - 5-step agentic reasoning loop with tools: `query_knowledge`, `get_hcep_state`, `store_knowledge`, `summarize_person`, `analyze_gaze_pattern`
 - **Cloud Circuit Breaker**: Opens after 3 consecutive cloud failures; all calls are short-circuited for a 30-second cool-down before retry
 - **Windows Credential Manager**: API keys are read from the WCM vault (`HCEP/OpenAI`, `HCEP/Anthropic`, etc.) first, falling back to environment variables — keys are never exposed in process listings
+- **Contextual Intelligence** ✅ *Implemented (Phase 14)*:
+  - `ContextSnapshot` model captures Time × Space × Situation; injected as `[TimeOfDay | DayType | Season | Environment | Activity | Register | SilenceProtocol | TZ]` into every LLM prompt
+  - `TimeContextProvider` classifies time-of-day band, day type, season; derives `CommunicationRegister` and `TemporalUrgency`
+  - `SilenceProtocolEvaluator` — 7 rules determine when the avatar should stay silent (Jaworski, 1993; Duncan, 1972); THINK mode + gaze aversion → do not speak; direct gaze → floor yielded
 
 ### Knowledge & Memory
 
@@ -209,7 +205,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full list of changes.
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**11 projects** | **193 unit tests** | **.NET 9.0** | **x64 only**
+**12 projects** | **193 unit tests** | **.NET 9.0** | **x64 only**
 
 ---
 

@@ -44,18 +44,18 @@ public sealed class TimeContextProvider
 
         return new ContextSnapshot
         {
-            Timestamp         = now,
-            TimeOfDay         = ClassifyTimeOfDay(local.Hour),
-            DayType           = ClassifyDayType(local.DayOfWeek),
-            Season            = ClassifySeason(local.Month),
-            TimezoneId        = TimeZoneInfo.Local.Id,
-            Environment       = Environment,
+            Timestamp = now,
+            TimeOfDay = ClassifyTimeOfDay(local.Hour),
+            DayType = ClassifyDayType(local.DayOfWeek),
+            Season = ClassifySeason(local.Month),
+            TimezoneId = TimeZoneInfo.Local.Id,
+            Environment = Environment,
             UserDefinedLocation = UserDefinedLocation,
-            Activity          = Activity,
+            Activity = Activity,
             ActivityDescription = ActivityDescription,
-            Privacy           = Privacy,
-            Register          = DeriveRegister(ClassifyTimeOfDay(local.Hour), Environment),
-            TemporalUrgency   = DeriveUrgency(ClassifyTimeOfDay(local.Hour), ClassifyDayType(local.DayOfWeek)),
+            Privacy = Privacy,
+            Register = DeriveRegister(ClassifyTimeOfDay(local.Hour), Environment),
+            TemporalUrgency = DeriveUrgency(ClassifyTimeOfDay(local.Hour), ClassifyDayType(local.DayOfWeek)),
             SilenceProtocolActive = silenceProtocolActive,
         };
     }
@@ -64,12 +64,12 @@ public sealed class TimeContextProvider
 
     public static TimeOfDayCategory ClassifyTimeOfDay(int hour) => hour switch
     {
-        >= 5  and < 8  => TimeOfDayCategory.Dawn,
-        >= 8  and < 12 => TimeOfDayCategory.Morning,
+        >= 5 and < 8 => TimeOfDayCategory.Dawn,
+        >= 8 and < 12 => TimeOfDayCategory.Morning,
         >= 12 and < 14 => TimeOfDayCategory.Midday,
         >= 14 and < 18 => TimeOfDayCategory.Afternoon,
         >= 18 and < 22 => TimeOfDayCategory.Evening,
-        _              => TimeOfDayCategory.Night,
+        _ => TimeOfDayCategory.Night,
     };
 
     public static DayType ClassifyDayType(DayOfWeek dow) => dow switch
@@ -80,10 +80,10 @@ public sealed class TimeContextProvider
 
     public static Season ClassifySeason(int month) => month switch
     {
-        3 or 4 or 5   => Season.Spring,
-        6 or 7 or 8   => Season.Summer,
+        3 or 4 or 5 => Season.Spring,
+        6 or 7 or 8 => Season.Summer,
         9 or 10 or 11 => Season.Autumn,
-        _             => Season.Winter,
+        _ => Season.Winter,
     };
 
     private static CommunicationRegister DeriveRegister(

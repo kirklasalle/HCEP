@@ -683,7 +683,7 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 : 0.033;
             _lastVisemeTicks3D = visNow;
             double visAlpha = 1.0 - Math.Exp(-visDt / 0.060);
-            _visemeJaw3D   += (_visemeTarget3D.JawOpen  - _visemeJaw3D)   * visAlpha;
+            _visemeJaw3D += (_visemeTarget3D.JawOpen - _visemeJaw3D) * visAlpha;
             _visemeRound3D += (_visemeTarget3D.LipRound - _visemeRound3D) * visAlpha;
 
             DrawMouth3D(dc, leftAnchor, rightAnchor, eyeR, _visemeJaw3D, _visemeRound3D);

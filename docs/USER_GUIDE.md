@@ -1,9 +1,9 @@
 # HCEP — User Guide
 
-**Product:** HCEP — Human Communication Eye Points
-**Version:** 1.0.0 (Stable)  
+**Product:** HCEP — Human Communication Eye Protocol  
+**Version:** 1.2.0  
 **Author:** Kirk LaSalle  
-**Last Updated:** June 6, 2026  
+**Last Updated:** July 3, 2026  
 
 ---
 
@@ -301,6 +301,71 @@ If BrainSim III's Universal Knowledge Store (UKS) is available, HCEP uses it for
 ---
 
 ## 9. Configuration
+
+---
+
+## 10. Avatar Features — Expression, Speech & Context
+
+### Avatar Eyebrows
+
+The HCEP avatar now has animated eyebrows that communicate alongside the rest of the face. They respond in real-time to:
+
+- **Kinect Action Units**: AU3 (Brow Lowerer) furrows the brows; AU5 (Outer Brow Raiser) raises them
+- **HCEP Mode**: The avatar automatically expresses the appropriate brow posture for the current mode:
+  - **LOGIC / THINK**: Slight-to-moderate furrow — analytical concentration
+  - **HEART**: Inner brow raise (empathy/concern signal, AU1)
+  - **AFFECT**: Open, relaxed brows — emotionally engaged
+  - **SPIRIT**: Soft neutral — deep rapport, no tension
+
+The brows use a 150ms exponential moving average so changes are smooth and natural.
+
+### Avatar Lip Sync (Phoneme-Accurate)
+
+When the avatar speaks via Text-to-Speech, its mouth moves with phoneme-accurate lip sync:
+
+- **Windows SAPI** backend: per-phoneme mouth shapes from SAPI `VisemeReached` events — the most accurate
+- **Cloud TTS** (OpenAI, ElevenLabs): amplitude-driven approximate lip shapes
+- The mouth can show 5 distinct parameters: jaw openness, lip rounding (O/U), lip spreading (I/EE), lip compression (M/B/P), upper lip retraction (F/V)
+- Scientific basis: The McGurk Effect (McGurk & MacDonald, 1976) — visual mouth movement is a genuine speech channel. Wrong lip sync actively degrades intelligibility.
+
+**To use TTS speech**: The avatar speaks LLM responses automatically when a `HybridTtsEngine` is registered. Configure the voice in Settings under Speech.
+
+### Contextual Intelligence — Time, Space & Situation
+
+HCEP now understands *when* and *where* it is. This modulates the AI's conversational register and activates the Silence Protocol.
+
+**Setting your environment:**
+
+Configure in Settings → Context:
+- **Environment type**: Bedroom, Living Room, Office, Laboratory, Studio, Outdoors, Public Space
+- **Activity**: Working, Relaxing, Socializing, Creating, Learning, etc.
+- **Location label**: Any free text (e.g. "my studio", "home office")
+
+**How it affects the AI:**
+
+| Time + Environment | AI Behavior |
+|---|---|
+| Morning + Office | Professional, concise, goal-oriented |
+| Evening + Living Room | Warm, personal, unhurried |
+| Night + Bedroom | Intimate, minimal interruption |
+| Lab/Studio (any time) | Analytical, minimal interruption unless invited |
+
+### The Silence Protocol
+
+The most sophisticated feature in HCEP: the avatar knows when *not* to speak.
+
+**When the avatar stays silent:**
+- You're in THINK mode (gaze averted, brow furrowed) — you're processing; interruption is unwelcome
+- HEART mode at night in a private space — presence matters more than words
+- You're looking away while speaking — you're verbalizing for yourself, not inviting response
+- Bedroom at night without direct gaze toward the avatar
+
+**When the avatar may respond:**
+- You look directly at the avatar (floor yield — Duncan, 1972 primary cue)
+- You raise your brows while looking at the avatar (question signal)
+- You complete a sentence and pause with direct gaze
+
+The Silence Protocol is driven entirely by your face — no manual configuration needed.
 
 ### Environment Variables
 
