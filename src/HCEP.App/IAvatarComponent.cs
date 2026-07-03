@@ -34,20 +34,13 @@ public interface IAvatarComponent
     void SetGaze(float pitchRad, float yawRad, float userDistanceM = 1.5f);
 
     /// <summary>
-    /// Drives eyebrow animation from Kinect Action Units and autonomous HCEP mode expression.
-    /// Call every frame from <c>AvatarWindow.OnSnapshotReady</c>.
+    /// Drives mouth animation from phoneme/viseme data during TTS speech (Phase 13).
+    /// Wire to <c>ISpeechSynthesizer.VisemeChanged</c>. Pass <c>VisemeData.Silence</c>
+    /// when speech ends to restore the neutral mouth shape.
     /// </summary>
-    /// <param name="outerBrowRaise">
-    /// AU5 OuterBrowRaiser raw value [−1..+1]. Positive = brows raised (surprise, query, greeting).
-    /// </param>
-    /// <param name="browLower">
-    /// AU3 BrowLowerer raw value [−1..+1]. Negative = furrowed (concentration, LOGIC/THINK modes).
-    /// </param>
-    /// <param name="hcepModeFurrow">
-    /// Autonomous furrow target [0..1] derived from the current HCEP mode classification.
-    /// Blended with AU values so the avatar expresses the appropriate brow posture
-    /// even when the Kinect cannot resolve precise AU magnitudes.
-    /// </param>
+    void SetViseme(HCEP.Speech.VisemeData viseme);
+
+    /// <summary>Drives eyebrow animation from Kinect Action Units and HCEP mode.</summary>
     void SetBrows(float outerBrowRaise, float browLower, float hcepModeFurrow = 0f);
 
     /// <summary>Returns the avatar to its neutral / resting pose.</summary>

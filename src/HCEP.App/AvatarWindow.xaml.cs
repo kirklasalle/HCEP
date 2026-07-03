@@ -46,12 +46,16 @@ public partial class AvatarWindow : Window
 {
     private readonly HCEPPipelineOrchestrator _orchestrator;
     private bool _is3DMode;
-    private IAvatarComponent _activeAvatar = null!;  // set in Window_Loaded
+    private IAvatarComponent _activeAvatar = null!;
     private float _screenWidthPx;
     private float _screenHeightPx;
     private Vector2[]? _lastMeshVerts;
     private (int First, int Second, int Third)[]? _lastMeshTris;
     private Vector3 _lastMeshBakedRot;
+
+    // ── TTS viseme subscription (Phase 13) ────────────────────────
+    // Wired in Window_Loaded to HybridLlmEngine's TTS engine if available.
+    private HCEP.Speech.HybridTtsEngine? _ttsEngine;
 
     public AvatarWindow(HCEPPipelineOrchestrator orchestrator)
     {
@@ -64,6 +68,8 @@ public partial class AvatarWindow : Window
         {
             _orchestrator.GazeVectorReady -= OnGazeVectorReady;
             _orchestrator.SnapshotReady -= OnSnapshotReady;
+            if (_ttsEngine is not null)
+                _ttsEngine.VisemeChanged -= OnVisemeChanged;
         };
     }
 
@@ -71,9 +77,6 @@ public partial class AvatarWindow : Window
 
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        // ── Resolve physical screen pixel dimensions ──────────
-        // PresentationSource gives the DPI transform; multiplying by
-        // SystemParameters (in WPF DIPs at 96dpi baseline) gives device pixels.
         float dpiScaleX = 1f, dpiScaleY = 1f;
         var src = PresentationSource.FromVisual(this);
         if (src is not null)
@@ -88,13 +91,37 @@ public partial class AvatarWindow : Window
         _screenHeightPx = screenHeightPx;
         RegisterEyeProvider();
 
-        // ── Subscribe to computed gaze events ─────────────────
         _orchestrator.GazeVectorReady += OnGazeVectorReady;
         _orchestrator.SnapshotReady += OnSnapshotReady;
 
+        // ── Wire TTS viseme events for lip sync ───────────────────────
+        // The TTS engine is exposed by the orchestrator when HCEP.Speech is wired in.
+        // Viseme events drive SetViseme() on both avatar controls at 30fps.
+        if (_orchestrator.TtsEngine is HCEP.Speech.HybridTtsEngine tts)
+        {
+            _ttsEngine = tts;
+            _ttsEngine.VisemeChanged += OnVisemeChanged;
+            _ttsEngine.SpeechCompleted += () =>
+                Dispatcher.BeginInvoke(() =>
+                {
+                    Avatar.SetViseme(HCEP.Speech.VisemeData.Silence);
+                    Avatar3D.SetViseme(HCEP.Speech.VisemeData.Silence);
+                });
+        }
+
         TrackingModeText.Text = "waiting";
-        _activeAvatar = Avatar;           // default: 2D Happy Face
+        _activeAvatar = Avatar;
         AvatarModeCombo.SelectedIndex = 0;
+    }
+
+    private void OnVisemeChanged(HCEP.Speech.VisemeData viseme)
+    {
+        // Viseme events fire from the TTS thread — dispatch to UI for WPF element updates.
+        Dispatcher.BeginInvoke(() =>
+        {
+            Avatar.SetViseme(viseme);
+            Avatar3D.SetViseme(viseme);
+        });
     }
 
     // ── Mode switch ────────────────────────────────────
@@ -195,26 +222,26 @@ public partial class AvatarWindow : Window
             //   AFFECT → open/relaxed; trace raise
             //   SPIRIT → soft open; minimal signals
             var aus = face.ActionUnits;
-            float auRaise  = aus.Length > (int)HCEP.Core.Enums.ActionUnit.OuterBrowRaiser
+            float auRaise = aus.Length > (int)HCEP.Core.Enums.ActionUnit.OuterBrowRaiser
                 ? aus[(int)HCEP.Core.Enums.ActionUnit.OuterBrowRaiser] : 0f;
-            float auLower  = aus.Length > (int)HCEP.Core.Enums.ActionUnit.BrowLowerer
-                ? aus[(int)HCEP.Core.Enums.ActionUnit.BrowLowerer]     : 0f;
+            float auLower = aus.Length > (int)HCEP.Core.Enums.ActionUnit.BrowLowerer
+                ? aus[(int)HCEP.Core.Enums.ActionUnit.BrowLowerer] : 0f;
 
             var hcep = snapshot.PrimaryPerson?.LatestHcep;
             float modeFurrow = hcep?.Mode switch
             {
-                HCEP.Core.Enums.HcepMode.Logic  => 0.30f,
-                HCEP.Core.Enums.HcepMode.Think  => 0.50f,
-                HCEP.Core.Enums.HcepMode.Heart  => 0.00f,
+                HCEP.Core.Enums.HcepMode.Logic => 0.30f,
+                HCEP.Core.Enums.HcepMode.Think => 0.50f,
+                HCEP.Core.Enums.HcepMode.Heart => 0.00f,
                 HCEP.Core.Enums.HcepMode.Affect => 0.00f,
                 HCEP.Core.Enums.HcepMode.Spirit => 0.00f,
-                _                               => 0.10f,
+                _ => 0.10f,
             };
             float modeRaise = hcep?.Mode switch
             {
-                HCEP.Core.Enums.HcepMode.Heart  => 0.35f,  // inner empathy raise (AU1)
+                HCEP.Core.Enums.HcepMode.Heart => 0.35f,  // inner empathy raise (AU1)
                 HCEP.Core.Enums.HcepMode.Affect => 0.12f,  // open/engaged
-                _                               => 0.00f,
+                _ => 0.00f,
             };
             float blendedRaise = Math.Max(auRaise, modeRaise);
 

@@ -109,13 +109,21 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
     private const double LowerBaseCoverPx = 2.2;
 
     // ── Eyebrow state ─────────────────────────────────────────
-    // Driven by Kinect Action Units via SetBrows().
-    // Smoothed with a 150ms EMA so abrupt AU changes don't snap.
-    private float _browRaiseTarget;    // [0..1] from AU1+AU2
-    private float _browFurrowTarget;   // [0..1] from AU4
+    private float _browRaiseTarget;
+    private float _browFurrowTarget;
     private double _browRaiseSmoothed;
     private double _browFurrowSmoothed;
     private long _lastBrowUpdateMs;
+
+    // ── Viseme / lip-sync state ───────────────────────────────────
+    // Phoneme-accurate mouth animation via SAPI VisemeReached events.
+    // Smoothed with 60ms EMA so consecutive phonemes co-articulate naturally.
+    private HCEP.Speech.VisemeData _visemeTarget = HCEP.Speech.VisemeData.Silence;
+    private double _visemeJawSmoothed;
+    private double _visemeRoundSmoothed;
+    private double _visemeSpreadSmoothed;
+    private double _visemeCompressSmoothed;
+    private long _lastVisemeMs;
 
     // ── Public screen-coordinate properties ───────────────────
 
@@ -195,8 +203,79 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
 
     // IAvatarComponent
     void IAvatarComponent.SetGaze(float p, float y, float d) => SetGaze((double)p, (double)y, (double)d);
+    void IAvatarComponent.SetViseme(HCEP.Speech.VisemeData v) => SetViseme(v);
     void IAvatarComponent.SetBrows(float raise, float lower, float modeFurrow) => SetBrows(raise, lower, modeFurrow);
     void IAvatarComponent.ResetGaze() => ResetGaze();
+
+    // ── Viseme / Lip-Sync Control ──────────────────────────────────
+
+    /// <summary>
+    /// Updates the mouth animation target from a SAPI phoneme/viseme event.
+    /// Wire to <c>ISpeechSynthesizer.VisemeChanged</c>; call with
+    /// <c>VisemeData.Silence</c> when TTS stops to restore the smile.
+    /// </summary>
+    public void SetViseme(HCEP.Speech.VisemeData viseme)
+    {
+        _visemeTarget = viseme;
+    }
+
+    private void ApplyViseme()
+    {
+        long now = Environment.TickCount64;
+        double dt = _lastVisemeMs > 0
+            ? Math.Clamp((now - _lastVisemeMs) / 1000.0, 0.001, 0.1)
+            : 0.033;
+        _lastVisemeMs = now;
+
+        // 60ms EMA for fast, natural co-articulation between phonemes
+        double alpha = 1.0 - Math.Exp(-dt / 0.060);
+        _visemeJawSmoothed += (_visemeTarget.JawOpen - _visemeJawSmoothed) * alpha;
+        _visemeRoundSmoothed += (_visemeTarget.LipRound - _visemeRoundSmoothed) * alpha;
+        _visemeSpreadSmoothed += (_visemeTarget.LipSpread - _visemeSpreadSmoothed) * alpha;
+        _visemeCompressSmoothed += (_visemeTarget.LipCompressed - _visemeCompressSmoothed) * alpha;
+
+        double jaw = _visemeJawSmoothed;
+        double round = _visemeRoundSmoothed;
+        double spread = _visemeSpreadSmoothed;
+        double compress = _visemeCompressSmoothed;
+
+        // ── Mouth fill (jaw open area) ────────────────────────────────
+        // When jaw is open: show a dark ellipse below the upper lip.
+        // Width narrows for rounded vowels (O/U), widens for spread (I/E).
+        double mouthOpenH = jaw * 32.0;                // max 32px open
+        double mouthW = 102.0 - round * 40 + spread * 20;
+        mouthW = Math.Clamp(mouthW, 30.0, 120.0);
+        double mouthLeft = 140.0 - mouthW / 2.0;    // centred at x=140
+
+        MouthFill.Width = mouthW;
+        MouthFill.Height = mouthOpenH;
+        Canvas.SetLeft(MouthFill, mouthLeft);
+        Canvas.SetTop(MouthFill, 172.0);
+        MouthFill.Opacity = jaw > 0.05 ? 1.0 : 0.0;
+
+        // ── Smile / upper lip path ───────────────────────────────────
+        // Compressed (M/B/P): straight horizontal line (lips together)
+        // Open/rounded: reshape arc to reflect vowel shape
+        // Neutral / silence: restore original smile arc
+        double outerX = mouthLeft;
+        double innerX = mouthLeft + mouthW;
+        double arcRX = mouthW / 2.0;
+        double arcRY = 42.0 - round * 10 + spread * 5;
+        arcRY = Math.Clamp(arcRY, 8.0, 55.0);
+
+        if (compress > 0.6)
+        {
+            // Bilabial: straight line (M/B/P) — mouth closed tight
+            SmilePath.Data = Geometry.Parse(
+                $"M {outerX:F0},172 L {innerX:F0},172");
+        }
+        else
+        {
+            // Normal smile arc, shaped by spread/round
+            SmilePath.Data = Geometry.Parse(
+                $"M {outerX:F0},172 A {arcRX:F1},{arcRY:F1} 0 0 0 {innerX:F0},172");
+        }
+    }
 
     // ── Eyebrow Control ────────────────────────────────────────
 
@@ -231,7 +310,7 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
         _browRaiseSmoothed += (_browRaiseTarget - _browRaiseSmoothed) * alpha;
         _browFurrowSmoothed += (_browFurrowTarget - _browFurrowSmoothed) * alpha;
 
-        double raise  = _browRaiseSmoothed;
+        double raise = _browRaiseSmoothed;
         double furrow = _browFurrowSmoothed;
 
         // ── Left eyebrow (quadratic bezier) ───────────────────────────────────
@@ -241,9 +320,9 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
         var leftGeo = new StreamGeometry();
         using (var ctx = leftGeo.Open())
         {
-            double ox = 66,  oy = 80  - raise * 8  + furrow * 2;
-            double cx = 95,  cy = 68  - raise * 9  + furrow * 5;
-            double ix = 120, iy = 76  - raise * 8  + furrow * 7;
+            double ox = 66, oy = 80 - raise * 8 + furrow * 2;
+            double cx = 95, cy = 68 - raise * 9 + furrow * 5;
+            double ix = 120, iy = 76 - raise * 8 + furrow * 7;
             ctx.BeginFigure(new Point(ox, oy), false, false);
             ctx.QuadraticBezierTo(new Point(cx, cy), new Point(ix, iy), true, false);
         }
@@ -255,9 +334,9 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
         var rightGeo = new StreamGeometry();
         using (var ctx = rightGeo.Open())
         {
-            double ix = 160, iy = 76  - raise * 8  + furrow * 7;
-            double cx = 185, cy = 68  - raise * 9  + furrow * 5;
-            double ox = 214, oy = 80  - raise * 8  + furrow * 2;
+            double ix = 160, iy = 76 - raise * 8 + furrow * 7;
+            double cx = 185, cy = 68 - raise * 9 + furrow * 5;
+            double ox = 214, oy = 80 - raise * 8 + furrow * 2;
             ctx.BeginFigure(new Point(ix, iy), false, false);
             ctx.QuadraticBezierTo(new Point(cx, cy), new Point(ox, oy), true, false);
         }
@@ -295,7 +374,8 @@ public partial class AvatarCoreControl : UserControl, IAvatarComponent
 
         double blink = UpdateBlink();
         ApplyEyelids(blink, nPitch);
-        ApplyBrows();   // animate eyebrows from latest AU + HCEP mode targets
+        ApplyBrows();    // AU-driven + HCEP mode autonomous brow animation
+        ApplyViseme();   // phoneme-accurate lip sync from TTS viseme events
 
         // ── Apply 2D plane movement in 3D space ─────────────────────────────────────────
         // The happy face is a 2D plane that translates and rotates in 3D:

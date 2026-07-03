@@ -194,6 +194,13 @@ public sealed partial class HCEPPipelineOrchestrator : IPipelineOrchestrator, IA
     public bool IsArcFaceModelLoaded => _faceRecognizer is ArcFaceRecognizer arc && arc.IsModelLoaded;
 
     /// <summary>
+    /// Optional TTS engine for lip-sync viseme events.
+    /// Set by the DI container if HCEP.Speech is wired in (Phase 13).
+    /// AvatarWindow subscribes to <c>TtsEngine.VisemeChanged</c>.
+    /// </summary>
+    public HCEP.Speech.HybridTtsEngine? TtsEngine { get; set; }
+
+    /// <summary>
     /// Resets the auto-fallback flag so the system can try full-body mode again.
     /// Called when the user manually toggles back to full-body.
     /// </summary>

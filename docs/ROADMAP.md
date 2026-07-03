@@ -291,7 +291,7 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 
 **Remaining Milestones:**
 
-* [ ] **`AvatarCoreControl.SetViseme(VisemeData)`** — 2D Happy Face mouth animation
+* [x] **`AvatarCoreControl.SetViseme(VisemeData)`** — 2D Happy Face mouth animation
   * Jaw opening: arc height proportional to `JawOpen`
   * Lip rounding: draw pursed ellipse for O/U vowels
   * Lip spreading: wide thin line for I/EE phonemes
@@ -299,18 +299,18 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
   * Upper lip retraction: show teeth edge for F/V
   * Smooth co-articulation: `VisemeController.Lerp()` at 30Hz between successive visemes
 
-* [ ] **`Avatar3DControl.SetViseme(VisemeData)`** — 3D Wireframe mouth animation
+* [x] **`Avatar3DControl.SetViseme(VisemeData)`** — 3D Wireframe mouth animation
   * Map `JawOpen` to vertical displacement of lower-jaw mesh vertices
   * Map `LipRound` to radial contraction of lip outline vertices
   * Map `LipSpread` to horizontal stretch of mouth corners
   * Map `LipCompressed` to bilateral lip-vertex convergence
   * All transformations applied to FaceTrackLib mesh vertex indices 44-68 (lip region)
 
-* [ ] **`IAvatarComponent.SetViseme(VisemeData)`** — Add to interface for both 2D and 3D controls
+* [x] **`IAvatarComponent.SetViseme(VisemeData)`** — Add to interface for both 2D and 3D controls
 
-* [ ] **Co-articulation Blending** — Run `VisemeController.Lerp()` at display refresh rate (30Hz) to smooth between successive visemes, eliminating the "snapping" visible in naive phoneme-by-phoneme rendering
+* [x] **Co-articulation Blending** — Run `VisemeController.Lerp()` at display refresh rate (30Hz) to smooth between successive visemes, eliminating the "snapping" visible in naive phoneme-by-phoneme rendering
 
-* [ ] **Phase 14 integration** — Connect avatar viseme input to `HybridTtsEngine.VisemeChanged` event in `AvatarWindow`
+* [x] **Phase 14 integration** — Connect avatar viseme input to `HybridTtsEngine.VisemeChanged` event in `AvatarWindow`
 
 * [ ] **Viseme diagnostics HUD** — Show current phoneme name (`VisemeController.GetName()`) and mouth parameters in the Avatar telemetry bar during speech
 
@@ -339,7 +339,7 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 
 **Milestones:**
 
-* [ ] **`ContextSnapshot` model** in `HCEP.Core.Models`
+* [x] **`ContextSnapshot` model** in `HCEP.Core.Models`
   * `Timestamp`, `TimeOfDay` (enum), `DayType` (Weekday/Weekend/Holiday)
   * `Season`, `TimezoneId`
   * `Latitude?`, `Longitude?` (Windows Location API, opt-in)
@@ -350,15 +350,15 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
   * `SilenceProtocolActive` (bool — computed from HCEP mode + time + context)
   * `CommunicationRegister` (Formal/Informal/Intimate/Professional)
 
-* [ ] **`TimeContextProvider`** — reads system clock, determines `TimeOfDay` category and `Season`
+* [x] **`TimeContextProvider`** — reads system clock, determines `TimeOfDay` category and `Season`
 
 * [ ] **`GeographicContextProvider`** — Windows Location API (opt-in, user consent required), reverse geocodes lat/long to city/country
 
-* [ ] **`SituationContextProvider`** — user-configured environment type + activity description; optional camera-based scene classification (future)
+* [x] **`SituationContextProvider`** — user-configured environment type + activity description; optional camera-based scene classification (future)
 
-* [ ] **`SilenceProtocolEvaluator`** — real-time rule engine: HCEP mode × time × space × facial cues → `SilenceProtocolActive` bool
+* [x] **`SilenceProtocolEvaluator`** — real-time rule engine: HCEP mode × time × space × facial cues → `SilenceProtocolActive` bool
 
-* [ ] **LLM Context Injection** — `ContextSnapshot` injected into every LLM system prompt:
+* [x] **LLM Context Injection** — `ContextSnapshot` injected into every LLM system prompt:
 
   ```
   Current context: [Evening | Friday | Living Room | Private]

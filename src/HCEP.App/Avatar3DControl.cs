@@ -341,6 +341,7 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 
     // IAvatarComponent
     void IAvatarComponent.SetGaze(float p, float y, float d) => SetGaze(p, y, d);
+    void IAvatarComponent.SetViseme(HCEP.Speech.VisemeData v) => SetViseme(v);
     void IAvatarComponent.SetBrows(float raise, float lower, float modeFurrow) => SetBrows(raise, lower, modeFurrow);
     void IAvatarComponent.ResetGaze()
     {
@@ -362,9 +363,25 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     /// </summary>
     public void SetBrows(float outerBrowRaise, float browLower, float hcepModeFurrow = 0f)
     {
-        _browRaiseTarget3D  = Math.Clamp(outerBrowRaise, 0f, 1f);
-        float auFurrow      = Math.Clamp(-browLower, 0f, 1f);
+        _browRaiseTarget3D = Math.Clamp(outerBrowRaise, 0f, 1f);
+        float auFurrow = Math.Clamp(-browLower, 0f, 1f);
         _browFurrowTarget3D = Math.Max(auFurrow, hcepModeFurrow);
+    }
+
+    // ── Viseme / lip-sync state ──────────────────────────────────────────────
+    private HCEP.Speech.VisemeData _visemeTarget3D = HCEP.Speech.VisemeData.Silence;
+    private double _visemeJaw3D;
+    private double _visemeRound3D;
+    private long _lastVisemeTicks3D;
+
+    /// <summary>
+    /// Updates mouth animation for the 3D wireframe avatar from a TTS viseme event.
+    /// Draws a proportional open-mouth arc below the nose, scaled to the face.
+    /// </summary>
+    public void SetViseme(HCEP.Speech.VisemeData viseme)
+    {
+        _visemeTarget3D = viseme;
+        InvalidateVisual();
     }
 
     // ── Render ───────────────────────────────────────────────────
@@ -650,13 +667,28 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 : 0.033;
             _lastBrowTicks3D = browNow;
             double browAlpha = 1.0 - Math.Exp(-browDt / 0.15);
-            _browRaiseSmoothed3D  += (_browRaiseTarget3D  - _browRaiseSmoothed3D)  * browAlpha;
+            _browRaiseSmoothed3D += (_browRaiseTarget3D - _browRaiseSmoothed3D) * browAlpha;
             _browFurrowSmoothed3D += (_browFurrowTarget3D - _browFurrowSmoothed3D) * browAlpha;
 
-            DrawBrow3D(dc, leftAnchor,  eyeR, _browRaiseSmoothed3D, _browFurrowSmoothed3D, isLeft: true);
+            DrawBrow3D(dc, leftAnchor, eyeR, _browRaiseSmoothed3D, _browFurrowSmoothed3D, isLeft: true);
             DrawBrow3D(dc, rightAnchor, eyeR, _browRaiseSmoothed3D, _browFurrowSmoothed3D, isLeft: false);
 
-            _leftEyeLocalPt  = leftAnchor;
+            // ── Viseme / mouth animation ──────────────────────────────────────
+            // Smooth viseme targets (60ms EMA for co-articulation), then draw a
+            // proportional mouth opening centred between the two eye sockets,
+            // positioned eyeR * 2.8 below the eye centre line.
+            long visNow = Environment.TickCount64;
+            double visDt = _lastVisemeTicks3D > 0
+                ? Math.Clamp((visNow - _lastVisemeTicks3D) / 1000.0, 0.001, 0.1)
+                : 0.033;
+            _lastVisemeTicks3D = visNow;
+            double visAlpha = 1.0 - Math.Exp(-visDt / 0.060);
+            _visemeJaw3D   += (_visemeTarget3D.JawOpen  - _visemeJaw3D)   * visAlpha;
+            _visemeRound3D += (_visemeTarget3D.LipRound - _visemeRound3D) * visAlpha;
+
+            DrawMouth3D(dc, leftAnchor, rightAnchor, eyeR, _visemeJaw3D, _visemeRound3D);
+
+            _leftEyeLocalPt = leftAnchor;
             _rightEyeLocalPt = rightAnchor;
         }
 
@@ -825,6 +857,70 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     // ── Eye Sphere Rendering ───────────────────────────────────
 
     /// <summary>
+    /// Draws a proportional animated mouth between the two eye socket anchors.
+    /// The mouth is placed eyeR*2.8 below the eye centre line and scales with the face.
+    /// </summary>
+    private static void DrawMouth3D(
+        DrawingContext dc, Point leftAnchor, Point rightAnchor,
+        double eyeR, double jawOpen, double lipRound)
+    {
+        // Mouth centre = midpoint between eye sockets
+        double mouthCX = (leftAnchor.X + rightAnchor.X) / 2.0;
+        double mouthCY = (leftAnchor.Y + rightAnchor.Y) / 2.0 + eyeR * 2.8;
+
+        // Half-widths scale with face; rounds vowels narrow the smile
+        double halfW = eyeR * 1.3 - lipRound * eyeR * 0.4;
+        halfW = Math.Clamp(halfW, eyeR * 0.5, eyeR * 1.6);
+
+        // Lip geometry (upper arc = smile baseline; lower arc = jaw drop)
+        double upperY = mouthCY;
+        double lowerY = mouthCY + jawOpen * eyeR * 1.2;
+
+        if (jawOpen < 0.05)
+        {
+            // Closed / near-closed: draw the smile arc only
+            var smileGeo = new StreamGeometry();
+            using (var ctx = smileGeo.Open())
+            {
+                ctx.BeginFigure(new Point(mouthCX - halfW, upperY), false, false);
+                ctx.QuadraticBezierTo(
+                    new Point(mouthCX, upperY + eyeR * 0.4),
+                    new Point(mouthCX + halfW, upperY), true, false);
+            }
+            smileGeo.Freeze();
+            dc.DrawGeometry(null, _browPen, smileGeo);
+        }
+        else
+        {
+            // Open mouth: draw upper arc + lower arc + connecting verticals
+            var mouthGeo = new StreamGeometry();
+            using (var ctx = mouthGeo.Open())
+            {
+                // Upper lip arc
+                ctx.BeginFigure(new Point(mouthCX - halfW, upperY), false, false);
+                ctx.QuadraticBezierTo(
+                    new Point(mouthCX, upperY + eyeR * 0.15),
+                    new Point(mouthCX + halfW, upperY), true, false);
+
+                // Right connecting line
+                ctx.LineTo(new Point(mouthCX + halfW, lowerY), true, false);
+
+                // Lower lip arc (reversed)
+                ctx.QuadraticBezierTo(
+                    new Point(mouthCX, lowerY - eyeR * 0.15),
+                    new Point(mouthCX - halfW, lowerY), true, false);
+
+                // Left connecting line (close the shape)
+                ctx.LineTo(new Point(mouthCX - halfW, upperY), true, false);
+            }
+            mouthGeo.Freeze();
+            dc.DrawGeometry(
+                new SolidColorBrush(Color.FromArgb(120, 10, 10, 15)) { },
+                _browPen, mouthGeo);
+        }
+    }
+
+    /// <summary>
     /// Draws a single eyebrow arc above the given eye socket anchor.
     ///
     /// The brow is a quadratic bezier with three control points proportional
@@ -840,10 +936,10 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         double raise, double furrow, bool isLeft)
     {
         // Proportional offsets from eye socket centre:
-        double halfW  = eyeR * 1.1;   // half-width of brow span
-        double riseN  = eyeR * 1.35;  // neutral height above socket centre
-        double riseR  = raise  * eyeR * 0.7;   // extra rise when brow raised
-        double dropI  = furrow * eyeR * 0.6;   // inner-end drop when furrowed
+        double halfW = eyeR * 1.1;   // half-width of brow span
+        double riseN = eyeR * 1.35;  // neutral height above socket centre
+        double riseR = raise * eyeR * 0.7;   // extra rise when brow raised
+        double dropI = furrow * eyeR * 0.6;   // inner-end drop when furrowed
         double flatPk = furrow * eyeR * 0.3;   // peak flattens when furrowed
 
         double outerX, innerX;
@@ -861,7 +957,7 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         }
 
         double outerY = anchor.Y - riseN - riseR + furrow * eyeR * 0.15; // outer holds roughly
-        double peakY  = anchor.Y - riseN - eyeR * 0.2 - riseR + flatPk;  // peak above socket
+        double peakY = anchor.Y - riseN - eyeR * 0.2 - riseR + flatPk;  // peak above socket
         double innerY = anchor.Y - riseN - riseR + dropI;                 // inner drops on furrow
 
         var geo = new StreamGeometry();

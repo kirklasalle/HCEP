@@ -46,6 +46,13 @@ public sealed class HybridLlmEngine : ILlmEngine
     /// <summary>Whether to enable agentic tool-use on cloud requests.</summary>
     public bool AgenticToolUseEnabled { get; set; } = true;
 
+    /// <summary>
+    /// Current contextual snapshot (time/space/situation).
+    /// Set externally; injected into every LLM system prompt.
+    /// Update via <see cref="TimeContextProvider.BuildSnapshot()"/> approximately once per second.
+    /// </summary>
+    public ContextSnapshot? CurrentContext { get; set; }
+
     /// <summary>Unified configuration for local and cloud LLM engines.</summary>
     public LlmConfiguration Configuration { get; set; } = new();
 
@@ -373,6 +380,19 @@ public sealed class HybridLlmEngine : ILlmEngine
                 HcepMode.Think => "The person is internally processing. Keep your response concise to not interrupt their thought.",
                 _ => "",
             });
+        }
+
+        // ── Contextual Intelligence Injection (Phase 14) ─────────────────
+        // Time × Space × Situation modulates the AI register and silence protocol.
+        if (CurrentContext is not null)
+        {
+            sb.AppendLine();
+            sb.AppendLine("=== Contextual State ===");
+            sb.AppendLine(CurrentContext.ToPromptString());
+            if (CurrentContext.SilenceProtocolActive)
+                sb.AppendLine("SILENCE PROTOCOL: ACTIVE — be present but do not initiate. Wait for the person to invite response.");
+            else
+                sb.AppendLine($"Communication register: {CurrentContext.Register}. Temporal urgency: {CurrentContext.TemporalUrgency:F1}.");
         }
 
         return sb.ToString();

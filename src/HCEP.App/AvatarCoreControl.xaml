@@ -122,16 +122,27 @@
                   ToolTip="Right eyebrow — animated via AU1 inner brow raise, AU2 outer brow raise, AU4 brow lowerer"
                   Data="M 160,76 Q 185,68 214,80"/>
 
-            <!-- ── Smile ─────────────────────────────────────────── -->
+            <!-- ── Smile / Mouth (animated in code-behind for lip sync) ── -->
             <!--
-            Arc from (78,172) to (202,172), rx=62, ry=42, sweep=1 (clockwise → curves down).
-            StrokeThickness 5 gives a bold, readable smile at avatar viewing distances.
+            Arc from (78,172) to (202,172), rx=62, ry=42, sweep=0 (anticlockwise → curves up = smile).
+            Data is overridden at runtime by ApplyViseme() for lip-sync mouth shapes.
+            MouthFill shows an open-mouth dark area when JawOpen > 0.
         -->
-            <Path Stroke="#FF1A1A1A"
+            <Ellipse x:Name="MouthFill"
+                     Canvas.Left="89"
+                     Canvas.Top="172"
+                     Width="102"
+                     Height="0"
+                     Fill="#FF1A1A1A"
+                     Opacity="0"
+                     ToolTip="Open mouth area — shown during speech visemes with JawOpen > 0"/>
+
+            <Path x:Name="SmilePath"
+                  Stroke="#FF1A1A1A"
                   StrokeThickness="5"
                   StrokeStartLineCap="Round"
                   StrokeEndLineCap="Round"
-                  ToolTip="Smile — drawn as a WPF ArcSegment, no external assets required"
+                  ToolTip="Smile / mouth — animated by ApplyViseme() for lip-sync during speech"
                   Data="M 78,172 A 62,42 0 0 0 202,172"/>
 
         </Canvas>
