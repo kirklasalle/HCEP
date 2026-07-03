@@ -111,17 +111,30 @@ public partial class SettingsWindow : Window
     private void LoadCloudProviderFields(CloudProviderType provider)
     {
         CloudProviderSettings settings = GetCloudSettings(provider);
-        CloudModelText.Text = settings.Model;
-        CloudApiKeyText.Text = settings.ApiKey;
-        CloudUrlText.Text = settings.BaseUrl;
+        CloudModelText.Text  = settings.Model;
+        CloudUrlText.Text    = settings.BaseUrl;
+        // API key: read from Windows Credential Manager (persistent across sessions)
+        // Falls back to the in-memory configCopy value (from a previous Save this session)
+        string? wcmKey = WindowsCredentialStore.LoadApiKey(WindowsCredentialStore.GetWcmTarget(provider));
+        CloudApiKeyText.Password = wcmKey ?? settings.ApiKey;
     }
 
     private void SaveCloudProviderFields(CloudProviderType provider)
     {
         CloudProviderSettings settings = GetCloudSettings(provider);
-        settings.Model = CloudModelText.Text.Trim();
-        settings.ApiKey = CloudApiKeyText.Text.Trim();
+        settings.Model   = CloudModelText.Text.Trim();
         settings.BaseUrl = CloudUrlText.Text.Trim();
+
+        // Persist API key to Windows Credential Manager (encrypted, survives restarts)
+        string apiKey = CloudApiKeyText.Password.Trim();
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            string target = WindowsCredentialStore.GetWcmTarget(provider);
+            WindowsCredentialStore.SaveApiKey(target, apiKey);
+            settings.ApiKey = apiKey; // mirror into in-memory config for this session
+            _logger.LogDebug("API key saved to WCM for provider={Provider} target={Target}",
+                provider, target);
+        }
     }
 
     private CloudProviderSettings GetCloudSettings(CloudProviderType provider)
@@ -219,6 +232,9 @@ public partial class SettingsWindow : Window
             _configCopy.ActiveCloudProvider,
             GetCloudSettings(_configCopy.ActiveCloudProvider).Model,
             _configCopy.PreferLocal);
+
+        // Persist settings to disk so they survive app restarts
+        HCEP.Intelligence.SettingsPersistence.Save(_llmEngine.Configuration, _logger);
 
         DialogResult = true;
         Close();

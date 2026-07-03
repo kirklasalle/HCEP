@@ -146,6 +146,22 @@ public partial class App : Application
 
         _appLogger = _host.Services.GetRequiredService<ILogger<App>>();
 
+        // ── Load persisted settings (non-secret fields from JSON file) ──────
+        // API keys are NOT in the JSON file; they are loaded from Windows
+        // Credential Manager by HybridLlmEngine.GetActiveCloudApiKey() at call time.
+        var llmEngine = _host.Services.GetRequiredService<ILlmEngine>() as HCEP.Intelligence.HybridLlmEngine;
+        if (llmEngine is not null)
+        {
+            var loaded = HCEP.Intelligence.SettingsPersistence.Load(_appLogger);
+            if (loaded is not null)
+            {
+                llmEngine.Configuration = loaded;
+                _appLogger.LogInformation(
+                    "Persisted settings applied — provider={Provider} preferLocal={PreferLocal}",
+                    loaded.ActiveCloudProvider, loaded.PreferLocal);
+            }
+        }
+
         // ── Window routing: --window avatar launches Avatar directly ─
         bool avatarMode = e.Args.Length > 0 &&
             e.Args[0].Equals("--window", StringComparison.OrdinalIgnoreCase) &&

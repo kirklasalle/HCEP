@@ -13,6 +13,7 @@
 using System;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace HCEP.Core.Models;
 
@@ -229,6 +230,12 @@ public sealed class CloudProviderSettings
     public string BaseUrl { get; set; } = string.Empty;
     public string Model { get; set; } = string.Empty;
 
+    /// <summary>
+    /// API key for this provider.  In-memory only — protected with DPAPI for the
+    /// current session.  NEVER serialized to disk; keys are persisted via Windows
+    /// Credential Manager (see <c>WindowsCredentialStore</c>).
+    /// </summary>
+    [JsonIgnore]
     public string ApiKey
     {
         get

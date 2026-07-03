@@ -59,6 +59,17 @@
             <Setter Property="FontSize"
                     Value="12"/>
         </Style>
+        <!-- PasswordBox styled to match TextBox (masked for API keys) -->
+        <Style TargetType="PasswordBox">
+            <Setter Property="Background"       Value="#252540"/>
+            <Setter Property="Foreground"       Value="{StaticResource TextBrush}"/>
+            <Setter Property="BorderBrush"      Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderThickness"  Value="1"/>
+            <Setter Property="Padding"          Value="5,3"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontSize"         Value="12"/>
+            <Setter Property="PasswordChar"     Value="●"/>
+        </Style>
         <Style TargetType="TabItem">
             <Setter Property="HeaderTemplate">
                 <Setter.Value>
@@ -286,12 +297,14 @@
                         <TextBlock Grid.Row="4"
                                    Grid.Column="0"
                                    Text="API Key:"
-                                   Margin="0,5"/>
-                        <TextBox Grid.Row="4"
+                                   Margin="0,5"
+                                   ToolTip="API key for the selected provider.&#x0a;&#x0a;Saved to Windows Credential Manager (WCM) — encrypted at rest,&#x0a;never stored in plain text or on disk.&#x0a;&#x0a;The key is masked here for security."/>
+                        <PasswordBox Grid.Row="4"
                                  Grid.Column="1"
                                  x:Name="CloudApiKeyText"
                                  Margin="0,5"
-                                 ToolTip="API key for the selected provider.&#x0a;&#x0a;Saved to Windows Credential Manager (WCM) on Save.&#x0a;Encrypted at rest — never stored in plain text or config files."/>
+                                 PasswordChar="●"
+                                 ToolTip="API key for the selected provider.&#x0a;&#x0a;Saved to Windows Credential Manager (WCM) — encrypted at rest,&#x0a;never stored in plain text or on disk.&#x0a;Displayed as dots (●) for security."/>
 
                         <TextBlock Grid.Row="5"
                                    Grid.Column="0"
