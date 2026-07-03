@@ -111,8 +111,8 @@ public partial class SettingsWindow : Window
     private void LoadCloudProviderFields(CloudProviderType provider)
     {
         CloudProviderSettings settings = GetCloudSettings(provider);
-        CloudModelText.Text  = settings.Model;
-        CloudUrlText.Text    = settings.BaseUrl;
+        CloudModelText.Text = settings.Model;
+        CloudUrlText.Text = settings.BaseUrl;
         // API key: read from Windows Credential Manager (persistent across sessions)
         // Falls back to the in-memory configCopy value (from a previous Save this session)
         string? wcmKey = WindowsCredentialStore.LoadApiKey(WindowsCredentialStore.GetWcmTarget(provider));
@@ -122,7 +122,7 @@ public partial class SettingsWindow : Window
     private void SaveCloudProviderFields(CloudProviderType provider)
     {
         CloudProviderSettings settings = GetCloudSettings(provider);
-        settings.Model   = CloudModelText.Text.Trim();
+        settings.Model = CloudModelText.Text.Trim();
         settings.BaseUrl = CloudUrlText.Text.Trim();
 
         // Persist API key to Windows Credential Manager (encrypted, survives restarts)

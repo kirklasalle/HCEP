@@ -44,9 +44,9 @@ public static class SettingsPersistence
 
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
-        WriteIndented          = true,
+        WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.Never,
-        Converters             = { new JsonStringEnumConverter() },
+        Converters = { new JsonStringEnumConverter() },
     };
 
     // ── Public API ────────────────────────────────────────────────────────────

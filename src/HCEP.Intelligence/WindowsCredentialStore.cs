@@ -65,35 +65,35 @@ public static class WindowsCredentialStore
     public const string HuggingFace = "HCEP/HuggingFace";
     public const string AzureOpenAI = "HCEP/AzureOpenAI";
     public const string AmazonBedrock = "HCEP/AmazonBedrock";
-    public const string NvidiaNIM    = "HCEP/NvidiaNIM";
-    public const string Cerebras     = "HCEP/Cerebras";
-    public const string MoonshotAI   = "HCEP/MoonshotAI";
+    public const string NvidiaNIM = "HCEP/NvidiaNIM";
+    public const string Cerebras = "HCEP/Cerebras";
+    public const string MoonshotAI = "HCEP/MoonshotAI";
 
     /// <summary>
     /// Maps a <see cref="HCEP.Core.Models.CloudProviderType"/> to its WCM credential target string.
     /// </summary>
     public static string GetWcmTarget(HCEP.Core.Models.CloudProviderType provider) => provider switch
     {
-        HCEP.Core.Models.CloudProviderType.Anthropic     => Anthropic,
-        HCEP.Core.Models.CloudProviderType.Gemini        => Gemini,
-        HCEP.Core.Models.CloudProviderType.Mistral       => Mistral,
-        HCEP.Core.Models.CloudProviderType.xAI           => xAI,
-        HCEP.Core.Models.CloudProviderType.Cohere        => Cohere,
-        HCEP.Core.Models.CloudProviderType.OpenRouter    => OpenRouter,
-        HCEP.Core.Models.CloudProviderType.DeepSeek      => DeepSeek,
-        HCEP.Core.Models.CloudProviderType.Groq          => Groq,
-        HCEP.Core.Models.CloudProviderType.TogetherAI    => TogetherAI,
-        HCEP.Core.Models.CloudProviderType.FireworksAI   => FireworksAI,
-        HCEP.Core.Models.CloudProviderType.Perplexity    => Perplexity,
-        HCEP.Core.Models.CloudProviderType.AI21Labs      => AI21Labs,
-        HCEP.Core.Models.CloudProviderType.Replicate     => Replicate,
-        HCEP.Core.Models.CloudProviderType.HuggingFace   => HuggingFace,
-        HCEP.Core.Models.CloudProviderType.AzureOpenAI   => AzureOpenAI,
+        HCEP.Core.Models.CloudProviderType.Anthropic => Anthropic,
+        HCEP.Core.Models.CloudProviderType.Gemini => Gemini,
+        HCEP.Core.Models.CloudProviderType.Mistral => Mistral,
+        HCEP.Core.Models.CloudProviderType.xAI => xAI,
+        HCEP.Core.Models.CloudProviderType.Cohere => Cohere,
+        HCEP.Core.Models.CloudProviderType.OpenRouter => OpenRouter,
+        HCEP.Core.Models.CloudProviderType.DeepSeek => DeepSeek,
+        HCEP.Core.Models.CloudProviderType.Groq => Groq,
+        HCEP.Core.Models.CloudProviderType.TogetherAI => TogetherAI,
+        HCEP.Core.Models.CloudProviderType.FireworksAI => FireworksAI,
+        HCEP.Core.Models.CloudProviderType.Perplexity => Perplexity,
+        HCEP.Core.Models.CloudProviderType.AI21Labs => AI21Labs,
+        HCEP.Core.Models.CloudProviderType.Replicate => Replicate,
+        HCEP.Core.Models.CloudProviderType.HuggingFace => HuggingFace,
+        HCEP.Core.Models.CloudProviderType.AzureOpenAI => AzureOpenAI,
         HCEP.Core.Models.CloudProviderType.AmazonBedrock => AmazonBedrock,
-        HCEP.Core.Models.CloudProviderType.NvidiaNIM     => NvidiaNIM,
-        HCEP.Core.Models.CloudProviderType.Cerebras      => Cerebras,
-        HCEP.Core.Models.CloudProviderType.MoonshotAI    => MoonshotAI,
-        _                                                => OpenAI,
+        HCEP.Core.Models.CloudProviderType.NvidiaNIM => NvidiaNIM,
+        HCEP.Core.Models.CloudProviderType.Cerebras => Cerebras,
+        HCEP.Core.Models.CloudProviderType.MoonshotAI => MoonshotAI,
+        _ => OpenAI,
     };
 
     /// <summary>
