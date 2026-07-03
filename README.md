@@ -311,12 +311,46 @@ The system classifies modes in real-time using:
 
 - **Gaze region** — where the person is looking (13 classified targets)
 - **Gaze dynamics** — saccade patterns, fixation duration, social triangle cycling
-- **Facial Action Units** — muscle movements indicating emotion
+- **Facial Action Units** — muscle movements indicating emotion (Ekman & Friesen, 1978 FACS)
 - **Temporal patterns** — mode stability and transition dynamics
+- **Head kinematics** — nods, shakes, tilts, and thrusts *(Phase 9)*
+- **Body posture** — torso lean, shoulder orientation, proxemic distance *(Phase 9)*
 
 ![Telemetry Cones of Vision & 13 Regions](docs/images/cones_of_vision.svg?v=2)
 
 This enables AI systems to respond not just to *what* people say, but to *how* they're communicating — adapting tone, depth, and style to match the human's current cognitive-emotional state.
+
+### Scientific Foundation
+
+HCEP is grounded in five decades of psycholinguistic and social neuroscience research:
+
+- **Gaze regulation** — Kendon (1967) established the four regulatory functions of gaze in social interaction; Argyle & Cook (1976) quantified behavioral norms that HCEP is calibrated against
+- **Social triangle** — Argyle et al. (1973) documented the systematic eye-mouth scanning pattern of affective engagement — the signature of HCEP's AFFECT mode
+- **Cognitive gaze aversion** — Glenberg et al. (1998) showed that people avert gaze during cognitively demanding tasks — the scientific basis for HCEP's THINK mode
+- **Mirror neurons** — Rizzolatti & Craighero (2004) established the neural substrate for action understanding and emotional resonance — the foundation for HCEP's reciprocation capability
+- **Nonverbal primacy** — Mehrabian & Ferris (1967) showed that 93% of emotional communication is carried by nonverbal channels — the empirical justification for HCEP's multi-modal architecture
+- **Social signal processing** — Vinciarelli et al. (2009) formalized the computational framework that HCEP implements end-to-end
+- **Embodied agents** — Cassell et al. (1999) demonstrated that AI agents with authentic nonverbal behavior are rated as more trustworthy, more competent, and elicit richer human disclosure
+
+See [docs/HCEP_SCIENCE_FOUNDATION.md](docs/HCEP_SCIENCE_FOUNDATION.md) for the complete 70+ citation research compendium with full scientific references, organized by topic area.
+
+---
+
+## Why HCEP Is Game-Changing
+
+Every existing conversational AI — every chatbot, voice assistant, LLM interface — processes only the *verbal* channel: the 7% of emotional communication that words carry. The remaining 93% — the eye contact that signals analytical vs. emotional engagement, the head nod that says "I understand", the gaze aversion that says "I'm thinking", the forward lean that says "tell me more" — is invisible to all current AI systems.
+
+**HCEP makes this invisible language visible and actionable across every domain that involves human-AI interaction:**
+
+| Domain | Current State | With HCEP |
+|---|---|---|
+| **Conversational AI** | Responds to words | Responds to *how* the person is communicating |
+| **Companion Robots** | Scripted eye/head behavior | Genuine, real-time social responsiveness |
+| **Game NPCs** | Scripted gaze points, dead eyes | Characters that look at you with biological authenticity |
+| **Medical Education** | Subjective instructor feedback | Objective real-time gaze & expression analysis |
+| **Autism Therapy** | Self-report + clinician observation | Continuous behavioral biomarker monitoring |
+| **VR Social Presence** | Graphical fidelity focus | Social cognitive fidelity (Bailenson, 2001) |
+| **Performance Coaching** | Video review | Live biometric expression feedback |
 
 ---
 
