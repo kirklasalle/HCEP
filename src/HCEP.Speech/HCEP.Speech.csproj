@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>false</UseWindowsForms>
+    <UseWPF>false</UseWPF>
+    <RootNamespace>HCEP.Speech</RootNamespace>
+    <AssemblyName>HCEP.Speech</AssemblyName>
+    <Description>Real-time streaming Speech-to-Text and Text-to-Speech for the HCEP platform.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Windows built-in SAPI TTS — no extra package needed on Windows -->
+    <PackageReference Include="System.Speech" Version="9.0.0" />
+    <!-- HTTP for cloud TTS/STT APIs -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <!-- Audio playback for cloud TTS MP3 streams -->
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HCEP.Core\HCEP.Core.csproj" />
+  </ItemGroup>
+
+</Project>

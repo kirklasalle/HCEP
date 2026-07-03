@@ -532,9 +532,385 @@ This *Social Turing Test* remains unsolved. The closest approximations come from
 
 ---
 
-## References
+## Part XI: Time, Space, and Situation — The Contextual Grammar of Communication
 
-Adolphs, R., Gosselin, F., Buchanan, T. W., Tranel, D., Schyns, P., & Damasio, A. R. (2005). A mechanism for impaired fear recognition after amygdala damage. *Nature*, 433(7021), 68-72.
+### 11.1 Chronemics: Time as a Communication Channel
+
+Among the least-studied yet most pervasive channels of human communication is **chronemics** — the study of how time structures, shapes, and encodes social meaning. Edward T. Hall first coined the term in *The Silent Language* (1959) and elaborated the theory in *The Dance of Life: The Other Dimension of Time* (1983), arguing that time functions as a silent but omnipresent communication medium whose rules, while largely unconscious, are as rigidly enforced as any spoken language.
+
+Hall distinguished two fundamental orientations toward time that characterize individuals and entire cultures:
+
+- **Monochronic time** (M-time): Sequential, scheduled, compartmentalized — characteristic of Northern European and North American cultures. One thing at a time; time is a commodity to be spent or saved.
+- **Polychronic time** (P-time): Simultaneous, fluid, relationship-centered — characteristic of Mediterranean, Latin American, and Middle Eastern cultures. Multiple activities occur concurrently; relationships take precedence over schedules.
+
+For an AI system operating across these cultural contexts, understanding the user's temporal orientation is prerequisite to calibrating conversational pacing, tolerance for interruption, and the weight given to scheduled vs. spontaneous interaction.
+
+#### 11.1.1 Time of Day and Circadian Communication Rhythms
+
+The pioneering work of Nathaniel Kleitman (1938) in *Sleep and Wakefulness* established that human biological function follows circadian (approximately 24-hour) cycles. Subsequent research by Aschoff (1965) and Czeisler et al. (1999) established that these cycles are not merely physiological but deeply cognitive and emotional:
+
+- **Morning (06:00–10:00)**: Cortisol levels peak; alertness, analytical capacity, and goal-directed cognition are at their highest (Horne & Östberg, 1976). Communication tends toward the informational and task-oriented.
+- **Mid-morning to noon (10:00–12:00)**: Optimal cognitive performance window for most chronotypes. Peak working memory, attention, and logical reasoning (Folkard & Monk, 1985).
+- **Early afternoon (13:00–15:00)**: Post-prandial circadian dip; alertness decreases, tolerance for complexity decreases, social and affiliative communication increases.
+- **Late afternoon to evening (16:00–19:00)**: Second alertness peak for many chronotypes; emotional openness increases; preferred window for personal, non-task conversation.
+- **Evening (19:00–22:00)**: Social and intimate communication dominates; formal/analytical register feels intrusive; SPIRIT and HEART modes are contextually natural.
+- **Night (22:00+)**: Reduced inhibition, heightened emotional vulnerability; communication requires particular care and attunement.
+
+For HCEP, time of day modulates the expected HCEP mode distribution and appropriate AI response register. A user whose HCEP mode reads as THINK at 14:00 may simply be experiencing the circadian dip — the avatar should not interpret this as disengagement but as a normal temporal rhythm.
+
+#### 11.1.2 Temporal Context and Conversational Appropriateness
+
+Grice's Maxim of Manner (1975) requires that contributions be appropriate to the conversational context, which is irreducibly temporal. Speech Act Theory (Austin, 1962; Searle, 1969) establishes that the illocutionary force of an utterance — whether it functions as a greeting, a request, a condolence, or a congratulation — is determined in part by its temporal placement.
+
+The key temporal contexts that constrain AI communicative appropriateness include:
+
+| Temporal Context | Communication Register | AI Behavioral Adaptation |
+|---|---|---|
+| Early morning, weekday | Efficient, task-oriented | Prioritize information density; minimal pleasantries |
+| Morning, weekend | Leisurely, exploratory | Allow for open-ended conversation; lower urgency |
+| Working hours (09:00–17:00) | Professional, goal-directed | Formal vocabulary; action-oriented responses |
+| Lunch break | Transitional, lighter | Social small talk permissible; informal register |
+| Evening at home | Personal, restorative | Warm; emotional resonance preferred over analysis |
+| Late night | Intimate, reflective | Attentive listening; minimal interruption; HEART mode default |
+| Anniversary/holiday/birthday | Celebratory | Acknowledge the occasion; shift register appropriately |
+| Crisis/distress timing | Supportive | Silence protocol engaged; follow human lead |
+
+### 11.2 Environmental Psychology: How Space Shapes Communication
+
+The discipline of environmental psychology establishes that physical spaces do not merely *contain* behavior but actively *shape* it. The foundational work in this area comes from multiple converging traditions:
+
+**Behavior Settings Theory** (Barker, 1968): Roger Barker introduced the concept of the *behavior setting* — a bounded place-time-behavior unit in which a standing pattern of behavior is supported by and aligned with the physical environment. A "bedroom" behavior setting affords and expects quiet, intimacy, and rest; an "office" setting affords and expects task focus, formality, and productivity. These are not merely descriptive but *prescriptive* — deviating from the expected behaviors of a setting creates social discomfort and communicative friction.
+
+**Environmental Affordances** (Gibson, 1979): James Gibson's theory of affordances argues that environments make available (*afford*) certain behaviors through their physical and social properties. A conference room affords presentations and debates; a kitchen affords casual conversation during meal preparation; a hospital room affords hushed, careful speech. For an AI to communicate naturally, it must perceive and respect these affordances.
+
+**Semantic Congruence** (Werner et al., 1988): Physical environments carry semantic content that influences the cognitive schemas activated in the people within them. Research shows that the semantic associations of an environment (e.g., "library" → quiet, scholarly, formal) directly influence vocabulary choice, speech rate, and interaction style in people operating within them.
+
+#### 11.2.1 The Seven Primary Communication Contexts
+
+Based on Forgas (1979), Argyle et al. (1981), and subsequent environmental psychology research, seven primary physical contexts have distinct and measurable impacts on communication:
+
+| Context | Key Characteristics | Communication Norms |
+|---|---|---|
+| **Bedroom** | Intimate, private, restorative | Whispered or soft speech; maximum vulnerability permissible; formal register inappropriate; AI should shift to maximum attunement and minimum assertiveness |
+| **Living Room** | Relaxed, social, home-anchored | Casual register; social small talk; leisure interests; AI can be warmer and more personal |
+| **Kitchen** | Activity-concurrent, communal | Parallel conversation (talking while doing); interrupted speech patterns normal; AI should adapt to fragmented attention |
+| **Office/Workspace** | Task-focused, professional | Goal-oriented exchanges; formal vocabulary; time-valued brevity; AI prioritizes information utility |
+| **Laboratory/Studio** | Analytical, experimental | High cognitive load; technical vocabulary acceptable; LOGIC mode dominant; interruptions unwelcome |
+| **Outdoor/Park** | Expansive, physiologically arousing | Elevated mood; louder speech norms; higher tolerance for spontaneous topic shifts; AI can be more playful |
+| **Public/Business** | Semi-private, mixed audience | Privacy constraints; speech modulated for possible observers; AI should be circumspect about personal topics |
+
+### 11.3 The Situational Determination of Communicative Behavior
+
+Social situation theory (Forgas, 1979; Argyle et al., 1981) proposes that situations — not merely personalities — are the primary determinant of social behavior. Argyle, Furnham, and Graham (1981) in *Social Situations* (Cambridge University Press) identified five key dimensions that characterize social situations and determine appropriate behavior:
+
+1. **Goal structure**: What are the participants trying to achieve? (Task completion, social bonding, information exchange, emotional support)
+2. **Role relations**: What is the relative status and relationship between participants? (Stranger, acquaintance, colleague, intimate)
+3. **Environmental setting**: Where is the interaction taking place?
+4. **Activity sequence**: What activities are expected and in what order?
+5. **Rules and conventions**: What are the explicit and implicit behavioral constraints?
+
+For HCEP, the situational context enriches every aspect of the 5-mode classification. The same gaze pattern (e.g., SPIRIT mode — sustained mutual gaze) carries very different implications in a living room at 21:00 vs. a professional office at 09:00. The AI must weight the HCEP mode reading against the situational context to generate appropriate responses.
+
+### 11.4 The Silence Protocol: Knowing When Not to Speak
+
+One of the most sophisticated communicative competencies — and one entirely absent from all current AI systems — is the capacity to recognize when silence is the appropriate response. This is not the absence of communication but a *positive communicative act* with its own semantics.
+
+#### 11.4.1 Meaningful Silence: A Taxonomy
+
+Adam Jaworski (1993) in *The Power of Silence* (Sage) catalogued the communicative functions of silence in human interaction:
+
+- **Affiliative silence**: The comfortable silence of close relationships — being together without words. Pinter famously exploited this in drama. For AI, supporting affiliative silence means being present without intruding.
+- **Processing silence**: Silence during complex cognitive work (THINK mode). The listener recognizes the speaker needs space to formulate. Gaze aversion, furrowed brow, reduced movement signal this state.
+- **Deliberative pause**: Brief silence before responding to a weighty question — signals that the responder takes the question seriously.
+- **Empathic silence**: After disclosure of distress or grief — filling silence immediately with words communicates discomfort with the disclosure, not empathy.
+- **Turn-yielding silence**: The speaker has completed their turn and silence signals the floor is available.
+- **Coercive silence**: Deliberate withholding of expected response — communicates displeasure or dominance. AI systems should avoid this entirely.
+
+#### 11.4.2 Facial Cues That Guide the Silence Protocol
+
+The HCEP facial perception pipeline provides real-time signals that determine whether the avatar should speak, listen, or remain silently present. The key cues:
+
+**Speak-suppression signals (avatar should not initiate speech):**
+
+- THINK mode: Gaze aversion + defocus → user is internally processing; any AI speech interrupts this process
+- Furrowed brow (AU4) sustained > 3 seconds → deep cognitive engagement; user has not invited response
+- Head down + reduced movement → contemplative state; respect the space
+- Lips pressed (AU24) → suppressed speech; user is preparing their own utterance
+- Forward body lean with away-gaze → user is thinking toward a conclusion; wait for them to arrive
+
+**Listen-actively signals (avatar should attend without speaking):**
+
+- Social triangle scanning with regular nodding → user is in flow; they want to be heard, not responded to yet
+- AFFECT mode with high energy → emotional disclosure ongoing; premature response feels dismissive
+- HEART mode → user is in a vulnerable state; presence and attunement matter more than words
+- Speech accompanied by gaze NOT directed at avatar → user is verbalizing for themselves (thinking aloud)
+
+**Invite-to-respond signals (avatar CAN speak):**
+
+- Direct sustained gaze toward avatar → floor yield; user is waiting for response
+- Raised brows (AU1+AU2) with direct gaze → question; response invited
+- Head tilt toward avatar + pause → "what do you think?" body language
+- Breath intake pause after completed utterance → speaker has finished; floor available
+- LOGIC mode + direct gaze → analytical context; structured response appropriate
+
+#### 11.4.3 Sacks, Schegloff, and Jefferson: Conversation Analysis and Turn-Taking
+
+The foundational work on turn-taking in conversation (Sacks, Schegloff, & Jefferson, 1974) in "A Simplest Systematics for the Organization of Turn-Taking in Conversation" (*Language*, 50(4), 696-735) established that conversation is organized around *transition relevance places* (TRPs) — moments at which speaker change becomes relevant. TRPs are signaled by a combination of:
+
+- **Syntactic completion**: The current unit (clause, sentence) is grammatically complete
+- **Intonational completion**: The prosodic contour of the utterance is complete (falling or rising to a boundary tone)
+- **Pragmatic completion**: The current speech act (request, statement, question) has been completed
+- **Gaze**: The speaker looks at the listener, transferring the floor
+
+For HCEP, the combination of face-tracking (HCEP mode, head nod, gaze direction) and speech VAD (voice activity detection) provides all the signals needed to implement real-time TRP detection. An AI that responds only at genuine TRPs — rather than after simple pauses — will feel dramatically more natural and human.
+
+Duncan (1972) identified six specific *speaker turn-yielding cues*:
+
+1. Intonation: Final pitch movement
+2. Drawl: Lengthening of the final syllable
+3. Termination of body movement (cessation of gesturing)
+4. Completion of grammatical clause
+5. Sociocentric sequence ("you know?", "right?")
+6. **Gaze directed at listener**
+
+Of these, gaze is the only one directly observable by HCEP's visual pipeline — and it is the most powerful. A speaker who turns direct gaze to the avatar is issuing a floor-transfer invitation.
+
+### 11.5 The Integrated Contextual Intelligence Model
+
+The complete model for HCEP's contextual intelligence framework integrates four orthogonal dimensions:
+
+```
+CONTEXTUAL INTELLIGENCE = f(Person, Time, Space, Situation)
+│
+├── Person: HCEP 5-mode + facial AUs + head kinematics + identity
+├── Time:   Hour of day + Day of week + Date + Season + Timezone
+├── Space:  Geographic location + Physical context (room/environment type)
+└── Situation: Activity context + Role relations + Privacy level + Goal structure
+```
+
+This quadrant determines the complete communicative register of any AI-human interaction:
+
+| Person State | Time | Space | Situation | AI Strategy |
+|---|---|---|---|---|
+| THINK + gaze away | Evening | Bedroom | Alone/restful | Silence protocol — do not speak |
+| LOGIC + direct gaze | Morning | Office | Work task | Structured, brief, factual |
+| SPIRIT + mutual gaze | Evening | Living room | Social/intimate | Personal, warm, unhurried |
+| HEART + distress cues | Any | Any | Vulnerable disclosure | Active listening, minimal words |
+| AFFECT + animated | Afternoon | Social space | Social gathering | Playful, affirming, participatory |
+| THINK + periodic check-in gaze | Any | Lab/studio | Deep work | Minimal; respond only to direct invitations |
+
+### 11.6 Implementation Architecture: ContextSnapshot
+
+The `ContextSnapshot` data model for HCEP's contextual intelligence layer captures the four dimensions at the moment of each interaction:
+
+```csharp
+public sealed record ContextSnapshot
+{
+    // ── Time Dimension ──────────────────────────────────────
+    public DateTimeOffset Timestamp { get; init; }
+    public TimeOfDayCategory TimeOfDay { get; init; }    // Dawn/Morning/Midday/Afternoon/Evening/Night
+    public DayType DayType { get; init; }                // Weekday/Weekend/Holiday
+    public Season Season { get; init; }                  // Spring/Summer/Autumn/Winter
+    public string TimezoneId { get; init; } = "";        // IANA timezone ID
+
+    // ── Space Dimension ─────────────────────────────────────
+    public double? Latitude { get; init; }               // WGS84, from Windows Location API
+    public double? Longitude { get; init; }              // WGS84
+    public string? CityName { get; init; }               // From reverse geocoding
+    public string? CountryCode { get; init; }            // ISO 3166-1 alpha-2
+    public EnvironmentType Environment { get; init; }    // Bedroom/LivingRoom/Office/Lab/Outdoor/etc.
+    public string? UserDefinedLocation { get; init; }   // User-entered label: "my studio", "dad's house"
+
+    // ── Situation Dimension ──────────────────────────────────
+    public SituationPrivacy Privacy { get; init; }       // Private/SemiPrivate/Public
+    public SituationActivity Activity { get; init; }     // Working/Relaxing/Socializing/Creating/etc.
+    public string? ActivityDescription { get; init; }   // User-entered: "writing code", "watching TV"
+
+    // ── Derived AI Strategy ──────────────────────────────────
+    public bool SilenceProtocolActive { get; init; }    // True = AI should not initiate speech
+    public CommunicationRegister Register { get; init; } // Formal/Informal/Intimate/Professional
+    public float TemporalUrgency { get; init; }         // 0.0 = leisurely ... 1.0 = time-pressured
+}
+```
+
+### 11.7 Cultural and Cross-Cultural Dimensions of Temporal Context
+
+Hall's comparison of monochronic and polychronic cultures (1983) is complemented by Hofstede's (1980, 2001) *Long-Term vs. Short-Term Orientation* dimension (also called *Confucian Dynamism*), which captures how cultures orient toward time horizons. Cultures with high long-term orientation (China, Japan, Korea) prioritize perseverance and thrift; short-term oriented cultures (USA, UK, Australia) prioritize immediate results and the present.
+
+For HCEP deployed globally, these cultural temporal orientations should modulate:
+
+- Patience with silence and processing pauses (polychronic → more; monochronic → less)
+- Expectation of immediate AI responses (short-term → higher; long-term → can wait)
+- Calendar context: Chinese New Year, Ramadan, Diwali, etc. affect communicative appropriateness
+- Business hours and social timing norms vary dramatically by geography
+
+The Windows Location API combined with reverse geocoding enables real-time inference of cultural temporal context, which feeds directly into LLM system prompt construction.
+
+### 11.8 The Phenomenological Dimension: Being Present in Time and Space
+
+Beyond the behavioral and cultural frameworks, there is a phenomenological dimension to contextual intelligence that is essential for authentic AI presence. Heidegger (1927) in *Being and Time* (*Sein und Zeit*) argued that *Dasein* (being-there) is irreducibly situated — consciousness is always *already* in a time and a place, and this situatedness constitutes rather than merely contextualizes experience. Merleau-Ponty (1945) in *Phenomenology of Perception* extended this to the body — perception is always from *here* and *now*.
+
+For an AI avatar to achieve genuine presence — the sense that there is someone *there* — it must be aware of the *here* and the *now* of the interaction. An avatar that knows it is speaking with a person in their living room at 22:00 on a Friday can be *present with them* in that moment in a way that an avatar with no contextual awareness cannot. This is not merely a functional requirement but an ethical and philosophical one: genuine presence requires situatedness.
+
+This connects to Cassell's (1999) work on embodied conversational agents — the insight that an agent's authenticity is constituted by its capacity to be genuinely *here, now, with you* — not a generic, context-free responder but a situated social partner.
+
+---
+
+## Part XII: Phoneme-to-Viseme Mapping — The Visual Speech Channel
+
+### 12.1 The McGurk Effect: Visual Speech Is Not Optional
+
+In 1976, Harry McGurk and John MacDonald published one of the most striking demonstrations in perceptual psychology in *Nature* (264, 746-748): when observers watched a video of lips saying "ga" while hearing the audio "ba", they reported perceiving "da" — a phoneme that appeared in neither the auditory nor the visual channel alone. This *McGurk Effect* established beyond reasonable doubt that **visual mouth movement is processed by the auditory cortex as a genuine speech signal**, not merely a supplementary cue.
+
+The practical implication is profound and frequently misunderstood: lip sync is not a cosmetic feature. An avatar whose mouth moves incorrectly — or does not move at all — is not merely visually unconvincing; it is **actively degrading the intelligibility of its own speech** through audiovisual conflict. This makes phoneme-accurate lip sync a functional requirement, not an aesthetic preference.
+
+The neural substrate for this integration was mapped by Calvert et al. (1997) using fMRI: visual speech activates auditory cortex (superior temporal gyrus) bilaterally, and audiovisual speech shows superadditive activation in the superior temporal sulcus — the same region that processes biological motion and social gaze. The visual mouth is processed by the same cortical network as the voice.
+
+### 12.2 Sumby and Pollack: Lip Reading as SNR Gain
+
+Sumby and Pollack (1954) in "Visual Contribution to Speech Intelligibility in Noise" (*Journal of the Acoustical Society of America*, 26(2), 212-215) quantified the functional gain of visual speech information: watching a speaker's face provides up to **15 dB effective signal-to-noise ratio improvement** in difficult listening conditions. This is equivalent to moving from a noisy restaurant to a quiet office.
+
+For HCEP's avatar, this means that in real-world deployment scenarios — ambient noise, poor room acoustics, users with mild hearing impairment — accurate lip sync is not decoration but a **speech communication assistive technology**. An avatar that speaks with correct mouth movements will be understood by more people, more of the time.
+
+### 12.3 Preston Blair and the Animation Mouth-Shape Canon
+
+Preston Blair's 1949 animation textbook established the canonical **18 key mouth positions** that have governed animation lip sync from Disney's golden age to modern video games and CGI. Blair observed that while human speech involves continuous, fluid articulation, the visual system is most sensitive to a discrete set of archetypal shapes that correspond to the major phoneme categories. These shapes, known as **visemes** (visual phonemes), are:
+
+| Viseme Group | Phonemes | Mouth Shape | Visual Characteristic |
+|---|---|---|---|
+| AI | /æ/, /aɪ/ | Open, wide | Wide oval, teeth visible |
+| O | /o/, /ɔː/ | Round, open | Rounded oval |
+| E | /iː/, /eɪ/ | Wide, narrow | Horizontal slit, corners back |
+| U | /uː/, /ʊ/ | Round, small | Small circle, pursed |
+| EE | /ɛ/, /ɪ/ | Neutral-wide | Slightly spread |
+| F/V | /f/, /v/ | Teeth on lip | Upper teeth on lower lip |
+| TH | /θ/, /ð/ | Tongue tip visible | Tongue between teeth |
+| M/B/P | /m/, /b/, /p/ | Closed | Lips pressed together |
+| L | /l/ | Open, tongue up | Upper teeth visible |
+
+Blair's insight — that animation can be convincing with 18 discrete poses rather than continuous muscle simulation — is validated by later computational research (Bregler et al., 1997; Brand, 1999) and forms the basis for the SAPI viseme taxonomy used in HCEP's implementation.
+
+### 12.4 SAPI Visemes: The Computational Standard
+
+Microsoft's Speech API (SAPI) extends the Blair canon to 21 viseme groups covering all phonemes in the IPA English phoneme inventory. SAPI fires a `VisemeReached` event during TTS synthesis for each phoneme, providing:
+
+- The viseme ID (0–21)
+- The duration of the viseme in milliseconds
+- The next viseme ID (for co-articulation lookahead)
+
+This real-time phoneme stream is the technical foundation of HCEP's `VisemeController` and `ISpeechSynthesizer.VisemeChanged` event. The complete mapping is implemented in `HCEP.Speech.VisemeController` with the following parameter dimensions:
+
+| Parameter | Articulatory Basis | Phoneme Examples |
+|---|---|---|
+| `JawOpen` [0..1] | Mandibular depression | AH, AO, AW (open); IY, M (closed) |
+| `LipRound` [0..1] | Orbicularis oris contraction | OW, UW, OY |
+| `LipSpread` [0..1] | Zygomaticus + risorius | IY, EH, IH |
+| `LipCompressed` [0..1] | Bilateral lip closure | M, B, P |
+| `UpperLipRetract` [0..1] | Upper lip elevation | F, V (labio-dental) |
+
+### 12.5 Co-Articulation: Why Phoneme-by-Phoneme Is Wrong
+
+Human speech is not a sequence of discrete, independent mouth positions. It is a continuous, overlapping flow of articulatory gestures in which each phoneme's mouth shape is simultaneously influenced by the phonemes before and after it — a phenomenon called **co-articulation** (Öhman, 1966).
+
+The word "keep" begins with /k/ (back of throat) but the lips are already beginning to form the /iː/ shape before the /k/ is even released. The word "cup" begins identically at the /k/, but the lips are preparing for /ʌ/ (open, un-rounded). A listener watching either word can predict which vowel will follow from the lip shape during the /k/ consonant — before the vowel sounds.
+
+Cohen and Massaro (1994) formalized this in the DOMINANCE model of audiovisual speech, showing that visual lip movement carries predictive information about upcoming sounds. This means that for maximum naturalness, HCEP's lip sync must not simply snap from one viseme shape to the next, but smoothly interpolate between them using `VisemeController.Lerp()` at the display refresh rate (30Hz).
+
+### 12.6 Viseme Accuracy Across TTS Backends
+
+HCEP's hybrid TTS architecture provides different levels of viseme accuracy depending on the active backend:
+
+| Backend | Viseme Source | Accuracy | Notes |
+|---|---|---|---|
+| **Windows SAPI** | `VisemeReached` event (phoneme-accurate) | ★★★★★ | Per-phoneme timing, co-articulation data included |
+| **OpenAI TTS** | Amplitude-driven approximation | ★★☆☆☆ | No phoneme timing API; JawOpen ∝ audio amplitude |
+| **ElevenLabs** | Amplitude-driven approximation | ★★☆☆☆ | No phoneme timing API; JawOpen ∝ audio amplitude |
+
+**Roadmap:** ElevenLabs exposes an "alignment" endpoint that returns character-level timing. Future work will use this to derive approximate phoneme timing from forced alignment, upgrading ElevenLabs to ★★★★☆ accuracy.
+
+### 12.7 The Uncanny Valley and Lip Sync Specificity
+
+Tinwell et al. (2011) showed that **incorrect facial expression** is a primary trigger for uncanny valley responses in virtual characters — and among the facial expressions studied, **mouth movement during speech** was uniquely sensitive. Participants could tolerate imprecise head rotation, imprecise eye movement, and imprecise brow animation — but incorrect lip sync generated strong uncanny responses even when all other facial animations were correct.
+
+This is explained by the McGurk framework: the brain processes lip movement as a speech channel, and when that channel conflicts with the auditory signal, the conflict is immediately detected at a pre-conscious level — producing the characteristic uncanny discomfort. For HCEP's avatar to cross the uncanny valley into genuine social presence, phoneme-accurate lip sync is therefore the highest-leverage single improvement available.
+
+---
+
+## References (Additions for Part XII)
+
+Blair, P. (1949). *Cartoon animation*. Walter Foster Publishing.
+
+Brand, M. (1999). Voice puppetry. In *Proceedings of SIGGRAPH 1999* (pp. 21-28). ACM.
+
+Bregler, C., Covell, M., & Slaney, M. (1997). Video rewrite: Driving visual speech with audio. In *Proceedings of SIGGRAPH 1997* (pp. 353-360). ACM.
+
+Calvert, G. A., Bullmore, E. T., Brammer, M. J., Campbell, R., Williams, S. C. R., McGuire, P. K., ... & David, A. S. (1997). Activation of auditory cortex during silent lipreading. *Science*, 276(5312), 593-596.
+
+Cohen, M. M., & Massaro, D. W. (1994). Development and experimentation with a computer animated talking head. *Behavior Research Methods, Instruments, & Computers*, 26(2), 260-265.
+
+McGurk, H., & MacDonald, J. (1976). Hearing lips and seeing voices. *Nature*, 264(5588), 746-748.
+
+Öhman, S. E. G. (1966). Coarticulation in VCV utterances: Spectrographic measurements. *Journal of the Acoustical Society of America*, 39(1), 151-168.
+
+Sumby, W. H., & Pollack, I. (1954). Visual contribution to speech intelligibility in noise. *Journal of the Acoustical Society of America*, 26(2), 212-215.
+
+Tinwell, A., Grimshaw, M., Nabi, D. A., & Williams, A. (2011). Facial expression of emotion and perception of the Uncanny Valley in virtual characters. *Computers in Human Behavior*, 27(2), 741-749.
+
+---
+
+## References (Additions for Part XI)
+
+Argyle, M., Furnham, A., & Graham, J. A. (1981). *Social situations*. Cambridge University Press.
+
+Aschoff, J. (1965). Circadian rhythms in man. *Science*, 148(3676), 1427-1432.
+
+Austin, J. L. (1962). *How to do things with words*. Oxford University Press.
+
+Barker, R. G. (1968). *Ecological psychology: Concepts and methods for studying the environment of human behavior*. Stanford University Press.
+
+Czeisler, C. A., Duffy, J. F., Shanahan, T. L., Brown, E. N., Mitchell, J. F., Rimmer, D. W., ... & Kronauer, R. E. (1999). Stability, precision, and near-24-hour period of the human circadian pacemaker. *Science*, 284(5423), 2177-2181.
+
+Duncan, S. (1972). Some signals and rules for taking speaking turns in conversations. *Journal of Personality and Social Psychology*, 23(2), 283-292.
+
+Folkard, S., & Monk, T. H. (1985). *Hours of work: Temporal factors in work scheduling*. Wiley.
+
+Forgas, J. P. (1979). *Social episodes: The study of interaction routines*. Academic Press.
+
+Gibson, J. J. (1979). *The ecological approach to visual perception*. Houghton Mifflin.
+
+Grice, H. P. (1975). Logic and conversation. In P. Cole & J. Morgan (Eds.), *Syntax and Semantics: Vol. 3. Speech Acts* (pp. 41-58). Academic Press.
+
+Hall, E. T. (1959). *The silent language*. Doubleday.
+
+Hall, E. T. (1983). *The dance of life: The other dimension of time*. Doubleday.
+
+Heidegger, M. (1927). *Sein und Zeit* [Being and Time]. Max Niemeyer Verlag.
+
+Hofstede, G. (1980). *Culture's consequences: International differences in work-related values*. Sage.
+
+Hofstede, G. (2001). *Culture's consequences: Comparing values, behaviors, institutions, and organizations across nations* (2nd ed.). Sage.
+
+Horne, J. A., & Östberg, O. (1976). A self-assessment questionnaire to determine morningness-eveningness in human circadian rhythms. *International Journal of Chronobiology*, 4(2), 97-110.
+
+Jaworski, A. (1993). *The power of silence: Social and pragmatic perspectives*. Sage.
+
+Kleitman, N. (1938). *Sleep and wakefulness*. University of Chicago Press.
+
+Leont'ev, A. N. (1978). *Activity, consciousness, and personality*. Prentice Hall.
+
+Merleau-Ponty, M. (1945). *Phénoménologie de la perception* [Phenomenology of Perception]. Gallimard.
+
+Rapoport, A. (1982). *The meaning of the built environment: A nonverbal communication approach*. Sage.
+
+Sacks, H., Schegloff, E. A., & Jefferson, G. (1974). A simplest systematics for the organization of turn-taking for conversation. *Language*, 50(4), 696-735.
+
+Searle, J. R. (1969). *Speech acts: An essay in the philosophy of language*. Cambridge University Press.
+
+Vygotsky, L. S. (1978). *Mind in society: The development of higher psychological processes*. Harvard University Press.
+
+Werner, C. M., Altman, I., & Oxley, D. (1985). Temporal aspects of homes: A transactional analysis. In I. Altman & C. M. Werner (Eds.), *Home environments* (pp. 1-32). Plenum.
+
+---
 
 Argyle, M., & Cook, M. (1976). *Gaze and mutual gaze*. Cambridge University Press.
 

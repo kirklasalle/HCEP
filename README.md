@@ -100,11 +100,30 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - Cosine similarity identity matching (>0.6 threshold)
 - Persistent identity enrollment and recognition across sessions
 
-### Speech Recognition
+### Speech — Real-Time TTS/STT (HCEP.Speech)
 
-- Whisper.net on-device speech-to-text (ggml-base.en model)
-- Energy-based voice activity detection
-- Real-time transcript display
+- **Streaming Text-to-Speech**: `HybridTtsEngine` routes automatically to the best available backend:
+  - **Windows SAPI** (offline, always available) — phoneme-accurate lip sync via `VisemeReached`
+  - **OpenAI TTS** (`tts-1`, `tts-1-hd`) — high-quality cloud voices, 6 voice options
+  - **ElevenLabs** (`eleven_turbo_v2_5`) — highest quality, lowest latency streaming
+- **Phoneme-to-Viseme Lip Sync** *(Phase 13 — in progress)*:
+  - `VisemeController` maps all 21 SAPI phoneme groups to 5 normalised mouth parameters (jaw open, lip round, lip spread, lip compressed, upper lip retract) per the Preston Blair animation canon (1949)
+  - Scientific basis: McGurk & MacDonald (1976) — visual mouth movement is a first-class speech channel that directly affects intelligibility. Sumby & Pollack (1954) — accurate lip sync provides up to 15 dB SNR improvement in noise.
+  - Co-articulation blending: `VisemeController.Lerp()` smooths transitions between phonemes at 30Hz
+  - **Windows SAPI**: phoneme-accurate (per-phoneme timing from `VisemeReached` event)
+  - **Cloud TTS**: amplitude-driven approximate visemes (fallback until phoneme-alignment API available)
+
+### Contextual Intelligence — Time, Space & Situation *(Phase 14 — planned)*
+
+- **Chronemics Awareness** (Hall, 1959): time of day, day of week, season — modulates conversational register
+- **Geographic Context**: Windows Location API (opt-in) → city, country, timezone
+- **Physical Environment**: user-configured or inferred environment type (bedroom, office, lab, outdoor, public)
+- **The Silence Protocol**: real-time rule engine driven by HCEP facial cues determines when the avatar should be present but silent — the most sophisticated communicative act in the system
+  - THINK mode + gaze aversion → do not interrupt
+  - HEART mode at night → maximum attunement, minimal words
+  - Direct gaze + raised brows → floor yielded, respond now
+- **Turn-taking detection** based on Duncan (1972) 6 speaker-yield cues, with HCEP gaze as the primary signal
+- **LLM context injection**: `ContextSnapshot` enriches every system prompt with time, space, and situation
 
 ### Intelligence Layer
 

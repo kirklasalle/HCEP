@@ -19,6 +19,7 @@ At its core, HCEP implements Kirk LaSalle's original theory — a 5-mode cogniti
 To build the first real-time AI system that *fully understands* a human being — not just their words, but how they are communicating, what cognitive and emotional state they are in, and what their body is saying — and that can *genuinely respond in kind*, becoming a social partner rather than a passive listener.
 
 This vision encompasses:
+
 - An AI that reads gaze, expression, posture, and gesture with the fidelity of a trained clinician
 - An AI that produces authentic nonverbal responses (nods, smiles, gaze behavior, head tilts) through its avatar
 - A platform that can power companion robots, therapeutic systems, game characters, medical education tools, and social AI agents across every domain that involves human-AI interaction
@@ -63,12 +64,14 @@ Current human-computer interaction treats eye contact as a binary signal (lookin
 - **Social relationship dynamics** — dominance, submission, intimacy, deception (Argyle & Cook, 1976)
 
 Furthermore, head movements carry specific semantic content (Chovil, 1991, 1992):
+
 - Nods signal agreement, understanding, and turn-continuation
 - Shakes signal negation, uncertainty, disbelief
 - Tilts signal curiosity, interest, and empathic attention
 - Forward/backward orientation signals engagement vs. withdrawal
 
 And body posture encodes the full proxemic and affective context (Hall, 1966; Mehrabian, 1969; Pentland, 2010):
+
 - Forward lean → high engagement and approach motivation
 - Backward lean → withdrawal or evaluation
 - Open posture → receptivity and confidence
@@ -94,6 +97,7 @@ The human brain devotes dedicated neural circuitry to social signal processing:
 ### 3.2 Validated Measurement Norms
 
 Argyle and Cook (1976) established the foundational behavioral norms that HCEP's classifiers are calibrated against:
+
 - Speakers make eye contact ~40% of the time while speaking
 - Listeners make eye contact ~70% of the time while listening
 - Mutual gaze occupies ~30% of dyadic interaction

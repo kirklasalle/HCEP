@@ -1,4 +1,5 @@
 ﻿# HCEP — Sensory Integration & World-Space Awareness
+
 ## From Sensor Data to Full Human Understanding
 
 **Version:** 2.0 — July 2026  
@@ -22,12 +23,14 @@ This document describes the complete sensory integration architecture, the behav
 **Application:** 3D Skeletal Tracking, Face Mesh Construction, Head Pose Estimation, Gaze Vectoring, Proxemic Measurement
 
 **Technical Specification:**
+
 - Range: 40cm - 4.0m depth
 - Resolution: 640×480 at 30fps (Kinect v1 depth)
 - Depth precision: ±5mm at 2m distance
 - Output: Per-pixel depth value (D13P3 format: 13-bit depth + 3-bit player segmentation)
 
 **Behavioral Signals Enabled:**
+
 - **3D skeletal joint positions** (20 joints, mm accuracy in Camera Space) → posture, body lean, shoulder orientation
 - **Head translation vector** (X/Y/Z in mm) → user distance (proxemics), head lean direction
 - **Face mesh vertices** (87-121 points projected via FaceTrackLib) → facial geometry for gaze estimation
@@ -36,6 +39,7 @@ This document describes the complete sensory integration architecture, the behav
 **Scientific Basis:** Hall (1966) established that spatial distance encodes communicative intent (intimate/personal/social/public zones). Depth sensor data enables continuous proxemic zone classification with centimeter precision — information completely unavailable to RGB-only vision systems.
 
 **Proxemic Zone Detection (Hall, 1966):**
+
 | Zone | Distance Range | Social Meaning | HCEP Response |
 |---|---|---|---|
 | Intimate | 0-45 cm | Lovers, close family | Increase warmth (SPIRIT/HEART) |
@@ -50,11 +54,13 @@ This document describes the complete sensory integration architecture, the behav
 **Application:** Facial Action Unit analysis, Skin tone normalization, Face crop extraction, ArcFace embedding
 
 **Technical Specification:**
+
 - Resolution: 640×480 BGRA32 at 30fps
 - Processing: Face crop → ArcFace preprocessing (112×112 bilinear resize, [-1,1] normalization)
 - Recognition: 512-dimensional face embedding with L2 normalization, cosine similarity matching
 
 **Behavioral Signals Enabled:**
+
 - **Facial Action Units** (Ekman & Friesen, 1978) via FaceTrackLib:
   - AU0: Upper Lip Raise (contempt, disgust)
   - AU1: Jaw Lowerer (surprise, question)
@@ -72,12 +78,14 @@ This document describes the complete sensory integration architecture, the behav
 **Application:** Speech recognition (Whisper.net), VAD (Voice Activity Detection), Sound source localization, Prosody analysis
 
 **Technical Specification:**
+
 - Array: 4-microphone linear array
 - Beamforming: Digital Signal Processing with source angle tracking (±90°)
 - Sample rate: 16 kHz
 - Output: BeamAngle (°), SourceConfidence (0-1), PCM audio buffer
 
 **Behavioral Signals Enabled:**
+
 - **Verbal content** → Whisper.net speech-to-text for LLM context
 - **Beam angle** → spatial localization of speaker (even outside camera field of view)
 - **Voice Activity Detection** → Speaking/silence state; turn-taking boundary detection
@@ -92,6 +100,7 @@ This document describes the complete sensory integration architecture, the behav
 **Application:** 87-121 point face mesh, Head pose (pitch/yaw/roll), Head translation, Action Unit extraction, Eye gaze vectors
 
 **Technical Specification (Kinect FaceTrackLib):**
+
 - Facial landmarks: 87 points in 2D + 3D (mm), 121-vertex projected mesh
 - Head rotation: Euler angles (°) with ±2-3° precision
 - Head translation: Camera Space mm with ±5mm precision

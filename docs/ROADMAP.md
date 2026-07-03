@@ -111,6 +111,7 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 **Goal:** Harden all production-critical code paths, add comprehensive test coverage, and implement security best practices.
 
 **Milestones:**
+
 * [x] **Thread-safety fix**: Replaced incorrect `Interlocked.CompareExchange` volatile-read anti-pattern with `Volatile.Read/Write` on all cross-thread `VisionPipeline` shared-state properties — eliminates race conditions causing silent speech/recognition result drops
 * [x] **Cloud circuit breaker**: `HybridLlmEngine` now implements a configurable circuit breaker (threshold=3 failures, 30s cool-down) — prevents hammering dead cloud APIs
 * [x] **Windows Credential Manager integration**: `WindowsCredentialStore` (P/Invoke wrapper for `advapi32.dll`) — API keys stored in WCM vault, never in process listings or environment dumps
@@ -212,6 +213,7 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 **Scientific Basis:** LeCun et al. (2015); Baltrusaitis et al. (2018); Vinciarelli et al. (2009).
 
 **Milestones:**
+
 * [ ] Collect 50,000+ labeled frames across diverse demographics (gender, age, culture, lighting)
 * [ ] Train HCEP-Transformer v1 (12-layer, 256-dim, 8-head attention over 150ms temporal window)
 * [ ] Target: κ ≥ 0.92, accuracy ≥ 93% (vs. current rule-based κ=0.81, 84.6%)
@@ -224,25 +226,29 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 
 ### 12.1 Medical Education Platform
 
-- Real-time gaze feedback for medical students during standardized patient simulations
+* Real-time gaze feedback for medical students during standardized patient simulations
+
 * HCEP mode overlay for clinical instructors with session replay
 * Integration with existing OSCE (Objective Structured Clinical Examination) scoring systems
 
 ### 12.2 Autism Spectrum Disorder Support
 
-- HCEP-guided social skills training application
+* HCEP-guided social skills training application
+
 * Integration with existing ASD-specific platforms (VABS, ADOS-2 supplement)
 * Caregiver dashboard with longitudinal gaze behavior tracking
 
 ### 12.3 Game Engine Integration
 
-- Unreal Engine 5 HCEP Plugin: full MetaHuman gaze animation from live HCEP data
+* Unreal Engine 5 HCEP Plugin: full MetaHuman gaze animation from live HCEP data
+
 * Unity HCEP Avatar SDK v2.0: biologically accurate eye, brow, and mouth expression
 * Middleware API for NPC social intelligence in AAA game titles
 
 ### 12.4 Companion Robot Platform
 
-- ROS2 (Robot Operating System 2) node for HCEP perception and expression
+* ROS2 (Robot Operating System 2) node for HCEP perception and expression
+
 * Tested deployment on Boston Dynamics Spot, Unitree H1, and custom mobile platforms
 * Latency target: < 100ms perception-to-expression pipeline for genuine social responsiveness
 
@@ -257,6 +263,116 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 | Phase 10 (Reciprocation) | 0.87 | 89% | <60ms | + Expression synthesis |
 | Phase 11 (Transformer) | 0.92 | 93% | <70ms | All modalities, learned |
 | Phase 12 (Domain) | 0.94+ | 95%+ | <80ms | Domain-specific fine-tuning |
+
+---
+
+## Phase 13 — Phoneme-to-Viseme Lip Sync: Biologically Accurate Avatar Speech — [PLANNED — Q2-Q3 2027]
+
+**Goal:** Give the HCEP avatar a biologically authentic mouth — one whose movements are precisely synchronized to each phoneme of its speech output, driven by the 21-viseme SAPI taxonomy mapped to the Preston Blair animation canon. Combined with the TTS system (Phase 10 speech), this completes the avatar's expressive speech loop: the avatar speaks, and its mouth moves with the exact shape each sound requires.
+
+**Scientific Basis:**
+* **McGurk Effect** (McGurk & MacDonald, 1976): Visual mouth movement is a first-class speech perception channel. When auditory and visual phonemes conflict, listeners perceive a blend. Incorrect or absent lip sync actively *degrades* speech intelligibility — not merely aesthetics.
+* **Preston Blair (1949)**: Established the canonical 18 mouth-shape key poses used in Disney and Warner Bros. animation. Each pose is a distinct visual configuration of the oral articulators corresponding to one or more phonemes.
+* **Cohen & Massaro (1994) DOMINANCE Model**: Audiovisual speech integration is weighted by channel reliability. In noise or at distance, visual lip movement *dominates* — making accurate lip sync even more critical in real-world deployment scenarios.
+* **Sumby & Pollack (1954)**: Visual speech contributes up to 15 dB of effective SNR improvement in noise — accurate lip sync makes speech more intelligible in real listening environments.
+* **SAPI Viseme Taxonomy**: Microsoft's Speech API defines 21 viseme groups covering all English phonemes, with timing events fired per phoneme during TTS synthesis.
+
+**Architecture — Already Implemented in `HCEP.Speech`:**
+
+| Component | Status | Description |
+|---|---|---|
+| `VisemeData` struct | ✅ **Built** | 6 normalized mouth parameters per phoneme |
+| `VisemeController` | ✅ **Built** | Full 22-row Preston Blair / SAPI lookup table |
+| `ISpeechSynthesizer.VisemeChanged` | ✅ **Built** | Per-phoneme event on the TTS interface |
+| `WindowsTtsSynthesizer` | ✅ **Built** | Native SAPI VisemeReached → VisemeChanged (phoneme-accurate) |
+| `OpenAiTtsSynthesizer` | ✅ **Built** | Amplitude-driven approximate visemes (fallback) |
+| `ElevenLabsTtsSynthesizer` | ✅ **Built** | Amplitude-driven approximate visemes (fallback) |
+| `HybridTtsEngine` | ✅ **Built** | Relays VisemeChanged from active backend |
+
+**Remaining Milestones:**
+
+* [ ] **`AvatarCoreControl.SetViseme(VisemeData)`** — 2D Happy Face mouth animation
+  * Jaw opening: arc height proportional to `JawOpen`
+  * Lip rounding: draw pursed ellipse for O/U vowels
+  * Lip spreading: wide thin line for I/EE phonemes
+  * Bilabial closure: flat line for M/B/P (`LipCompressed = 1.0`)
+  * Upper lip retraction: show teeth edge for F/V
+  * Smooth co-articulation: `VisemeController.Lerp()` at 30Hz between successive visemes
+
+* [ ] **`Avatar3DControl.SetViseme(VisemeData)`** — 3D Wireframe mouth animation
+  * Map `JawOpen` to vertical displacement of lower-jaw mesh vertices
+  * Map `LipRound` to radial contraction of lip outline vertices
+  * Map `LipSpread` to horizontal stretch of mouth corners
+  * Map `LipCompressed` to bilateral lip-vertex convergence
+  * All transformations applied to FaceTrackLib mesh vertex indices 44-68 (lip region)
+
+* [ ] **`IAvatarComponent.SetViseme(VisemeData)`** — Add to interface for both 2D and 3D controls
+
+* [ ] **Co-articulation Blending** — Run `VisemeController.Lerp()` at display refresh rate (30Hz) to smooth between successive visemes, eliminating the "snapping" visible in naive phoneme-by-phoneme rendering
+
+* [ ] **Phase 14 integration** — Connect avatar viseme input to `HybridTtsEngine.VisemeChanged` event in `AvatarWindow`
+
+* [ ] **Viseme diagnostics HUD** — Show current phoneme name (`VisemeController.GetName()`) and mouth parameters in the Avatar telemetry bar during speech
+
+---
+
+## Phase 14 — Contextual Intelligence: Time, Space & Situation Awareness — [PLANNED — Q3 2027]
+
+**Goal:** Give the avatar a persistent, grounded awareness of *when* and *where* it exists — time of day, day of week, season, geographic location, physical environment type (bedroom, office, lab, park), and situational context. This information modulates every behavioral dimension: greeting style, conversational register, response timing, and above all, the **Silence Protocol** — knowing when *not* to speak.
+
+**Scientific Basis:** Hall (1959, 1983) Chronemics; Barker (1968) Behavior Settings Theory; Sacks, Schegloff & Jefferson (1974) Turn-Taking; Forgas (1979) Social Situation Theory; Duncan (1972) Speaker Turn-Yielding Cues; Jaworski (1993) The Power of Silence. See `HCEP_SCIENCE_FOUNDATION.md` §Part XI.
+
+**Core Concept: The Silence Protocol**
+
+> The most sophisticated communicative act available to the avatar is not speech — it is *knowing when to be silent*. Every existing AI speaks when asked. HCEP's avatar will also know when to simply *be present*, driven by real-time facial cues.
+
+**Silence triggers (avatar should NOT initiate speech):**
+* THINK mode (gaze aversion + defocus) → user is internally processing; any AI speech interrupts
+* Sustained brow furrow (AU4 > 3s) → deep cognitive engagement; user has not invited response
+* Speech accompanied by away-gaze → user is verbalizing for themselves (thinking aloud)
+* Late night (22:00+) + HEART mode → maximum attunement; presence matters more than words
+
+**Speak-invitation signals (avatar CAN respond):**
+* Direct sustained gaze toward avatar → floor-yield; user awaits response
+* Raised brows (AU1+AU2) + direct gaze → question; response invited
+* Head tilt toward avatar + pause → "what do you think?" posture
+
+**Milestones:**
+
+* [ ] **`ContextSnapshot` model** in `HCEP.Core.Models`
+  * `Timestamp`, `TimeOfDay` (enum), `DayType` (Weekday/Weekend/Holiday)
+  * `Season`, `TimezoneId`
+  * `Latitude?`, `Longitude?` (Windows Location API, opt-in)
+  * `CityName?`, `CountryCode?` (reverse geocoding)
+  * `Environment` (enum: Bedroom/LivingRoom/Office/Lab/Outdoor/Public)
+  * `UserDefinedLocation` (free-text: "my studio", "dad's kitchen")
+  * `Privacy` (Private/SemiPrivate/Public)
+  * `SilenceProtocolActive` (bool — computed from HCEP mode + time + context)
+  * `CommunicationRegister` (Formal/Informal/Intimate/Professional)
+
+* [ ] **`TimeContextProvider`** — reads system clock, determines `TimeOfDay` category and `Season`
+
+* [ ] **`GeographicContextProvider`** — Windows Location API (opt-in, user consent required), reverse geocodes lat/long to city/country
+
+* [ ] **`SituationContextProvider`** — user-configured environment type + activity description; optional camera-based scene classification (future)
+
+* [ ] **`SilenceProtocolEvaluator`** — real-time rule engine: HCEP mode × time × space × facial cues → `SilenceProtocolActive` bool
+
+* [ ] **LLM Context Injection** — `ContextSnapshot` injected into every LLM system prompt:
+
+  ```
+  Current context: [Evening | Friday | Living Room | Private]
+  Temporal register: Informal/Personal
+  Silence protocol: INACTIVE — user has direct gaze, floor available
+  ```
+
+* [ ] **Turn-taking detector** based on Duncan (1972) 6 cues:
+  * Gaze toward avatar (from HCEP pipeline)
+  * Pause after syntactically complete utterance (from VAD)
+  * Sociocentric sequence detection ("you know?", "right?") — text post-processing
+
+* [ ] **Settings UI** — environment type selector and user-defined location field
+* [ ] **Dashboard indicator** — show active context (time band, environment, silence state)
 
 ---
 

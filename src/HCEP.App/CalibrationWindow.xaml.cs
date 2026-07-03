@@ -57,11 +57,14 @@ public partial class CalibrationWindow : Window
     private const float PitchSign = 1f;   // +1 ⟹ positive pitch = looking up
     private const float YawSign = 1f;   // +1 ⟹ positive yaw   = turning left
 
-    // ── Fixed Z-depth of the screen surface in Camera Space ────
-    // Equals the physical protrusion of the Kinect forward of the screen bezel.
-    // This is the one dimension we keep as a known constant; the calibration
-    // derives X and Y empirically.
-    private const float DefaultScreenSurfaceOffsetZMm = 30f;
+    // ── Camera-to-screen-surface Z distance (mm) ───────────────
+    // Distance from the camera lens origin to the screen surface, measured along
+    // the camera's forward axis. Typical values:
+    //   Bezel-mounted (camera on top of monitor): +30 mm
+    //   Desk tripod facing screen (e.g. 500mm in front): +500 mm
+    //   Side-mounted (camera to the side): use the perpendicular Z component
+    // This field is user-editable in the UI — see CameraZOffsetBox.
+    private const float DefaultCameraZOffsetMm = 30f;
 
     // ── Dependencies ────────────────────────────────────────────
     private readonly HCEPPipelineOrchestrator _orchestrator;
@@ -166,8 +169,8 @@ public partial class CalibrationWindow : Window
         YawText.Text = $"{face.HeadRotation.Y:+0.0;-0.0;0.0}°";
         WorkingDistText.Text = $"{h.Z:0.0} mm";
 
-        // ── Compute live preview of calibrated offset ────────────
-        ComputeOffset(face, out float offsetX, out float offsetY, out bool valid);
+        // ── Compute live preview of calibrated offset ──
+        ComputeOffset(face, DefaultCameraZOffsetMm, out float offsetX, out float offsetY, out bool valid);
         _previewOffsetXMm = offsetX;
         _previewOffsetYMm = offsetY;
         _previewValid = valid;
@@ -176,7 +179,7 @@ public partial class CalibrationWindow : Window
         {
             OffsetXText.Text = $"{offsetX:+0.0;-0.0;0.0} mm";
             OffsetYText.Text = $"{offsetY:+0.0;-0.0;0.0} mm";
-            OffsetZText.Text = $"{DefaultScreenSurfaceOffsetZMm:0.0} mm";
+            OffsetZText.Text = $"{DefaultCameraZOffsetMm:0.0} mm";
             StatusText.Text = "Face tracked — press SPACE to capture calibration.";
         }
         else
@@ -193,19 +196,29 @@ public partial class CalibrationWindow : Window
     /// </summary>
     /// <remarks>
     /// <para>
-    /// The user is looking at the screen centre (crosshair).  Their head
+    /// The user is looking at the screen centre (crosshair). Their head
     /// position in Camera Space is <c>H</c>, and their gaze direction <c>G</c>
     /// is derived from HeadRotation Pitch &amp; Yaw.
     /// </para>
     /// <para>
-    /// The screen surface lies at <c>Z = −KinectOffsetZMm</c> in Camera Space.
-    /// We ray-cast: find scalar <c>t</c> such that <c>H + t·G</c> hits that
-    /// Z-plane, giving the screen-centre position <c>S</c>.  Then:
+    /// The screen surface lies at <c>Z = −cameraZOffsetMm</c> in Camera Space
+    /// (the camera protrudes forward of the screen surface by cameraZOffsetMm mm).
+    /// We ray-cast: find scalar <c>t &gt; 0</c> such that <c>H + t·G</c> hits that
+    /// Z-plane, giving the screen-centre position <c>S</c>. Then:
     ///   <c>KinectOffsetX = −S.X,  KinectOffsetY = −S.Y</c>.
+    /// </para>
+    /// <para>
+    /// Sign-correctness note: gazeDir.Z is NEGATIVE (user looking toward
+    /// camera, toward −Z). screenZ is NEGATIVE (screen behind camera origin).
+    /// head.Z is large POSITIVE (~800–1500mm). Therefore:
+    ///   t = (screenZ − head.Z) / gazeDir.Z
+    ///     = (large negative) / (negative) = large POSITIVE.
+    /// t must be strictly positive for a valid intersection.
     /// </para>
     /// </remarks>
     private static void ComputeOffset(
         FaceFrame face,
+        float cameraZOffsetMm,
         out float offsetXMm,
         out float offsetYMm,
         out bool valid)
@@ -217,37 +230,42 @@ public partial class CalibrationWindow : Window
         float pitchRad = face.HeadRotation.X * PitchSign * (MathF.PI / 180f);
         float yawRad = face.HeadRotation.Y * YawSign * (MathF.PI / 180f);
 
-        // Gaze unit-vector: looking straight at Kinect = (0, 0, -1) in Camera Space.
-        // Rotating that base vector by Pitch (X-axis) then Yaw (Y-axis):
-        //   G.X =  sin(yaw)           (positive yaw → turning left → gaze shifts +X toward right side of camera view)
+        // Gaze unit-vector: looking straight at camera = (0, 0, −1) in Camera Space.
+        // Rotating by Pitch (X-axis) then Yaw (Y-axis):
+        //   G.X =  sin(yaw)            (+yaw → user turning left → gaze shifts toward +X)
         //   G.Y =  sin(pitch)·cos(yaw)
-        //   G.Z = -cos(pitch)·cos(yaw)  (negative: looking toward sensor = -Z)
+        //   G.Z = −cos(pitch)·cos(yaw)  (NEGATIVE: user looks toward camera = −Z direction)
         var gazeDir = new Vector3(
              MathF.Sin(yawRad),
              MathF.Sin(pitchRad) * MathF.Cos(yawRad),
             -MathF.Cos(pitchRad) * MathF.Cos(yawRad));
 
-        // Guard: gaze Z component must be sufficiently negative (user must face camera).
-        // If gazeDir.Z is near zero the ray is parallel to the screen plane.
+        // Guard: gazeDir.Z must be sufficiently negative (user faces camera).
+        // Near-zero Z means gaze ray is nearly parallel to screen plane — no stable intersection.
         if (MathF.Abs(gazeDir.Z) < 0.1f) return;
 
-        var head = face.HeadTranslation; // mm, Camera Space
+        var head = face.HeadTranslation; // mm, Camera Space (head.Z ≈ +800 to +1500)
 
-        // Screen surface Z in Camera Space (screen face is slightly behind sensor origin).
-        float screenZ = -DefaultScreenSurfaceOffsetZMm;
+        // Screen surface Z in Camera Space:
+        // Camera is cameraZOffsetMm mm in FRONT of the screen surface,
+        // so screen is BEHIND camera origin at Z = −cameraZOffsetMm.
+        float screenZ = -cameraZOffsetMm;
 
-        // Ray–plane intersection: head + t·gazeDir = (?, ?, screenZ)
+        // Ray–plane intersection: head + t·gazeDir reaches Z = screenZ
+        //   head.Z + t·gazeDir.Z = screenZ
+        //   t = (screenZ − head.Z) / gazeDir.Z
+        //     = (negative − positive) / negative = positive
         float t = (screenZ - head.Z) / gazeDir.Z;
 
-        // Guard: t must be negative (screen is between sensor and user, so the
-        // ray goes backward from the user's head toward the sensor).
-        if (t >= 0f) return;
+        // Guard: t must be POSITIVE (intersection is forward along gaze from user toward screen).
+        // Negative t would mean the screen is BEHIND the user's head (impossible in normal setup).
+        if (t <= 0f) return;
 
         float screenCentreX = head.X + t * gazeDir.X;
         float screenCentreY = head.Y + t * gazeDir.Y;
 
         // KinectOffsetFromScreenCentre = −screenCentrePosition
-        // (CalibrationMatrixCalculator convention: offset = "vector from screen centre to Kinect").
+        // (CalibrationMatrixCalculator convention: offset = vector from screen centre to Kinect).
         offsetXMm = -screenCentreX;
         offsetYMm = -screenCentreY;
         valid = true;
@@ -286,7 +304,7 @@ public partial class CalibrationWindow : Window
             return;
         }
 
-        ComputeOffset(face, out float offsetX, out float offsetY, out bool valid);
+        ComputeOffset(face, DefaultCameraZOffsetMm, out float offsetX, out float offsetY, out bool valid);
 
         if (!valid)
         {
@@ -294,16 +312,16 @@ public partial class CalibrationWindow : Window
             return;
         }
 
-        // ── Apply to live pipeline ───────────────────────────────
+        // ── Apply to live pipeline ───────────────────────────────────
         _orchestrator.ApplyCalibration(
             kinectOffsetXMm: offsetX,
             kinectOffsetYMm: offsetY,
-            kinectOffsetZMm: DefaultScreenSurfaceOffsetZMm);
+            kinectOffsetZMm: DefaultCameraZOffsetMm);
 
         StatusText.Text =
             $"✓ Calibration saved — X={offsetX:+0.0;-0.0;0.0} mm  " +
             $"Y={offsetY:+0.0;-0.0;0.0} mm  " +
-            $"Z={DefaultScreenSurfaceOffsetZMm:0.0} mm";
+            $"Z={DefaultCameraZOffsetMm:0.0} mm";
 
         _refreshTimer.Stop();
 
