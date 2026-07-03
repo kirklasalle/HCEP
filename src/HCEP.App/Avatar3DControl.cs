@@ -124,12 +124,11 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     private bool _headPoseInitialized;
 
     // ── Graceful float state ──────────────────────────────────────────────
-    // The wireframe head should appear to float gently and independently of
-    // the tracked person.  TrackingInfluence scales how much of the real
-    // Kinect head rotation bleeds into the display (4% = barely perceptible
-    // nudge on large turns).  FloatAmplitude is a master scale for the
-    // slow sinusoidal drift overlaid on top (1.0 = ~3–4° breathing movement).
-    private const float TrackingInfluence = 0.04f;
+    // The wireframe head gently mirrors a fraction of the user’s real head rotation.
+    // TrackingInfluence: how much of the Kinect rotation bleeds into the display pose
+    //   (0.15 = 15% — subtle but visible; gives the avatar a sense of awareness).
+    // FloatAmplitude: master scale for the slow sinusoidal drift (~3–4° breathing).
+    private const float TrackingInfluence = 0.15f;
     private const float FloatAmplitudeScale = 1.0f;
     private long _floatOriginMs;
 
@@ -223,6 +222,10 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         if (topologyChanged)
         {
             _eyeSocketSmoothingReady = false;
+            // Also zero the smoothed positions so they don't seed the EMA from
+            // stale coordinates on the very next frame after topology changes.
+            _leftEyeSocketSmoothed = default;
+            _rightEyeSocketSmoothed = default;
         }
 
         ComputeBounds();
@@ -310,10 +313,10 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         double dt = Math.Clamp((now - _lastHeadPoseTicks) / 1000.0, 0.0, 0.20);
         _lastHeadPoseTicks = now;
 
-        // Very slow follow — even the 4% residual moves like molasses so
-        // tracking jitter is fully absorbed before reaching the display.
+        // Very slow follow — the 15% residual moves smoothly so
+        // tracking jitter is absorbed before reaching the display.
         const float EyeLeadDeadzoneRad = 5.0f * (MathF.PI / 180f);
-        const float HeadFollowTimeConstantSec = 12.0f;   // was 0.28 — now almost frozen
+        const float HeadFollowTimeConstantSec = 0.8f;   // gently responsive: head reaches target in ~2.4s
 
         float followAlpha = (float)(1.0 - Math.Exp(-dt / HeadFollowTimeConstantSec));
 

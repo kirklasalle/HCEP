@@ -163,6 +163,16 @@ public partial class AvatarWindow : Window
                 MeshStatusText.Text = "—";
             });
         }
+        else if (!face.IsTracked)
+        {
+            // Face detected but tracking quality below threshold — show distinct LOST state
+            // so the operator can tell this apart from FALLBACK (tracked, low precision).
+            Dispatcher.BeginInvoke(() =>
+            {
+                TrackingModeText.Text = "LOST";
+                TrackingModeText.Foreground = System.Windows.Media.Brushes.OrangeRed;
+            });
+        }
 
         // Always push feature points — Avatar3D needs them for eye socket gaze tracking
         // regardless of whether the full mesh or edge-chain fallback is active.

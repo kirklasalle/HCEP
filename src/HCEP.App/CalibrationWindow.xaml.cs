@@ -91,6 +91,7 @@ public partial class CalibrationWindow : Window
     private void Window_Loaded(object sender, RoutedEventArgs e)
     {
         PositionCrosshair();
+        SizeChanged += (_, _) => PositionCrosshair();
         _refreshTimer.Start();
     }
 

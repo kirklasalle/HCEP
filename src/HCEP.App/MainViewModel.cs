@@ -108,6 +108,10 @@ public partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _showFullSkeleton = true;
     [ObservableProperty] private string _enrollmentName = "";
     [ObservableProperty] private string _recognizedIdentity = "—";
+
+    // Track pending enrollment so RefreshMetrics can confirm completion
+    private string? _pendingEnrollmentName;
+    private int _preEnrollmentCount;
     [ObservableProperty] private string _leftEyePosition = "—";
     [ObservableProperty] private string _rightEyePosition = "—";
     [ObservableProperty] private string _interOcularDistance = "—";
@@ -369,8 +373,9 @@ public partial class MainViewModel : ObservableObject
             }
 
             orchestrator.EnrollFace(name);
-            StatusMessage = $"Enrolling face as '{name}'...";
-            _logger.LogInformation("Enrolling face: {Name}", name);
+            _pendingEnrollmentName = name;
+            _preEnrollmentCount = orchestrator.EnrolledFaceCount;
+            StatusMessage = $"Enrolling '{name}'… look at the camera";
             EnrollmentName = "";
         }
     }
@@ -551,6 +556,19 @@ public partial class MainViewModel : ObservableObject
             SensorStatusBrush = _pipeline.IsRunning
                 ? (Brush)Application.Current.Resources["SuccessBrush"]
                 : (Brush)Application.Current.Resources["ErrorBrush"];
+
+            // ── Enrollment completion detection ────────────────────────────
+            // EnrollFace() is asynchronous — PendingEnrollmentName is consumed
+            // by the recognition loop (~1 Hz). Poll here at 4 Hz to detect when
+            // the enrolled face count increases, confirming success.
+            if (_pendingEnrollmentName is not null
+                && _pipeline is HCEPPipelineOrchestrator enrollOrch
+                && enrollOrch.EnrolledFaceCount > _preEnrollmentCount)
+            {
+                StatusMessage = $"✓ '{_pendingEnrollmentName}' enrolled successfully ({enrollOrch.EnrolledFaceCount} total)";
+                _logger.LogInformation("Face enrollment confirmed for '{Name}'", _pendingEnrollmentName);
+                _pendingEnrollmentName = null;
+            }
         }
         catch (Exception ex)
         {
