@@ -2,7 +2,31 @@
 
 ---
 
+# 2026-07-04 — v1.3.0: Contextual Prior Inference, PAD-Bound Telemetry Trust, Avatar Synchrony
+
+## Achievements
+
+1. **Contextual Prior Inference (Workstream A):** `ContextPriorEngine` translates time/space/situation into Bayesian priors that adjust classification *before* final mode arbitration. Evening/night expands hysteresis to ~233 ms; bedroom+night boosts affiliative silence; lab/studio boosts Think mode and lowers min confidence. `ShadowModeOnly` flag enables A/B comparison.
+2. **LLM Context Gap Closed (Workstream A):** `HybridLlmEngine.CurrentContext` was never populated at runtime — every LLM prompt lacked contextual headers. Now wired via snapshot loop (100 Hz cadence: BuildSnapshot → SilenceProtocol → UpdateContext → ComputePrior → DistributePrior).
+3. **PAD-Bound Telemetry Trust (Workstream B):** `TelemetryTrustService` derives a per-session HMAC-SHA256 key from `SHA256(PAD) XOR random`. All REST and WebSocket outputs now carry a signed trust envelope. Fail-closed: PAD tampered → signing refused → downstream consumers receive `signing_state: "invalid"`.
+4. **Avatar Synchrony Upgrade (Workstream C):** `BackchannelController` now derives nod intervals from live speech cadence (inverse-proportional to syllable rate, clamped 2.5–12 s) and applies Gaussian jitter (Box-Muller, ±100 ms). No two repeat nods fire at identical intervals. Eliminates metronomic artifact.
+5. **211/211 Tests Passing.** 18 new tests (ContextPriorEngine × 7, TelemetryTrustService × 5, HcepModeAnalyzerPrior × 5, PluginApiTests updated × 4).
+
+**Status:** Workstreams A–C ✅ Complete. PAD trust propagation enforced to plugin layer. Avatar reciprocation is biologically plausible.
+
+---
+
 # 2026-07-03 — Phase 13 & 14 Complete: Full Avatar Expression + Contextual Intelligence
+
+## Achievements
+
+1. **Phoneme-Accurate Lip Sync (Phase 13):** Both avatars animate mouth with per-phoneme accuracy from SAPI `VisemeReached`. `VisemeController` maps all 21 SAPI phoneme groups. 60ms EMA co-articulation. McGurk Effect (1976) — visual speech is a first-class channel. Sumby & Pollack (1954) — accurate lip sync = 15dB SNR improvement.
+2. **Eyebrow Animation:** Both avatars animate eyebrows from Kinect AU3/AU5 + autonomous HCEP mode expressions. LOGIC/THINK furrowed; HEART empathy raise; AFFECT open.
+3. **HCEP.Speech Project:** New `src/HCEP.Speech/` with `HybridTtsEngine`, `WindowsTtsSynthesizer`, `OpenAiTtsSynthesizer`, `ElevenLabsTtsSynthesizer`, `VisemeController`.
+4. **Contextual Intelligence (Phase 14):** `ContextSnapshot` (Time × Space × Situation) injected into every LLM prompt. `SilenceProtocolEvaluator` — avatar knows when not to speak. `TimeContextProvider` classifies time-of-day, environment, activity.
+5. **193/193 Tests Passing.** 24 roadmap items completed.
+
+**Status:** Phase 13 ✅ Complete. Phase 14 ✅ Complete. Avatar is now a full social communication agent.
 
 ## Achievements
 

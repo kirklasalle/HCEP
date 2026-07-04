@@ -1,9 +1,9 @@
 # HCEP — User Guide
 
 **Product:** HCEP — Human Communication Eye Protocol  
-**Version:** 1.2.0  
+**Version:** 1.3.0  
 **Author:** Kirk LaSalle  
-**Last Updated:** July 3, 2026  
+**Last Updated:** July 4, 2026  
 
 ---
 

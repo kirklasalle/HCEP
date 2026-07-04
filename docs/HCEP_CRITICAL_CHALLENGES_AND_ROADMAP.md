@@ -3,7 +3,7 @@
 **Document Type:** Strategic Technical Audit & Ethical Safety Plan  
 **Target Domains:** 3D Game Engines, Embodied Robotics, Agentic AI Architectures  
 **Author:** Kirk LaSalle  
-**Original Date:** June 3, 2026 | **Updated:** July 3, 2026
+**Original Date:** June 3, 2026 | **Updated:** July 4, 2026
 
 ---
 
@@ -22,9 +22,13 @@ Since this document was written, significant progress has been made on the chall
 | API key security | ✅ **FIXED** | Windows Credential Manager integration |
 | Memory unbounded | ✅ **FIXED** | `InMemoryKnowledgeStore` capacity limits + LRU eviction |
 | No circuit breaker | ✅ **FIXED** | Cloud LLM circuit breaker (3 failures, 30s cooldown) |
-| Head gesture detection | 🔄 Planned Phase 9 | Velocity-threshold classifier (nod/shake/tilt) |
-| Full body kinesics | 🔄 Planned Phase 9 | Shoulder/torso extractor from Kinect skeleton |
-| Backchannel engine | 🔄 Planned Phase 10 | AI nods, smile reciprocation |
+| Context as hard override only | ✅ **FIXED** | v1.3.0 Workstream A: `ContextPriorEngine` — prior-first mode arbitration |
+| LLM context never populated | ✅ **FIXED** | v1.3.0 Workstream A: snapshot loop wires context 10×/s |
+| PAD trust not propagated | ✅ **FIXED** | v1.3.0 Workstream B: `TelemetryTrustService` + signed envelope |
+| Metronomic nod timing | ✅ **FIXED** | v1.3.0 Workstream C: cadence-aware + Gaussian jitter in `BackchannelController` |
+| Head gesture detection | ✅ **FIXED** | Phase 9 velocity-threshold classifier (nod/shake/tilt) |
+| Backchannel engine | ✅ **FIXED** | Phase 10 + v1.3.0 Workstream C: biologically plausible nod reciprocation |
+| Full body kinesics | 🔄 Planned Phase 12 | Shoulder/torso extractor from Kinect skeleton |
 
 ---
 

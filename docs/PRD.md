@@ -1,10 +1,10 @@
 # HCEP — Product Requirements Document (PRD)
 
 **Product Name:** HCEP — Human Communication Eye Protocol  
-**Version:** 1.2.0 (Avatar Expression + Contextual Intelligence)  
+**Version:** 1.3.0 (Contextual Prior Inference + PAD-Bound Telemetry Trust + Avatar Synchrony)  
 **Author:** Kirk LaSalle  
-**Date:** July 3, 2026  
-**Status:** Active Development — Phases 9-12 Planned, Phases 13-14 Complete  
+**Date:** July 4, 2026  
+**Status:** Active Development — Phase 11-12 Planned, Phases 13-14 Complete, Workstreams A-C Complete  
 
 ---
 

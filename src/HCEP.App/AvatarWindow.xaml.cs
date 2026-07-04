@@ -352,6 +352,8 @@ public partial class AvatarWindow : Window
         }
 
         // ── Phase 10: feed snapshot to backchannel engine ────────────────────
+        // Workstream C: pass latest cadence so nod intervals are speech-rate aware.
+        _backchannel.CurrentCadence = _orchestrator.LatestCadence;
         _backchannel.OnSnapshot(snapshot);
 
         // ── Phase 10: feed snapshot to expression mirror ─────────────────────

@@ -11,6 +11,7 @@
 // modification, or distribution is strictly prohibited.
 // ──────────────────────────────────────────────────────────────
 using System.Numerics;
+using System.Threading;
 using HCEP.Core.Enums;
 using HCEP.Core.Interfaces;
 using HCEP.Core.Models;
@@ -65,6 +66,16 @@ public sealed class HcepModeAnalyzer : IHcepAnalyzer
     private HcepMode _currentMode = HcepMode.Unknown;
     private int _modeStabilityCount;
 
+    // ── Contextual Prior (Workstream A) ──────────────────────────
+    private ContextPriorProfile? _currentPrior;
+
+    /// <inheritdoc />
+    public ContextPriorProfile? CurrentPrior
+    {
+        get => Volatile.Read(ref _currentPrior);
+        set => Volatile.Write(ref _currentPrior, value);
+    }
+
     /// <inheritdoc />
     public HcepReading Analyze(
         GazeEstimate gaze,
@@ -96,8 +107,12 @@ public sealed class HcepModeAnalyzer : IHcepAnalyzer
 
         float confidence = ComputeConfidence(gaze, face, candidateMode);
 
-        // ── Temporal Hysteresis ────────────────────────────────
-        var finalMode = ApplyHysteresis(candidateMode, confidence);
+        // ── Contextual prior: boost confidence before hysteresis ───────────
+        var prior = CurrentPrior;
+        confidence = ApplyPriorBoost(candidateMode, confidence, prior);
+
+        // ── Temporal Hysteresis ────────────────────────────────────
+        var finalMode = ApplyHysteresis(candidateMode, confidence, prior);
 
         var reading = new HcepReading(
             timestamp,
@@ -226,8 +241,23 @@ public sealed class HcepModeAnalyzer : IHcepAnalyzer
     // ── Hysteresis State ────────────────────────────────────────
     private HcepMode _pendingMode = HcepMode.Unknown;
 
-    private HcepMode ApplyHysteresis(HcepMode candidate, float confidence)
+    /// <summary>
+    /// Context-prior-aware temporal hysteresis.
+    /// When <paramref name="prior"/> is non-null and not in shadow mode the
+    /// minimum confidence gate and stability frame count are adjusted; otherwise
+    /// static constants apply (fully backward-compatible path).
+    /// </summary>
+    private HcepMode ApplyHysteresis(HcepMode candidate, float confidence,
+        ContextPriorProfile? prior = null)
     {
+        bool usePrior = prior is not null && !prior.ShadowModeOnly;
+        float minConf = usePrior
+            ? prior!.ModeTransitionMinConfidence
+            : ModeTransitionMinConfidence;
+        int stabilityFrames = usePrior
+            ? Math.Max(1, (int)Math.Round(ModeStabilityFrames * prior!.HysteresisMultiplier))
+            : ModeStabilityFrames;
+
         // Same mode as current — reset any pending transition, stay stable.
         if (candidate == _currentMode)
         {
@@ -237,7 +267,7 @@ public sealed class HcepModeAnalyzer : IHcepAnalyzer
         }
 
         // New candidate with sufficient confidence — begin or continue counting.
-        if (confidence >= ModeTransitionMinConfidence)
+        if (confidence >= minConf)
         {
             if (candidate == _pendingMode)
             {
@@ -259,7 +289,7 @@ public sealed class HcepModeAnalyzer : IHcepAnalyzer
         }
 
         // Transition only after the new candidate has been stable for N consecutive frames.
-        if (_modeStabilityCount >= ModeStabilityFrames)
+        if (_modeStabilityCount >= stabilityFrames)
         {
             _currentMode = candidate;
             _pendingMode = HcepMode.Unknown;
@@ -267,6 +297,23 @@ public sealed class HcepModeAnalyzer : IHcepAnalyzer
         }
 
         return _currentMode;
+    }
+
+    /// <summary>
+    /// Adds mode-specific confidence boosts from the contextual prior.
+    /// Applied only when <paramref name="prior"/> is non-null and NOT in shadow mode.
+    /// </summary>
+    private static float ApplyPriorBoost(
+        HcepMode candidate, float confidence, ContextPriorProfile? prior)
+    {
+        if (prior is null || prior.ShadowModeOnly) return confidence;
+        float boost = candidate switch
+        {
+            HcepMode.Think => prior.ThinkModePriorBoost,
+            HcepMode.Heart => prior.HeartModePriorBoost,
+            _ => 0f,
+        };
+        return Math.Clamp(confidence + boost, 0f, 1f);
     }
 
     private static float ComputeConfidence(GazeEstimate gaze, FaceFrame face, HcepMode mode)

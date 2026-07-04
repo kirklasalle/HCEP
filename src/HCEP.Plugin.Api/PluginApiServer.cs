@@ -37,12 +37,17 @@ namespace HCEP.Plugin.Api;
 public sealed class PluginApiServer : IHostedService, IAsyncDisposable
 {
     private readonly IPipelineOrchestrator _orchestrator;
+    private readonly ITelemetryTrustService _trust;
     private readonly ILogger<PluginApiServer> _logger;
     private WebApplication? _app;
 
-    public PluginApiServer(IPipelineOrchestrator orchestrator, ILogger<PluginApiServer> logger)
+    public PluginApiServer(
+        IPipelineOrchestrator orchestrator,
+        ITelemetryTrustService trust,
+        ILogger<PluginApiServer> logger)
     {
         _orchestrator = orchestrator;
+        _trust = trust;
         _logger = logger;
     }
 
@@ -76,7 +81,7 @@ public sealed class PluginApiServer : IHostedService, IAsyncDisposable
             _app.MapGet("/api/state", (IPipelineOrchestrator orch) =>
             {
                 var snap = orch.LatestSnapshot;
-                return Results.Ok(MapToDto(snap));
+                return Results.Ok(WrapWithTrust(MapToDto(snap)));
             });
 
             // REST Endpoint: /api/tools/openai
@@ -153,7 +158,8 @@ public sealed class PluginApiServer : IHostedService, IAsyncDisposable
                 if (webSocket.State == WebSocketState.Open)
                 {
                     var dto = MapToDto(snapshot);
-                    string json = JsonSerializer.Serialize(dto);
+                    var envelope = WrapWithTrust(dto);
+                    string json = JsonSerializer.Serialize(envelope);
                     byte[] bytes = Encoding.UTF8.GetBytes(json);
 
                     await webSocket.SendAsync(
@@ -247,6 +253,28 @@ public sealed class PluginApiServer : IHostedService, IAsyncDisposable
                     region = person.LatestHcep.Region.ToString(),
                     gazeDirection = new { x = person.LatestHcep.GazeDirection.X, y = person.LatestHcep.GazeDirection.Y, z = person.LatestHcep.GazeDirection.Z }
                 }
+            }
+        };
+    }
+
+    /// <summary>
+    /// Wraps a payload DTO in a signed trust envelope.
+    /// When the PAD trust state is invalid the signature field is null and
+    /// signing_state is "invalid" — downstream consumers should degrade to safe mode.
+    /// </summary>
+    private object WrapWithTrust(object payload)
+    {
+        string payloadJson = JsonSerializer.Serialize(payload);
+        string? signature = _trust.SignPayload(payloadJson);
+        return new
+        {
+            payload,
+            trust = new
+            {
+                signing_state = _trust.State.IsValid ? "valid" : "invalid",
+                pad_hash = _trust.State.PadHash,
+                key_id = _trust.State.SigningKeyId,
+                signature,
             }
         };
     }

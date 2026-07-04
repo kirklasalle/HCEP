@@ -6,7 +6,66 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.3.0] — 2026-07-04
+
+### Added — Workstream A: Contextual Prior Inference
+
+- **`ContextPriorProfile`** (`HCEP.Core.Models`) — Immutable record carrying prior-adjusted classification thresholds derived from environmental context: `ThinkModePriorBoost`, `HeartModePriorBoost`, `SilenceBias`, `HysteresisMultiplier`, `ModeTransitionMinConfidence`, and a `ShadowModeOnly` feature flag for A/B comparison without affecting live classification.
+- **`IContextPriorEngine`** (`HCEP.Core.Interfaces`) — New interface: `ComputePrior(ContextSnapshot) → ContextPriorProfile`.
+- **`ContextPriorEngine`** (`HCEP.Intelligence`) — Translates time-of-day, environment, privacy, and silence-protocol state into a prior profile. Evening/night → +40% hysteresis window; bedroom at night → +37% silence bias + heart boost; laboratory/studio → +18% think boost + lowered min confidence; private context → +5% introspective mode boosts. `ShadowMode` property enables pure-observation mode.
+- **`IHcepAnalyzer.CurrentPrior`** — New `ContextPriorProfile?` property on the analyzer interface. Null = no prior (fully backward-compatible).
+- **`HcepModeAnalyzer.CurrentPrior`** — Volatile property. Applied in `ApplyHysteresis` (adjusts min-confidence gate and stability-frame count) and via new `ApplyPriorBoost()` (boosts Think/Heart candidate confidence before the gate). Shadow-mode flag prevents application but preserves observability.
+- **`VisionPipeline.LatestPrior`** — New Volatile `ContextPriorProfile?` property. Synced to `_hcepAnalyzer.CurrentPrior` before every `Analyze` call.
+- **`HCEPPipelineOrchestrator` — Context + prior wiring** — Injects `TimeContextProvider` and `IContextPriorEngine`. Each snapshot tick (~10 Hz): builds `ContextSnapshot` → runs `SilenceProtocolEvaluator` for final silence flag → updates `HybridLlmEngine.CurrentContext` (was previously unset) → distributes prior to `VisionPipeline.LatestPrior`. This closes the long-standing gap where `LLM.CurrentContext` was never populated at runtime.
+
+### Added — Workstream B: PAD-Bound Telemetry Trust
+
+- **`TelemetryTrustState`** (`HCEP.Core.Models`) — Immutable record: `IsValid`, `PadHash` (truncated SHA-256), `BootTimestamp`, `SigningKeyId`.
+- **`ITelemetryTrustService`** (`HCEP.Core.Interfaces`) — Signs outbound HCEP telemetry and exposes session trust state.
+- **`TelemetryTrustService`** (`HCEP.Intelligence`) — Bootstraps a per-session HMAC-SHA256 signing key from `SHA256(PAD) XOR RandomBytes(32)`. Fail-closed: if PAD verification fails the service stays invalid and `SignPayload()` returns null permanently.
+- **`ActiveDirectivesManager.TryVerifyDirectives(out string)`** — New convenience bool method wrapping `LoadAndVerifyDirectives()`.
+- **`PluginApiServer` — Signed telemetry envelope** — Every REST (`/api/state`) and WebSocket (`/ws/stream`) payload is now wrapped: `{ payload: <dto>, trust: { signing_state, pad_hash, key_id, signature } }`. Downstream consumers can verify signatures; unsigned or `signing_state: "invalid"` signals a compromised runtime.
+- **`PluginApiTests` — Trust envelope assertions** — Integration tests updated to unwrap the `payload` field and additionally assert `trust.signing_state == "valid"` and that `signature` is non-empty.
+
+### Added — Workstream C: Avatar Synchrony Upgrade
+
+- **`SpeechCadenceProfile`** (`HCEP.Core.Models`) — Rolling estimate of speaker cadence: `SyllablesPerSecond`, `AveragePauseDurationMs`, `LastSpeechBurstMs`, `LastUpdate`, `IsFresh` helper.
+- **`HCEPPipelineOrchestrator.LatestCadence`** — Public volatile property exposing the latest `SpeechCadenceProfile`. Updated in the speech loop from Whisper.net segment timing + text length (≈1 syllable / 3.3 chars).
+- **`BackchannelController` — Cadence-aware, jitter-based scheduling** — Replaces fixed `RepeatNodIntervalMs` with `ComputeRepeatIntervalMs()` (scales inversely with syllable rate, clamped 2 500–12 000 ms) and `GaussianJitterMs()` (Box-Muller transform, σ = JitterWindowMs/6, ≈99% within ±100 ms). Feature flags: `CadenceAwareScheduling` (default true), `JitterWindowMs` (default 200). `SpeechEndGapMs` now properly resets `_nextNodDueMs`. Adds `CurrentCadence` property.
+- **`AvatarWindow`** — Passes `_orchestrator.LatestCadence` to `_backchannel.CurrentCadence` each snapshot frame.
+
+### Added — Tests
+
+- **`ContextPriorEngineTests`** (7 tests) — Neutral context, night context, bedroom at night, laboratory, active silence, range validation, shadow-mode flag.
+- **`TelemetryTrustServiceTests`** (5 tests) — State initialization, boot timestamp freshness, HMAC determinism, different payloads produce different signatures, `SigningKeyId` and `PadHash` format.
+- **`HcepModeAnalyzerPriorTests`** (5 tests) — Null prior, neutral prior equivalence, shadow-mode no-op, Think boost confidence increase, reset safety.
+
+### Added — DI Registration (`App.xaml.cs`)
+
+- `IContextPriorEngine → ContextPriorEngine` (singleton)
+- `ITelemetryTrustService → TelemetryTrustService` (singleton)
+
+### Changed
+
+- **`HecpPipelineOrchestrator.Speech.cs`** — Speech loop now computes `SpeechCadenceProfile` from each final Whisper segment (syllable-rate estimation from `Text.Length / 3.3 / durationSecs`) and writes to `_latestCadence`.
+
+### Tests
+
+211 tests passing (up from 193). Build: green, 0 errors, `TreatWarningsAsErrors` active.
+
+---
+
 ## [Unreleased] — 2026-07-03
+
+### Added — Phase 9 Head Gesture Classifier + Phase 10 Backchannel Engine + Binocular Convergence + Context Settings UI
+
+- **`HeadGestureClassifier`** (Phase 9, `HCEP.Spatial`) — 30 Hz velocity-threshold classifier detects Nod, Shake, TiltLeft, TiltRight, ForwardLean, BackwardLean from Kinect head-pose stream. Nod/Shake use reversal confirmation (min 70ms, max 1800ms); Tilt uses 450ms hold; Lean uses 1200ms hold. 600ms refractory period prevents re-triggering. Fed from `face.HeadRotation` + `TrackedPerson.DistanceM` in `AvatarWindow.OnSnapshotReady`. `GestureDetected` event routed to `TriggerAvatarNod()` so user nods produce a reciprocal avatar nod.
+- **`BackchannelController`** (Phase 10, `HCEP.App`) — Monitors `SceneSnapshot.LatestSpeech` for sustained human speech. Fires `NodRequested` after 2.2 s of continuous speech; repeats every 6.5 s (biological ~1–3 nods/10 s of active listening, Bavelas et al. 2000). `AvatarWindow` subscribes and calls `TriggerAvatarNod()` on both avatars.
+- **`IAvatarComponent.TriggerNod()`** — Added to shared interface. Thread-safe; implementations dispatch internally.
+- **2D Happyface nod animation** (`AvatarCoreControl`) — 500 ms sin(π·t) vertical pulse on the entire face plane (9 px amplitude), implemented as a `TranslateTransform` appended to `unifiedPlaneTransform` in `RenderEyes()`.
+- **3D Wireframe nod animation** (`Avatar3DControl`) — 500 ms sin(π·t) pitch-offset (0.14 rad ≈ 8°) added to `headPitch` in `OnRender()`. `TriggerNod()` stores `Environment.TickCount64` and calls `Dispatcher.BeginInvoke(InvalidateVisual)`.
+- **Binocular convergence (both avatars)** — Replaced linear falloff with the biologically correct atan formula: `conv = eyeRadius × 2.5 × atan(0.0325 / max(0.25, userDistM))` (IOD=65mm, 2.5× visibility scale). Scales from ~3.5 px at 0.5m → ~0.7 px at 1m, matching real vergence anatomy. Applied to both `AvatarCoreControl` and `Avatar3DControl`.
+- **Settings Context tab** — New **Context** tab in `SettingsWindow` (Phase 14): `EnvironmentType` ComboBox (10 options matching enum), `SituationActivity` ComboBox (9 options), `SituationPrivacy` ComboBox, `UserDefinedLocation` TextBox. Wired to `TimeContextProvider` singleton (new DI registration in `App.xaml.cs`). Changes take effect immediately in the LLM system prompt and `SilenceProtocolEvaluator`.
 
 ### Added — Phase 9 Head Gesture Classifier + Phase 10 Backchannel Engine + Binocular Convergence + Context Settings UI
 

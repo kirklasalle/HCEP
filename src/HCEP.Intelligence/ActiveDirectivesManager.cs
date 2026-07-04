@@ -96,6 +96,18 @@ These are encoded as the permanent, absolute, and immutable directives for all N
 """;
 
     /// <summary>
+    /// Verifies the active directives and returns whether they are intact.
+    /// Convenience wrapper over <see cref="LoadAndVerifyDirectives"/> for callers
+    /// that only need a bool result (e.g. <see cref="TelemetryTrustService"/>).
+    /// </summary>
+    /// <param name="directives">The full directive text when valid; the safety interrupt message otherwise.</param>
+    public static bool TryVerifyDirectives(out string directives)
+    {
+        directives = LoadAndVerifyDirectives();
+        return !directives.StartsWith("=== DEEP SAFETY INTERRUPT ===", StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// Loads the active directives. 
     /// First, tries to read and verify the root filesystem file.
     /// If the file is missing or has been altered (hash mismatch), falls back to verifying and using the embedded safety copy.

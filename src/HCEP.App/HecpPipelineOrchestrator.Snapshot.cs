@@ -17,6 +17,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using HCEP.Core.Enums;
 using HCEP.Core.Models;
+using HCEP.Intelligence;
 using HCEP.Spatial;
 using Microsoft.Extensions.Logging;
 
@@ -68,6 +69,26 @@ public sealed partial class HCEPPipelineOrchestrator
             {
                 _fpsCounter.Tick();
                 frameNumber++;
+
+                // ── Phase 14+: Contextual prior + LLM context (Workstream A) ─────────
+                // Build context snapshot from current environment/time settings.
+                // Then compute silence and rebuild with the result so LLM prompts are
+                // always driven by a fully-resolved contextual snapshot.
+                var hcepForContext = _latestHcep;
+                var faceForContext = _latestFace;
+                var contextSnapshot = _contextProvider.BuildSnapshot();
+                if (hcepForContext is not null && faceForContext is not null)
+                {
+                    bool silent = SilenceProtocolEvaluator.ShouldBeSilent(
+                        hcepForContext, contextSnapshot, faceForContext.ActionUnits);
+                    if (silent)
+                        contextSnapshot = contextSnapshot with { SilenceProtocolActive = true };
+                }
+                // Update LLM engine context so every prompt reflects current context
+                if (_llmEngine is HybridLlmEngine hybridEngine)
+                    hybridEngine.CurrentContext = contextSnapshot;
+                // Distribute prior to vision pipeline
+                _vision.LatestPrior = _priorEngine.ComputePrior(contextSnapshot);
 
                 // ── Phase 6: advance micro-saccade timer (loop runs at ~10 Hz)
                 _saccade.Update(0.1);

@@ -47,6 +47,23 @@ public sealed class PluginApiTests
             SnapshotReady?.Invoke(snapshot);
         }
     }
+
+    /// <summary>
+    /// Stub trust service — always valid, returns a fixed fake signature.
+    /// Used in plugin API tests so they don't depend on real PAD file I/O.
+    /// </summary>
+    private sealed class StubTrustService : ITelemetryTrustService
+    {
+        public TelemetryTrustState State { get; } = new TelemetryTrustState
+        {
+            IsValid = true,
+            PadHash = "test0000000000...",
+            SigningKeyId = "DEADBEEF",
+            BootTimestamp = DateTimeOffset.UtcNow,
+        };
+
+        public string? SignPayload(string json) => "stub-signature";
+    }
 #pragma warning restore CS0067
 
     [Fact]
@@ -81,7 +98,7 @@ public sealed class PluginApiTests
         };
         fakeOrch.TriggerSnapshot(snapshot);
 
-        var server = new PluginApiServer(fakeOrch, NullLogger<PluginApiServer>.Instance);
+        var server = new PluginApiServer(fakeOrch, new StubTrustService(), NullLogger<PluginApiServer>.Instance);
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
         try
@@ -96,16 +113,24 @@ public sealed class PluginApiTests
 
             var json = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken: cts.Token);
 
+            // Unwrap the PAD-signed trust envelope produced by WrapWithTrust()
+            var envelope = json.GetProperty("payload");
+
             // Assert
-            Assert.True(json.GetProperty("personDetected").GetBoolean());
-            Assert.Equal(42, json.GetProperty("frameNumber").GetInt64());
-            
-            var person = json.GetProperty("primaryPerson");
+            Assert.True(envelope.GetProperty("personDetected").GetBoolean());
+            Assert.Equal(42, envelope.GetProperty("frameNumber").GetInt64());
+
+            var person = envelope.GetProperty("primaryPerson");
             Assert.Equal("Alice", person.GetProperty("identityName").GetString());
-            
+
             var hcep = person.GetProperty("latestHcep");
             Assert.Equal("Logic", hcep.GetProperty("mode").GetString());
             Assert.Equal(0.88, hcep.GetProperty("confidence").GetDouble(), 2);
+
+            // Verify trust envelope is present and valid
+            var trust = json.GetProperty("trust");
+            Assert.Equal("valid", trust.GetProperty("signing_state").GetString());
+            Assert.False(string.IsNullOrEmpty(trust.GetProperty("signature").GetString()));
         }
         finally
         {
@@ -119,7 +144,7 @@ public sealed class PluginApiTests
     {
         // Arrange
         var fakeOrch = new FakePipelineOrchestrator();
-        var server = new PluginApiServer(fakeOrch, NullLogger<PluginApiServer>.Instance);
+        var server = new PluginApiServer(fakeOrch, new StubTrustService(), NullLogger<PluginApiServer>.Instance);
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
 
         try
@@ -157,8 +182,11 @@ public sealed class PluginApiTests
             var jsonRes = await readTask;
 
             // Assert
-            Assert.Equal(99, jsonRes.GetProperty("frameNumber").GetInt64());
-            Assert.False(jsonRes.GetProperty("personDetected").GetBoolean());
+            // WebSocket payload is also wrapped in the trust envelope
+            var envelope = jsonRes.GetProperty("payload");
+            Assert.Equal(99, envelope.GetProperty("frameNumber").GetInt64());
+            Assert.False(envelope.GetProperty("personDetected").GetBoolean());
+            Assert.Equal("valid", jsonRes.GetProperty("trust").GetProperty("signing_state").GetString());
 
             // Close connection
             await ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "Test done", cts.Token);
@@ -176,7 +204,7 @@ public sealed class PluginApiTests
     {
         // Arrange
         var fakeOrch = new FakePipelineOrchestrator();
-        var server = new PluginApiServer(fakeOrch, NullLogger<PluginApiServer>.Instance);
+        var server = new PluginApiServer(fakeOrch, new StubTrustService(), NullLogger<PluginApiServer>.Instance);
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
         try
@@ -205,7 +233,7 @@ public sealed class PluginApiTests
     {
         // Arrange
         var fakeOrch = new FakePipelineOrchestrator();
-        var server = new PluginApiServer(fakeOrch, NullLogger<PluginApiServer>.Instance);
+        var server = new PluginApiServer(fakeOrch, new StubTrustService(), NullLogger<PluginApiServer>.Instance);
         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
 
         try

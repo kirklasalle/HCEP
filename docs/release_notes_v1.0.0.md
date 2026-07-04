@@ -2,6 +2,10 @@
 
 ---
 
+For the latest release, see [release_notes_v1.3.0.md](release_notes_v1.3.0.md).
+
+---
+
 # HCEP v1.2.0 — Avatar Expression & Contextual Intelligence
 
 **Released:** July 3, 2026

@@ -1,9 +1,9 @@
 # HCEP — Development Roadmap
 
 **Product:** HCEP — Human Communication Eye Protocol  
-**Version:** v1.2.0  
+**Version:** v1.3.0  
 **Author:** Kirk LaSalle  
-**Last Updated:** July 3, 2026  
+**Last Updated:** July 4, 2026  
 
 ---
 
@@ -13,18 +13,18 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 
 ---
 
-## Final Project State (v1.0.0 Stable)
+## Current Project State (v1.3.0)
 
 | Metric | Value |
-|---|---|
-| Source projects | 12 (including HCEP.Plugin.Api) |
-| Source files | ~150 |
-| Lines of code | ~12,500 |
+|---|---------|
+| Source projects | 12 |
+| Source files | ~165 |
+| Lines of code | ~14,000 |
 | Test project | 1 (HCEP.Tests) |
-| Unit & Integration tests | 169 (all passing) |
+| Unit & Integration tests | 211 (all passing) |
 | Build status | Green (0 warnings, 0 errors, TreatWarningsAsErrors active) |
 | SDK Platforms | Python (LangChain/LlamaIndex), C# (Semantic Kernel), Unity, Unreal Engine C++ |
-| API Layer | REST, WebSockets, Model Context Protocol (MCP) |
+| API Layer | REST (signed), WebSockets (signed), MCP, gRPC |
 
 ---
 

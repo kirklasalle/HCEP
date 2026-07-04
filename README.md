@@ -1,7 +1,7 @@
 # HCEP — Human Communication Eye Protocol
 
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-193%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-211%20passing-brightgreen)]()
 [![.NET](https://img.shields.io/badge/.NET-9.0-512BD4)]()
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6)]()
 [![License](https://img.shields.io/badge/license-Proprietary-red)]()
@@ -233,7 +233,7 @@ HCEP/
 │   ├── HCEP.Intelligence/          # Hybrid LLM engine, agentic tools, prompt bridge
 │   └── HCEP.App/                    # WPF application, DI host, orchestrator, UI controls
 └── tests/
-    └── HCEP.Tests/                   # xUnit tests (193 passing)
+    └── HCEP.Tests/                   # xUnit tests (211 passing)
         ├── Spatial/                  # Ray-plane, coordinate mapper, PnP, confidence cone
         ├── Knowledge/               # In-memory store, UKS adapter, person knowledge
         ├── Intelligence/            # Agentic tools, prompt bridge, tool definitions, circuit-breaker tests

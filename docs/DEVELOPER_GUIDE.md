@@ -1,9 +1,9 @@
 # HCEP — Developer Guide
 
 **Product:** HCEP — Human Communication Eye Protocol  
-**Version:** 1.2.0  
+**Version:** 1.3.0  
 **Author:** Kirk LaSalle  
-**Last Updated:** July 3, 2026  
+**Last Updated:** July 4, 2026  
 
 ---
 
@@ -97,18 +97,22 @@ D:\Projects\HCEP\
 │   ├── HCEP.Knowledge/             # Knowledge store, UKS adapter, person memory
 │   ├── HCEP.Intelligence/          # LLM engine, agentic tools, context providers
 │   │   ├── HybridLlmEngine.cs      # Cloud + local routing with circuit breaker
-│   │   ├── TimeContextProvider.cs  # ★ NEW: time/space/situation context snapshot
-│   │   └── SilenceProtocolEvaluator.cs # ★ NEW: when not to speak
+│   │   ├── TimeContextProvider.cs  # ★ time/space/situation context snapshot
+│   │   ├── SilenceProtocolEvaluator.cs # when not to speak
+│   │   ├── ContextPriorEngine.cs   # ★ v1.3.0: Bayesian prior from context snapshot
+│   │   └── TelemetryTrustService.cs # ★ v1.3.0: HMAC-SHA256 PAD-bound signing
 │   └── HCEP.App/                   # WPF application, DI host, orchestrator, avatars
 │       ├── AvatarCoreControl.xaml(.cs) # 2D avatar: gaze+blinks+brows+viseme
 │       ├── Avatar3DControl.cs       # 3D wireframe avatar: mesh+eyes+brows+viseme
+│       ├── BackchannelController.cs # ★ v1.3.0: cadence-aware nods + Gaussian jitter
 │       └── IAvatarComponent.cs      # Interface: SetGaze+SetBrows+SetViseme+ResetGaze
 └── tests/
-    └── HCEP.Tests/                  # xUnit test project (193 tests)
+    └── HCEP.Tests/                  # xUnit test project (211 tests)
         ├── Spatial/                 # RayPlane, CoordinateMapper, PnP, ConfidenceCone
         ├── Knowledge/               # InMemoryStore CRUD, stress/concurrency, capacity
-        ├── Intelligence/            # AgenticTools, PromptBridge, circuit breaker
-        ├── Vision/                  # HcepModeAnalyzer, ArcFace negative paths, concurrency
+        ├── Intelligence/            # AgenticTools, PromptBridge, circuit breaker, ContextPriorEngine, TelemetryTrustService
+        ├── Vision/                  # HcepModeAnalyzer, ArcFace negative paths, concurrency, prior tests
+        ├── Integration/             # PluginApiTests (trust envelope assertions)
         └── Core/                    # Model/enum tests
 ```
 

@@ -3,7 +3,7 @@
 **Document Type:** Technical Architecture & Implementation Plan  
 **Target Architecture:** Local SLM (Small Language Model) Controller & Kinect v1 Integration  
 **Focus:** Privacy-First Local Learning, Ocular-Skeletal Math Foundations  
-**Last Updated:** July 3, 2026
+**Last Updated:** July 4, 2026
 
 ---
 
@@ -23,6 +23,8 @@ The Local SLM architecture described in this document has been substantially imp
 | Llama.cpp integration | ✅ Implemented (via `LlamaCppSettings`) |
 | Oculo-Postural Vector (OPV) → LLM injection | ✅ Implemented via `HcepPromptBridge` |
 | Strategy D UKS knowledge store | ✅ Implemented |
+| `ContextPriorEngine` (prior-first mode arbitration) | ✅ Implemented (v1.3.0 Workstream A) |
+| `HybridLlmEngine.CurrentContext` runtime wiring | ✅ Implemented (v1.3.0 Workstream A) |
 | Phase 11: Transformer-based classifier | 🔄 Planned Q2 2027 |
 
 ---

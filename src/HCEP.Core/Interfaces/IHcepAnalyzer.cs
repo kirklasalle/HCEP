@@ -21,6 +21,13 @@ namespace HCEP.Core.Interfaces;
 public interface IHcepAnalyzer
 {
     /// <summary>
+    /// Optional context prior that adjusts classification thresholds before
+    /// final mode arbitration. Set by the pipeline orchestrator each snapshot
+    /// tick. Null ≡ use built-in static thresholds (backward compatible).
+    /// </summary>
+    ContextPriorProfile? CurrentPrior { get; set; }
+
+    /// <summary>
     /// Analyzes a single frame to produce an HCEP reading.
     /// </summary>
     /// <param name="gaze">Current gaze estimate.</param>

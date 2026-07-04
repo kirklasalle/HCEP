@@ -87,6 +87,18 @@ public sealed class VisionPipeline : IAsyncDisposable
         set => Volatile.Write(ref _pendingEnrollmentName, value);
     }
 
+    /// <summary>
+    /// Latest contextual prior profile, computed by the orchestrator at ~10 Hz and
+    /// applied to the HCEP mode analyzer before each frame is classified.
+    /// Null = no prior adjustment (static thresholds apply).
+    /// </summary>
+    private ContextPriorProfile? _latestPrior;
+    public ContextPriorProfile? LatestPrior
+    {
+        get => Volatile.Read(ref _latestPrior);
+        set => Volatile.Write(ref _latestPrior, value);
+    }
+
     public VisionPipeline(
         IGazeEstimator gazeEstimator,
         IHcepAnalyzer hcepAnalyzer,
@@ -163,6 +175,10 @@ public sealed class VisionPipeline : IAsyncDisposable
 
                 // HCEP mode analysis (fuse latest speech from audio pipeline)
                 var speech = LatestSpeech;
+
+                // Propagate contextual prior to the analyzer before each frame
+                _hcepAnalyzer.CurrentPrior = LatestPrior;
+
                 var reading = _hcepAnalyzer.Analyze(gaze, face, speech, _previousReading);
                 _previousReading = reading;
 

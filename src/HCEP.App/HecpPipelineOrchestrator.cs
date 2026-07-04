@@ -47,6 +47,13 @@ public sealed partial class HCEPPipelineOrchestrator : IPipelineOrchestrator, IA
     private readonly ITelemetryService _telemetry;
     private readonly ILogger<HCEPPipelineOrchestrator> _logger;
     private readonly FpsCounter _fpsCounter = new();
+    // ── Phase 14+: contextual prior engine (Workstream A) ──────────
+    private readonly TimeContextProvider _contextProvider;
+    private readonly IContextPriorEngine _priorEngine;
+    // ── Workstream C: speech cadence ───────────────────────────
+    private volatile SpeechCadenceProfile? _latestCadence;
+    /// <summary>Latest speech cadence estimate from the audio/STT path. Updated ~1 Hz.</summary>
+    public SpeechCadenceProfile? LatestCadence => _latestCadence;
 
     private CancellationTokenSource? _cts;
     private Task? _loopTask;
@@ -107,6 +114,8 @@ public sealed partial class HCEPPipelineOrchestrator : IPipelineOrchestrator, IA
         ILlmEngine llmEngine,
         IFaceRecognizer faceRecognizer,
         ITelemetryService telemetry,
+        TimeContextProvider contextProvider,
+        IContextPriorEngine priorEngine,
         ILogger<HCEPPipelineOrchestrator> logger)
     {
         _sensor = sensor;
@@ -118,6 +127,8 @@ public sealed partial class HCEPPipelineOrchestrator : IPipelineOrchestrator, IA
         _llmEngine = llmEngine;
         _faceRecognizer = faceRecognizer;
         _telemetry = telemetry;
+        _contextProvider = contextProvider;
+        _priorEngine = priorEngine;
         _logger = logger;
     }
 

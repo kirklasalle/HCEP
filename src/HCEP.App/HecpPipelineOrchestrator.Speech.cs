@@ -34,6 +34,25 @@ public sealed partial class HCEPPipelineOrchestrator
                 _latestSpeech = result;
                 _vision.LatestSpeech = result;
 
+                // ── Workstream C: update speech cadence estimate ─────────────
+                // Estimate syllables/sec from transcript length and Whisper segment duration.
+                if (result.IsFinal && result.Text.Length > 0)
+                {
+                    double durationSecs = (result.End - result.Start).TotalSeconds;
+                    if (durationSecs > 0.1)
+                    {
+                        // Rough model: 1 syllable ≈ 3.3 chars (5 chars/word × 1.5 syll/word)
+                        double estimatedSyllables = result.Text.Length / 3.3;
+                        float syllablesPerSec = (float)Math.Clamp(estimatedSyllables / durationSecs, 0.5, 12.0);
+                        _latestCadence = new SpeechCadenceProfile
+                        {
+                            SyllablesPerSecond = syllablesPerSec,
+                            LastSpeechBurstMs = (float)(durationSecs * 1000),
+                            LastUpdate = DateTimeOffset.UtcNow,
+                        };
+                    }
+                }
+
                 _telemetry.Increment("speech.results");
                 _logger.LogDebug("Speech: {Text}", result.Text);
 

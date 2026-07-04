@@ -122,6 +122,10 @@ public partial class App : Application
                 services.AddHttpClient<HybridLlmEngine>();
                 services.AddSingleton<ILlmEngine, HybridLlmEngine>();
                 services.AddSingleton<HCEP.Intelligence.TimeContextProvider>();
+                // Workstream A: contextual prior inference
+                services.AddSingleton<IContextPriorEngine, ContextPriorEngine>();
+                // Workstream B: PAD-bound telemetry trust
+                services.AddSingleton<ITelemetryTrustService, TelemetryTrustService>();
 
                 // -- Pipeline Orchestrator ----------------------
                 services.AddSingleton<HCEPPipelineOrchestrator>();
