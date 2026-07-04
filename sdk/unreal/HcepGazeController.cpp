@@ -103,10 +103,32 @@ void UHcepGazeController::OnWebSocketMessageReceived(const FString& MessageStrin
 
     if (FJsonSerializer::Deserialize(Reader, JsonObject) && JsonObject.IsValid())
     {
-        // Check if a person is currently tracked
-        if (JsonObject->HasField(TEXT("primaryPerson")) && !JsonObject->IsNullField(TEXT("primaryPerson")))
+        TSharedPtr<FJsonObject> TargetObject = JsonObject;
+
+        // Check if there is a trust envelope
+        if (JsonObject->HasField(TEXT("trust")))
         {
-            TSharedPtr<FJsonObject> PrimaryPerson = JsonObject->GetObjectField(TEXT("primaryPerson"));
+            TSharedPtr<FJsonObject> TrustObj = JsonObject->GetObjectField(TEXT("trust"));
+            if (TrustObj.IsValid())
+            {
+                FString SigningState = TrustObj->GetStringField(TEXT("signing_state"));
+                if (SigningState == TEXT("invalid"))
+                {
+                    UE_LOG(LogTemp, Warning, TEXT("[HCEP Unreal SDK] Telemetry Trust is INVALID. Active Directives may be tampered."));
+                }
+            }
+        }
+
+        // Unwrap payload if it exists (trust envelope format)
+        if (JsonObject->HasField(TEXT("payload")))
+        {
+            TargetObject = JsonObject->GetObjectField(TEXT("payload"));
+        }
+
+        // Check if a person is currently tracked
+        if (TargetObject.IsValid() && TargetObject->HasField(TEXT("primaryPerson")) && !TargetObject->IsNullField(TEXT("primaryPerson")))
+        {
+            TSharedPtr<FJsonObject> PrimaryPerson = TargetObject->GetObjectField(TEXT("primaryPerson"));
             if (PrimaryPerson.IsValid())
             {
                 // 1. Extract Gaze Direction Vector (x, y, z)

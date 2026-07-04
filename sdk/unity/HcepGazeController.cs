@@ -153,6 +153,23 @@ public sealed class HcepGazeController : MonoBehaviour
     {
         try
         {
+            // Check signing state from trust envelope if present
+            int trustIdx = json.IndexOf("\"trust\"");
+            if (trustIdx != -1)
+            {
+                int stateIdx = json.IndexOf("\"signing_state\"", trustIdx);
+                if (stateIdx != -1)
+                {
+                    int valStart = json.IndexOf(":", stateIdx) + 1;
+                    int valEnd = json.IndexOfAny(new char[] { ',', '}', ']' }, valStart);
+                    string stateVal = json.Substring(valStart, valEnd - valStart).Trim().Replace("\"", "");
+                    if (stateVal == "invalid")
+                    {
+                        Debug.LogWarning("[HCEP Unity SDK] Telemetry Trust is INVALID. Active Directives may be tampered.");
+                    }
+                }
+            }
+
             // Lightweight JSON parsing to avoid full framework dependency overhead in Unity
             int primaryPersonIdx = json.IndexOf("\"primaryPerson\"");
             if (primaryPersonIdx == -1 || json.Contains("\"primaryPerson\":null")) return;
