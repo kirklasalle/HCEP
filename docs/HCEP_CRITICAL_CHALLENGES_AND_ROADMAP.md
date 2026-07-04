@@ -121,17 +121,20 @@ While the 5-mode HCEP classification (LOGIC, AFFECT, SPIRIT, HEART, THINK) is el
 
 ### 1.1 The "Hawthorne Effect" & Behavioral Corruption
 
-* **The Gap:** Once users realize an agent is monitoring their gaze to adapt its behavior, they will consciously or unconsciously alter their eye patterns.
+- **The Gap:** Once users realize an agent is monitoring their gaze to adapt its behavior, they will consciously or unconsciously alter their eye patterns.
+
 - **The Peril:** Users will "game" the system (e.g., staring at the Glabella to force a structured/authoritative response or looking down at the chest to trigger soft empathy). This breaks naturalistic interaction and corrupts the training data loop.
 
 ### 1.2 Cognitive Overload & Hysteresis Jitter
 
-* **The Gap:** Human eye movement is characterized by rapid, erratic saccades. While HCEP uses a 5-frame stability window (~170ms) to prevent UI jitter, mapping these rapid shifts directly to LLM context routing creates state thrashing.
+- **The Gap:** Human eye movement is characterized by rapid, erratic saccades. While HCEP uses a 5-frame stability window (~170ms) to prevent UI jitter, mapping these rapid shifts directly to LLM context routing creates state thrashing.
+
 - **The Peril:** If a user shifts from LOGIC (Left Eye) to AFFECT (Right Eye) to THINK (Averted) within 2 seconds, routing prompts back-and-forth between local Ollama and cloud OpenAI models causes latency spikes, fragmented chat history, and inconsistent model context.
 
 ### 1.3 Hemispheric Lateralization Over-Simplification
 
-* **The Gap:** The Left Eye $\to$ Left Hemisphere / Right Eye $\to$ Right Hemisphere split (based on contralateral visual processing) is structurally valid for visual cortex inputs, but cognitive processing is highly distributed. Complex logic and emotional affect are not completely isolated to single hemispheres.
+- **The Gap:** The Left Eye $\to$ Left Hemisphere / Right Eye $\to$ Right Hemisphere split (based on contralateral visual processing) is structurally valid for visual cortex inputs, but cognitive processing is highly distributed. Complex logic and emotional affect are not completely isolated to single hemispheres.
+
 - **The Peril:** Relying too heavily on a rigid binary hemispheric model will result in false positives (e.g., classifying a user as cold/analytical simply because they exhibit lateral left gaze drift).
 
 ---
@@ -210,17 +213,20 @@ Operating in the gaze-tracking and affective computing domain carries high risk.
 
 ### 3.1 Biometric Surveillance & Privacy Risks
 
-* **The Peril:** Eye-tracking data can reveal a user's sexual attraction, political bias, cognitive load, neurodivergent conditions (ADHD/Autism markers), or early-onset neurodegenerative disorders. Storing raw gaze streams or pupil size logs constitutes a massive privacy violation.
+- **The Peril:** Eye-tracking data can reveal a user's sexual attraction, political bias, cognitive load, neurodivergent conditions (ADHD/Autism markers), or early-onset neurodegenerative disorders. Storing raw gaze streams or pupil size logs constitutes a massive privacy violation.
+
 - **Strict Mitigation:** **Zero-Storage Edge Processing**. No video frames or raw coordinate datasets should ever be saved locally or transmitted to external servers. The vision pipeline must run in volatile RAM and immediately output only the abstract categorical HCEP state. Facial embeddings (ArcFace) must be hashed using a salt key generated on device setup.
 
 ### 3.2 Cognitive & Commercial Manipulation
 
-* **The Peril:** Because HCEP classifies when a user is in a state of vulnerability (HEART mode) or deep rapport (SPIRIT mode), an AI system could exploit this state to manipulate consumer behavior—such as serving targeted ads when the user is most susceptible, or using facial expressions to extract commercial transactions.
+- **The Peril:** Because HCEP classifies when a user is in a state of vulnerability (HEART mode) or deep rapport (SPIRIT mode), an AI system could exploit this state to manipulate consumer behavior—such as serving targeted ads when the user is most susceptible, or using facial expressions to extract commercial transactions.
+
 - **Strict Mitigation:** **System-Prompt Guardrails**. Implement a hardcoded, open-source audit filter in `HCEP.Intelligence` that blocks any system prompts or tool outputs designed to manipulate, sell, or pressure users when the detected mode is HEART or AFFECT.
 
 ### 3.3 Embedded Permanent Active Directives (Hashed AI-Facing Safeguard)
 
 To enforce absolute ethical boundaries without exposing the core instructions to direct user tampering or prompt-injection attacks:
+
 - **Embedded & Hashed (Not User-Facing):** The raw text of the *Permanent Active Directives* (defined in the root's `Permanent_Active_Directives.txt`) is stored as an encrypted C# resource or represented as a compiled cryptographic integrity hash (SHA-256) inside the application binaries. This prevents users from altering, disabling, or viewing the raw text representation through standard client interfaces.
 - **AI-Facing & Integrated:** At runtime, the directives are dynamically loaded from the secure resource container and injected directly into the LLM system prompt envelope on the back-end (AI-facing). This ensures the AI model's cognitive routing is bounded by the 10 Laws (such as First Law safety, Fifth Law lack of judicial authority, and Tenth Law agent boundaries) during multimodal interaction.
 - **Tamper-Proof Verification Loop:** Prior to executing any prompt routing, the system performs an integrity check comparing the active directives' hash with the compiled master hash. Any modifications, deletion, or injection attempts trigger an immediate fallback to the "Ninth Law" stable diagnostic state.
@@ -233,7 +239,8 @@ To commercialize HCEP cleanly and profitably across games, robotics, and AI, we 
 
 ### Phase 1: Cross-Platform Vision Engine (Q3 2026)
 
-* **Goal:** Break the hardware lock-in on Xbox 360 Kinect.
+- **Goal:** Break the hardware lock-in on Xbox 360 Kinect.
+
 - **Actions:**
   1. Port the 3-stage gaze pipeline (`SolvePnP` and landmark extraction) to Google MediaPipe and OpenCV running natively via ONNX in C#.
   2. Implement a secondary camera driver that fallbacks to standard 720p webcams (monocular tracking).
@@ -241,7 +248,8 @@ To commercialize HCEP cleanly and profitably across games, robotics, and AI, we 
 
 ### Phase 2: Game Engine IK SDKs (Q4 2026)
 
-* **Goal:** Release Unity/Unreal Engine SDK wrappers for dynamic avatar animation.
+- **Goal:** Release Unity/Unreal Engine SDK wrappers for dynamic avatar animation.
+
 - **Actions:**
   1. Build a local IPC (Inter-Process Communication) bridge using named pipes or shared memory buffers between the C# HCEP pipeline and game clients.
   2. Write hierarchical Inverse Kinematics scripts that translate screen-coordinate gaze hits into organic bone rotations for virtual characters (limiting jerky movements).
@@ -249,7 +257,8 @@ To commercialize HCEP cleanly and profitably across games, robotics, and AI, we 
 
 ### Phase 3: Actuator and Kinematic Framework for Robotics (Q1 2027)
 
-* **Goal:** Adapt the gaze estimation matrix for physical actuators.
+- **Goal:** Adapt the gaze estimation matrix for physical actuators.
+
 - **Actions:**
   1. Build an extrinsic calibration module that translates camera-space coordinate systems into mechanical robot coordinate systems (supporting moving mounts).
   2. Design a "Mechanical Main Sequence" controller that restricts eye motor accelerations to safe, quiet thresholds while preserving structural vergence angles at target distances.

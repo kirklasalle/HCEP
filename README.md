@@ -64,7 +64,7 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - Confidence cone gaze target classification (13 regions)
 - Temporal smoothing with exponential moving average and hysteresis threshold gating
 - Saccade detection using Main Sequence equation
-- **Empirical Accuracy:** Validated at 84.55% classification accuracy and Cohen's Kappa of 0.8084 (exceeding targets)
+- **Simulation-Based Accuracy:** Verified using synthetic datasets at 84.55% classification accuracy and Cohen's Kappa of 0.8084
 
 ![Telemetry Cones of Vision & 13 Regions](docs/images/cones_of_vision.svg?v=2)
 

@@ -112,8 +112,8 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - **`InMemoryKnowledgeStore` — Capacity Limits** — `MaxSubjects` (500), `MaxTriplesPerSubject` (1000), string length bounds (`subject ≤ 255`, `relation ≤ 100`, `object ≤ 10,000` chars), and LRU eviction of oldest triple when per-subject cap is reached.
 - **`HecpPipelineOrchestrator.AutoFallbackSeconds`** — Replaced hardcoded `const double AutoFallbackSeconds = 5.0` with a configurable public property (default: 5.0 s). Set to `double.MaxValue` to disable auto-fallback entirely.
 - **`PnPSolver` — epsilon documented** — Added inline comment explaining the `1e-3f` finite-difference step size choice (numerical precision vs. float cancellation trade-off at 32-bit resolution).
-- **`HcepModeAnalyzer` — All thresholds documented** — Added XML comments with empirical basis for `GazeAversionAngleDeg` (15°, Argyle & Cook 1976), `BrowLowerThreshold` (-0.3, HCEP κ=0.8084 dataset), `SmileThreshold` (0.2, micro-expression inclusive), `ModeTransitionMinConfidence` (0.4), and `ModeStabilityFrames` (5 frames = ~167 ms at 30 fps).
-- **`ThreeStageGazeEstimator.HeadWeight`** — Documented the empirical 0.6 value with reference to the HCEP validation dataset (6,000 frames, κ=0.8084, accuracy 84.55%) and the rationale for head-pose dominance over AU eye offsets at typical interaction distances.
+- **`HcepModeAnalyzer` — All thresholds documented** — Added XML comments with empirical basis for `GazeAversionAngleDeg` (15°, Argyle & Cook 1976), `BrowLowerThreshold` (-0.3, HCEP synthetic κ=0.8084 dataset), `SmileThreshold` (0.2, micro-expression inclusive), `ModeTransitionMinConfidence` (0.4), and `ModeStabilityFrames` (5 frames = ~167 ms at 30 fps).
+- **`ThreeStageGazeEstimator.HeadWeight`** — Documented the empirical 0.6 value with reference to the HCEP synthetic validation dataset (6,000 frames, κ=0.8084, accuracy 84.55%) and the rationale for head-pose dominance over AU eye offsets at typical interaction distances.
 - **Tests — Concurrency stress suite** (`VisionPipelineConcurrencyTests`): Four async tests validating `Volatile.Read/Write` correctness under concurrent load for all four shared-state properties.
 - **Tests — Knowledge store stress suite** (`InMemoryKnowledgeStoreStressTests`): Concurrent assert/query deadlock tests, capacity limit tests, LRU eviction verification, and input validation negative-path tests.
 - **Tests — ArcFaceRecognizer negative paths** (`ArcFaceRecognizerNegativePathTests`): Tests for missing file, corrupted ONNX, zero-byte file, embedding with no model loaded, and match with no model loaded.
@@ -235,4 +235,4 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - `ConfidenceCone`: 3D gaze region classifier mapping to the 13 HCEP spatial regions.
 - Plugin API server: Embedded Kestrel REST + WebSocket + gRPC + MCP endpoints.
 - WPF dashboard: `MainViewModel`, `KinectVideoWindow`, live HUD overlays.
-- Empirical validation: Achieved Cohen's Kappa **0.8084** and mode-classifier accuracy **84.55%** over 6,000 frames.
+- Simulation-based verification: Achieved Cohen's Kappa **0.8084** and mode-classifier accuracy **84.55%** over 6,000 synthetic frames.

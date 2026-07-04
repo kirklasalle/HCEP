@@ -738,6 +738,7 @@ To enable downstream clients (such as 3D game engines, robotics controllers, and
 ### 13.1 Model Context Protocol (MCP) Server
 
 The HTTP server (registered in `PluginApiServer.cs`) exposes a JSON-RPC 2.0 endpoint at `POST /mcp` conforming to the Anthropics Model Context Protocol (MCP):
+
 - **Discovery (`tools/list`):** Lists all available agent tools (e.g. `get_hcep_state`, `query_knowledge`).
 - **Execution (`tools/call`):** Invokes tools dynamically, passing arguments to the `AgenticToolExecutor` and returning structured text snapshots.
 
@@ -747,7 +748,8 @@ A dedicated endpoint at `GET /api/tools/openai` outputs valid JSON schemas for O
 
 ### 13.3 Multi-Platform SDK Wrappers
 
-* **Python (`sdk/python/`):** Contains `HcepStateTool` and `hcep_llamaindex` integration models to inject real-time gaze state into LangChain and LlamaIndex agent prompts.
+- **Python (`sdk/python/`):** Contains `HcepStateTool` and `hcep_llamaindex` integration models to inject real-time gaze state into LangChain and LlamaIndex agent prompts.
+
 - **C# (`sdk/csharp/`):** Exposes `HcepSemanticKernelPlugin` to map HCEP tools to Microsoft Semantic Kernel.
 - **Unity (`sdk/unity/`):** Provides a MonoBehaviour component `HcepGazeController.cs` that parses live telemetry WebSockets (`ws://localhost:5000/ws/stream`) and applies real-time bone rotations to avatar rigs.
 - **Unreal Engine (`sdk/unreal/`):** Features a native C++ `UActorComponent` driving character eyes and head sockets with configurable interpolation speeds.

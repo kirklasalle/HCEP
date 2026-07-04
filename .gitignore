@@ -46,6 +46,17 @@ src/HCEP.App/models/
 *.bin
 !Directory.Build.props
 
+# ── Large media assets (use Git LFS or external storage instead) ──
+*.mp4
+*.m4a
+*.mov
+*.avi
+*.mkv
+*.wav
+*.mp3
+*.aac
+*.flac
+
 # ── User-specific / local config ──────────────────
 appsettings.*.json
 !appsettings.json

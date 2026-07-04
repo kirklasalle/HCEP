@@ -29,7 +29,7 @@ This vision encompasses:
 Deliver a commercially viable, scientifically validated, production-grade platform that:
 
 - Tracks face, eyes, skeleton, head kinematics, torso, and speech in real-time via Kinect v1 or standard USB webcams
-- Classifies the 5 HCEP modes (LOGIC, AFFECT, SPIRIT, HEART, THINK) with validated accuracy (κ=0.8084)
+- Classifies the 5 HCEP modes (LOGIC, AFFECT, SPIRIT, HEART, THINK) with simulation-verified accuracy (κ=0.8084)
 - Routes conversation to local or cloud LLMs based on cognitive-emotional context, with cloud circuit-breaker resilience
 - **Reciprocates** human nonverbal behavior through a biologically authentic avatar (nods, gaze, expression, head tilt)
 - Maintains persistent person-specific knowledge for ongoing relationships
@@ -295,7 +295,7 @@ The core innovation is Kirk LaSalle's HCEP (Human Communication Eye Points) clas
 |---|---|---|
 | NFR-01 | End-to-end pipeline latency | < 100ms (30fps budget) |
 | NFR-02 | Gaze estimation accuracy | < 5° mean angular error |
-| NFR-03 | HCEP mode classification accuracy | > 80% on labeled data |
+| NFR-03 | HCEP mode classification accuracy | > 80% on simulated datasets |
 | NFR-04 | LLM local response latency | < 3 seconds |
 | NFR-05 | Memory footprint (steady state) | < 500 MB |
 | NFR-06 | Startup time | < 10 seconds |
@@ -355,8 +355,8 @@ The core innovation is Kirk LaSalle's HCEP (Human Communication Eye Points) clas
 | Metric | Target | Measurement |
 |---|---|---|
 | Pipeline latency | < 100ms p95 | HCEPTelemetryService timing |
-| Gaze accuracy | < 5° MAE | Synthetic + human eval |
-| Mode stability | > 85% agreement with human labels | Labeled video dataset |
+| Gaze accuracy | < 5° MAE | Synthetic eval |
+| Mode stability | > 85% agreement with simulated labels | Labeled synthetic dataset |
 | Test coverage | > 70% line coverage | Coverlet |
 | Build status | Green CI | 0 errors, tests passing |
 

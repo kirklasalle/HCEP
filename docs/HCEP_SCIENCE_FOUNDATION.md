@@ -1141,9 +1141,9 @@ Yngve, V. H. (1970). On getting a word in edgewise. In *Papers from the Sixth Re
 | HEART | Lower face emphasis + empathic | AU1/AU4 combo, AU15 | Forward, gentle nod | Soft, slow |
 | THINK | Gaze aversion >15°, defocus | Moderate AU4, low AU12 | Any, often down-left | Disfluent, paused |
 
-### A.3 Validated Performance Metrics
+### A.3 Simulation-Based Verification Metrics
 
-From the HCEP empirical validation study (6,000 frames, 3 independent annotators):
+From the HCEP simulation-based validation study (6,000 synthetic frames, 3 simulated rater agents):
 
 | Metric | Value | Target | Status |
 |---|---|---|---|

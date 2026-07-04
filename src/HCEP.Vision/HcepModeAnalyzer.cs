@@ -39,7 +39,7 @@ public sealed class HcepModeAnalyzer : IHcepAnalyzer
 
     /// <summary>
     /// AU1/AU4 brow-lowerer AU value below which a brow furrow is detected.
-    /// Calibrated to -0.3 from HCEP validation dataset (6,000 frames, 3 annotators,
+    /// Calibrated to -0.3 from HCEP synthetic validation dataset (6,000 frames, 3 simulated raters,
     /// κ = 0.8084). Negative = furrowed; range typically [-1..+1].
     /// </summary>
     private const float BrowLowerThreshold = -0.3f;

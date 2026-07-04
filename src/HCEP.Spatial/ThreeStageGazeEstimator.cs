@@ -34,8 +34,8 @@ public sealed class ThreeStageGazeEstimator : IGazeEstimator
     /// Weight of head-pose contribution vs. eye-in-head displacement in the hybrid
     /// gaze direction [0..1]. 0.0 = pure eye tracking; 1.0 = pure head pose.
     ///
-    /// Value of 0.6 (60% head / 40% eye) is empirically derived from the HCEP
-    /// validation dataset (6,000 frames, κ = 0.8084, accuracy 84.55%). Head pose
+    /// Value of 0.6 (60% head / 40% eye) is calibrated against the HCEP
+    /// synthetic validation dataset (6,000 frames, κ = 0.8084, accuracy 84.55%). Head pose
     /// dominates because the Kinect v1 face-tracker AU offsets have higher noise
     /// than the head rotation estimates at typical interaction distances (0.8–1.5 m).
     /// </summary>

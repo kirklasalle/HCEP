@@ -1,4 +1,4 @@
-﻿# HCEP Project Success Logs
+# HCEP Project Success Logs
 
 ---
 
@@ -63,7 +63,7 @@
 1. **True Gaze™ Parallax Correction** verified across all monitor positions
 2. **Plugin API** (REST/WebSocket/MCP/gRPC) running at port 5000
 3. **Multi-language SDK** published in HCEP-SDK repo (C#, Python, Unity, Unreal)
-4. **Empirical Validation:** κ=0.8084, accuracy=84.55% — both exceed targets
+4. **Simulation-Based Validation:** κ=0.8084, accuracy=84.55% — verified via synthetic dataset (both exceed targets)
 5. **Dual licensing** (MIT SDK / proprietary core) documented
 
 **Status:** v1.0.0 Stable. Commercial release.

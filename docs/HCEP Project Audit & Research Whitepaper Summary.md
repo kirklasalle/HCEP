@@ -6,7 +6,7 @@
 
 Since this audit was completed, HCEP has shipped:
 
-- **v1.0.0** (June 2026): Full pipeline, empirically validated (κ=0.8084, 84.55% accuracy), Plugin API, multi-language SDK
+- **v1.0.0** (June 2026): Full pipeline, validated via simulation (κ=0.8084, 84.55% accuracy), Plugin API, multi-language SDK
 - **v1.1.0** (July 2026): 21 security/reliability fixes — thread-safety, WCM key storage, circuit breaker, capacity limits
 - **v1.2.0** (July 2026): Full avatar expression (eyebrows + lip sync + contextual intelligence)
 

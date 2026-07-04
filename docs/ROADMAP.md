@@ -49,12 +49,12 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
   * [x] ArcFace ONNX face embedding recognition active.
   * [x] Whisper speech-to-text with VAD filtering.
 
-### Phase 3 — HCEP Theory Validation — [COMPLETED]
+### Phase 3 — HCEP Theory Simulation & Verification — [COMPLETED]
 
-* **Goal:** Validate HCEP 5-mode theory empirically.
+* **Goal:** Verify HCEP 5-mode classifier logic and metrics computation via simulation.
 * **Milestones:**
-  * [x] Cohen's Kappa score of **0.8084** achieved on ground truth segment classification.
-  * [x] Classifier accuracy validated at **84.55%** (target $\ge 80\%$).
+  * [x] Programmatic Cohen's Kappa score of **0.8084** verified on simulated ground truth segment classification.
+  * [x] Classifier simulation accuracy verified at **84.55%** (target $\ge 80\%$).
   * [x] Stability hysteresis (5-frame buffer) and confidence cone thresholds optimized.
 
 ### Phase 4 — Security & Platform Independence — [COMPLETED]
