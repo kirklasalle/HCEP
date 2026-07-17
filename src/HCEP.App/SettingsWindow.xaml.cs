@@ -11,8 +11,13 @@
 // modification, or distribution is strictly prohibited.
 // ──────────────────────────────────────────────────────────────
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using HCEP.Core.Interfaces;
 using HCEP.Core.Models;
 using HCEP.Intelligence;
@@ -62,9 +67,11 @@ public partial class SettingsWindow : Window
         DelaySlider.ValueChanged += Control_ValueChanged;
         SyncBlinksCheck.Checked += Control_CheckChanged;
         SyncBlinksCheck.Unchecked += Control_CheckChanged;
+        PreferLocalCheck.Checked += RoutingControl_Changed;
+        PreferLocalCheck.Unchecked += RoutingControl_Changed;
     }
 
-    private void SettingsWindow_Loaded(object sender, RoutedEventArgs e)
+    private async void SettingsWindow_Loaded(object sender, RoutedEventArgs e)
     {
         _isInitializing = true;
         try
@@ -100,9 +107,12 @@ public partial class SettingsWindow : Window
         {
             _isInitializing = false;
         }
+
+        UpdateRoutingSummary();
+        await RefreshRuntimeStatusAsync(includeModelDiscovery: true);
     }
 
-    private void CloudProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void CloudProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         // Guard: during Loaded, SelectedIndex is set programmatically.
         // Without this guard, SaveCloudProviderFields runs with empty text boxes
@@ -116,12 +126,14 @@ public partial class SettingsWindow : Window
         var newProvider = (CloudProviderType)CloudProviderCombo.SelectedIndex;
         _currentSelectedCloudProvider = newProvider;
         LoadCloudProviderFields(newProvider);
+        UpdateRoutingSummary();
+        await RefreshCloudProviderStatusAsync(includeModelDiscovery: true);
     }
 
     private void LoadCloudProviderFields(CloudProviderType provider)
     {
         CloudProviderSettings settings = GetCloudSettings(provider);
-        CloudModelText.Text = settings.Model;
+        SetComboText(CloudModelCombo, settings.Model);
         CloudUrlText.Text = settings.BaseUrl;
         // API key: read from Windows Credential Manager (persistent across sessions)
         // Falls back to the in-memory configCopy value (from a previous Save this session)
@@ -132,7 +144,7 @@ public partial class SettingsWindow : Window
     private void SaveCloudProviderFields(CloudProviderType provider)
     {
         CloudProviderSettings settings = GetCloudSettings(provider);
-        settings.Model = CloudModelText.Text.Trim();
+        settings.Model = GetComboText(CloudModelCombo);
         settings.BaseUrl = CloudUrlText.Text.Trim();
 
         // Persist API key to Windows Credential Manager (encrypted, survives restarts)
@@ -174,86 +186,122 @@ public partial class SettingsWindow : Window
         };
     }
 
-    private void Save_Click(object sender, RoutedEventArgs e)
+    private async void Save_Click(object sender, RoutedEventArgs e)
     {
+        string originalSaveLabel = SaveButton.Content?.ToString() ?? "Save Settings";
+        SaveButton.IsEnabled = false;
+        SaveButton.Content = "Saving...";
+        SetSaveStatus("Saving settings and validating the active providers...", Brushes.Goldenrod);
+
         _logger.LogDebug("SettingsWindow.Save_Click started — provider={Provider} preferLocal={PreferLocal}",
             _currentSelectedCloudProvider, PreferLocalCheck.IsChecked);
 
         if (_llmEngine is null)
         {
             _logger.LogWarning("Save_Click: _llmEngine is null — closing without saving");
-            Close();
+            SetSaveStatus("Settings could not be saved because the LLM engine is unavailable.", Brushes.OrangeRed);
+            SaveButton.IsEnabled = true;
+            SaveButton.Content = originalSaveLabel;
             return;
         }
 
-        // Save current cloud provider fields
-        SaveCloudProviderFields(_currentSelectedCloudProvider);
-
-        // Save current local engine fields
-        SaveLocalEngineFields(_currentSelectedLocalEngine);
-
-        // Apply active selections
-        _configCopy.ActiveLocalEngine = (LocalEngineType)LocalEngineCombo.SelectedIndex;
-        _configCopy.ActiveCloudProvider = (CloudProviderType)CloudProviderCombo.SelectedIndex;
-
-        // Apply Happyface & Emulation settings
-        _configCopy.PreferLocal = PreferLocalCheck.IsChecked == true;
-        _llmEngine.AgenticToolUseEnabled = AgenticToolCheck.IsChecked == true;
-        _configCopy.EmulationBlendWeight = (float)EmuWeightSlider.Value;
-        _configCopy.ReflectionDelayMs = (int)DelaySlider.Value;
-        _configCopy.SyncBlinksToUser = SyncBlinksCheck.IsChecked == true;
-
-        // Log every setting at trace level for diagnostics
-        var activeSettings = GetCloudSettings(_configCopy.ActiveCloudProvider);
-        _logger.LogTrace(
-            "Settings being saved: provider={Provider} model={Model} url={BaseUrl} " +
-            "hasKey={HasKey} preferLocal={PreferLocal} agentic={Agentic} " +
-            "emulation={Emulation:F2} delay={Delay}ms syncBlinks={SyncBlinks} " +
-            "localEngine={LocalEngine}",
-            _configCopy.ActiveCloudProvider,
-            activeSettings.Model,
-            activeSettings.BaseUrl,
-            !string.IsNullOrEmpty(activeSettings.ApiKey),
-            _configCopy.PreferLocal,
-            _llmEngine.AgenticToolUseEnabled,
-            _configCopy.EmulationBlendWeight,
-            _configCopy.ReflectionDelayMs,
-            _configCopy.SyncBlinksToUser,
-            _configCopy.ActiveLocalEngine);
-
-        // Apply context settings (Phase 14)
-        if (_contextProvider is not null)
+        try
         {
-            _contextProvider.Environment = (HCEP.Core.Models.EnvironmentType)EnvironmentCombo.SelectedIndex;
-            _contextProvider.Activity = (HCEP.Core.Models.SituationActivity)ActivityCombo.SelectedIndex;
-            _contextProvider.Privacy = (HCEP.Core.Models.SituationPrivacy)PrivacyCombo.SelectedIndex;
-            _contextProvider.UserDefinedLocation = LocationLabelText.Text.Trim().Length > 0
-                ? LocationLabelText.Text.Trim() : null;
+            // Save current cloud provider fields
+            SaveCloudProviderFields(_currentSelectedCloudProvider);
+
+            // Save current local engine fields
+            SaveLocalEngineFields(_currentSelectedLocalEngine);
+
+            // Apply active selections
+            _configCopy.ActiveLocalEngine = (LocalEngineType)LocalEngineCombo.SelectedIndex;
+            _configCopy.ActiveCloudProvider = (CloudProviderType)CloudProviderCombo.SelectedIndex;
+
+            // Apply Happyface & Emulation settings
+            _configCopy.PreferLocal = PreferLocalCheck.IsChecked == true;
+            _llmEngine.AgenticToolUseEnabled = AgenticToolCheck.IsChecked == true;
+            _configCopy.EmulationBlendWeight = (float)EmuWeightSlider.Value;
+            _configCopy.ReflectionDelayMs = (int)DelaySlider.Value;
+            _configCopy.SyncBlinksToUser = SyncBlinksCheck.IsChecked == true;
+
+            // Log every setting at trace level for diagnostics
+            var activeSettings = GetCloudSettings(_configCopy.ActiveCloudProvider);
+            _logger.LogTrace(
+                "Settings being saved: provider={Provider} model={Model} url={BaseUrl} " +
+                "hasKey={HasKey} preferLocal={PreferLocal} agentic={Agentic} " +
+                "emulation={Emulation:F2} delay={Delay}ms syncBlinks={SyncBlinks} " +
+                "localEngine={LocalEngine}",
+                _configCopy.ActiveCloudProvider,
+                activeSettings.Model,
+                activeSettings.BaseUrl,
+                !string.IsNullOrEmpty(activeSettings.ApiKey),
+                _configCopy.PreferLocal,
+                _llmEngine.AgenticToolUseEnabled,
+                _configCopy.EmulationBlendWeight,
+                _configCopy.ReflectionDelayMs,
+                _configCopy.SyncBlinksToUser,
+                _configCopy.ActiveLocalEngine);
+
+            // Apply context settings (Phase 14)
+            if (_contextProvider is not null)
+            {
+                _contextProvider.Environment = (HCEP.Core.Models.EnvironmentType)EnvironmentCombo.SelectedIndex;
+                _contextProvider.Activity = (HCEP.Core.Models.SituationActivity)ActivityCombo.SelectedIndex;
+                _contextProvider.Privacy = (HCEP.Core.Models.SituationPrivacy)PrivacyCombo.SelectedIndex;
+                _contextProvider.UserDefinedLocation = LocationLabelText.Text.Trim().Length > 0
+                    ? LocationLabelText.Text.Trim() : null;
+            }
+
+            // Copy everything back to the engine
+            CopyConfig(_configCopy, _llmEngine.Configuration);
+
+            _logger.LogInformation(
+                "Settings saved — provider={Provider} model={Model} preferLocal={PreferLocal}",
+                _configCopy.ActiveCloudProvider,
+                GetCloudSettings(_configCopy.ActiveCloudProvider).Model,
+                _configCopy.PreferLocal);
+
+            // Persist settings to disk so they survive app restarts
+            HCEP.Intelligence.SettingsPersistence.Save(_llmEngine.Configuration, _logger);
+
+            await RefreshRuntimeStatusAsync(includeModelDiscovery: true);
+
+            SaveButton.Content = "Saved";
+            SetSaveStatus("Settings saved. See the connectivity summary in the confirmation dialog.", Brushes.LimeGreen);
+            MessageBox.Show(
+                BuildSaveSummary(),
+                "HCEP Settings Saved",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+
+            CloseCompat(true);
         }
-
-        // Copy everything back to the engine
-        CopyConfig(_configCopy, _llmEngine.Configuration);
-
-        _logger.LogInformation(
-            "Settings saved — provider={Provider} model={Model} preferLocal={PreferLocal}",
-            _configCopy.ActiveCloudProvider,
-            GetCloudSettings(_configCopy.ActiveCloudProvider).Model,
-            _configCopy.PreferLocal);
-
-        // Persist settings to disk so they survive app restarts
-        HCEP.Intelligence.SettingsPersistence.Save(_llmEngine.Configuration, _logger);
-
-        DialogResult = true;
-        Close();
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Settings save failed");
+            SetSaveStatus($"Save failed: {ex.Message}", Brushes.OrangeRed);
+            MessageBox.Show(
+                $"Settings could not be saved.\n\n{ex.Message}",
+                "HCEP Settings Save Failed",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+        }
+        finally
+        {
+            if (IsLoaded)
+            {
+                SaveButton.IsEnabled = true;
+                SaveButton.Content = originalSaveLabel;
+            }
+        }
     }
 
     private void Cancel_Click(object sender, RoutedEventArgs e)
     {
-        DialogResult = false;
-        Close();
+        CloseCompat(false);
     }
 
-    private void LocalEngineCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    private async void LocalEngineCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (_isInitializing) return;
 
@@ -264,6 +312,8 @@ public partial class SettingsWindow : Window
         var newEngine = (LocalEngineType)LocalEngineCombo.SelectedIndex;
         _currentSelectedLocalEngine = newEngine;
         LoadLocalEngineFields(newEngine);
+        UpdateRoutingSummary();
+        await RefreshLocalEngineStatusAsync(includeModelDiscovery: true);
     }
 
     private void LoadLocalEngineFields(LocalEngineType engine)
@@ -273,13 +323,13 @@ public partial class SettingsWindow : Window
         if (engine == LocalEngineType.Ollama)
         {
             LocalUrlText.Text = _configCopy.Ollama.BaseUrl;
-            LocalModelText.Text = _configCopy.Ollama.Model;
+            SetComboText(LocalModelCombo, _configCopy.Ollama.Model);
             LocalTempSlider.Value = _configCopy.Ollama.Temperature;
         }
         else if (engine == LocalEngineType.LlamaCpp)
         {
             LocalUrlText.Text = _configCopy.LlamaCpp.BaseUrl;
-            LocalModelText.Text = _configCopy.LlamaCpp.Model;
+            SetComboText(LocalModelCombo, _configCopy.LlamaCpp.Model);
             LocalTempSlider.Value = _configCopy.LlamaCpp.Temperature;
             LlamaCppCompatCheck.IsChecked = _configCopy.LlamaCpp.UseOaiCompatibleEndpoint;
         }
@@ -287,7 +337,7 @@ public partial class SettingsWindow : Window
         {
             var settings = GetGenericLocalSettings(engine);
             LocalUrlText.Text = settings.BaseUrl;
-            LocalModelText.Text = settings.Model;
+            SetComboText(LocalModelCombo, settings.Model);
             LocalTempSlider.Value = settings.Temperature;
         }
     }
@@ -297,13 +347,13 @@ public partial class SettingsWindow : Window
         if (engine == LocalEngineType.Ollama)
         {
             _configCopy.Ollama.BaseUrl = LocalUrlText.Text.Trim();
-            _configCopy.Ollama.Model = LocalModelText.Text.Trim();
+            _configCopy.Ollama.Model = GetComboText(LocalModelCombo);
             _configCopy.Ollama.Temperature = (float)LocalTempSlider.Value;
         }
         else if (engine == LocalEngineType.LlamaCpp)
         {
             _configCopy.LlamaCpp.BaseUrl = LocalUrlText.Text.Trim();
-            _configCopy.LlamaCpp.Model = LocalModelText.Text.Trim();
+            _configCopy.LlamaCpp.Model = GetComboText(LocalModelCombo);
             _configCopy.LlamaCpp.Temperature = (float)LocalTempSlider.Value;
             _configCopy.LlamaCpp.UseOaiCompatibleEndpoint = LlamaCppCompatCheck.IsChecked == true;
         }
@@ -311,9 +361,19 @@ public partial class SettingsWindow : Window
         {
             var settings = GetGenericLocalSettings(engine);
             settings.BaseUrl = LocalUrlText.Text.Trim();
-            settings.Model = LocalModelText.Text.Trim();
+            settings.Model = GetComboText(LocalModelCombo);
             settings.Temperature = (float)LocalTempSlider.Value;
         }
+    }
+
+    private async void RefreshLocalModels_Click(object sender, RoutedEventArgs e)
+    {
+        await RefreshLocalEngineStatusAsync(includeModelDiscovery: true, forceModelRefresh: true);
+    }
+
+    private async void RefreshCloudModels_Click(object sender, RoutedEventArgs e)
+    {
+        await RefreshCloudProviderStatusAsync(includeModelDiscovery: true, forceModelRefresh: true);
     }
 
     private GenericLocalSettings GetGenericLocalSettings(LocalEngineType engine)
@@ -382,6 +442,11 @@ public partial class SettingsWindow : Window
         SetCustomPreset();
     }
 
+    private void RoutingControl_Changed(object sender, RoutedEventArgs e)
+    {
+        UpdateRoutingSummary();
+    }
+
     private void SetCustomPreset()
     {
         if (_isInitializing || _isInitializingPreset) return;
@@ -421,6 +486,193 @@ public partial class SettingsWindow : Window
         finally
         {
             _isInitializingPreset = false;
+        }
+    }
+
+    private async Task RefreshRuntimeStatusAsync(bool includeModelDiscovery)
+    {
+        await RefreshLocalEngineStatusAsync(includeModelDiscovery);
+        await RefreshCloudProviderStatusAsync(includeModelDiscovery);
+        UpdateRoutingSummary();
+    }
+
+    private async Task RefreshLocalEngineStatusAsync(bool includeModelDiscovery, bool forceModelRefresh = false)
+    {
+        if (_llmEngine is null)
+        {
+            SetStatus(LocalConnectionStatusText, "Local engine diagnostics unavailable because the runtime engine is missing.", Brushes.OrangeRed);
+            return;
+        }
+
+        try
+        {
+            bool available = await _llmEngine.IsLocalAvailableAsync();
+            IReadOnlyList<string> models = Array.Empty<string>();
+
+            if (includeModelDiscovery && (available || forceModelRefresh))
+            {
+                models = await _llmEngine.GetAvailableLocalModelsAsync();
+                PopulateModelChoices(LocalModelCombo, models, GetComboText(LocalModelCombo));
+            }
+
+            if (available)
+            {
+                string message = models.Count switch
+                {
+                    > 0 => $"Connected. {models.Count} local model(s) discovered from {LocalUrlText.Text.Trim()}.",
+                    _ => $"Connected to {LocalUrlText.Text.Trim()}, but the engine did not report any model names."
+                };
+                SetStatus(LocalConnectionStatusText, message, Brushes.LimeGreen);
+            }
+            else
+            {
+                SetStatus(LocalConnectionStatusText, $"Unavailable. HCEP could not reach the local engine at {LocalUrlText.Text.Trim()}.", Brushes.OrangeRed);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to refresh local engine diagnostics");
+            SetStatus(LocalConnectionStatusText, $"Local model lookup failed: {ex.Message}", Brushes.OrangeRed);
+        }
+    }
+
+    private async Task RefreshCloudProviderStatusAsync(bool includeModelDiscovery, bool forceModelRefresh = false)
+    {
+        if (_llmEngine is null)
+        {
+            SetStatus(CloudConnectionStatusText, "Cloud diagnostics unavailable because the runtime engine is missing.", Brushes.OrangeRed);
+            return;
+        }
+
+        string apiKey = CloudApiKeyText.Password.Trim();
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            SetStatus(CloudConnectionStatusText, "No API key is currently loaded for the selected provider.", Brushes.OrangeRed);
+            return;
+        }
+
+        try
+        {
+            IReadOnlyList<string> models = Array.Empty<string>();
+            bool supportsDiscovery = SupportsCloudModelDiscovery(_currentSelectedCloudProvider);
+
+            if (includeModelDiscovery)
+            {
+                models = await _llmEngine.GetAvailableCloudModelsAsync(_currentSelectedCloudProvider);
+                if (supportsDiscovery || forceModelRefresh || models.Count > 1)
+                {
+                    PopulateModelChoices(CloudModelCombo, models, GetComboText(CloudModelCombo));
+                }
+            }
+
+            if (supportsDiscovery)
+            {
+                string message = models.Count switch
+                {
+                    > 0 => $"Connected. {models.Count} cloud model(s) discovered for {GetSelectionLabel(CloudProviderCombo)}.",
+                    _ => $"Connected to {GetSelectionLabel(CloudProviderCombo)}, but no model names were returned."
+                };
+                SetStatus(CloudConnectionStatusText, message, Brushes.LimeGreen);
+            }
+            else
+            {
+                SetStatus(
+                    CloudConnectionStatusText,
+                    $"API key loaded for {GetSelectionLabel(CloudProviderCombo)}. This provider does not expose a standard model-list endpoint, so HCEP uses the configured model name.",
+                    Brushes.Goldenrod);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to refresh cloud provider diagnostics for {Provider}", _currentSelectedCloudProvider);
+            SetStatus(CloudConnectionStatusText, $"Cloud model lookup failed: {ex.Message}", Brushes.OrangeRed);
+        }
+    }
+
+    private void UpdateRoutingSummary()
+    {
+        string localModel = GetComboText(LocalModelCombo);
+        string cloudModel = GetComboText(CloudModelCombo);
+        string summary = PreferLocalCheck.IsChecked == true
+            ? $"Chat and the system prompt share one route: local '{localModel}' first, then cloud '{cloudModel}' only if local is unavailable and a cloud API key is present."
+            : $"Chat and the system prompt share one route: cloud '{cloudModel}' first, with local '{localModel}' used only when forced or when cloud credentials are unavailable.";
+
+        SetSaveStatus(summary, Brushes.LightSteelBlue);
+    }
+
+    private string BuildSaveSummary()
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("Settings saved.");
+        builder.AppendLine();
+        builder.AppendLine($"Local engine: {GetSelectionLabel(LocalEngineCombo)}");
+        builder.AppendLine($"Local model: {GetComboText(LocalModelCombo)}");
+        builder.AppendLine($"Local status: {LocalConnectionStatusText.Text}");
+        builder.AppendLine();
+        builder.AppendLine($"Cloud provider: {GetSelectionLabel(CloudProviderCombo)}");
+        builder.AppendLine($"Cloud model: {GetComboText(CloudModelCombo)}");
+        builder.AppendLine($"Cloud status: {CloudConnectionStatusText.Text}");
+        builder.AppendLine();
+        builder.AppendLine(SaveStatusText.Text);
+        builder.AppendLine();
+        builder.AppendLine("There is no separate chat-model or system-model selector in the current architecture; both use the same active routing shown above.");
+        return builder.ToString();
+    }
+
+    private static void PopulateModelChoices(ComboBox comboBox, IEnumerable<string> models, string selectedModel)
+    {
+        var distinctModels = models
+            .Where(model => !string.IsNullOrWhiteSpace(model))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(model => model, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        comboBox.Items.Clear();
+        foreach (string model in distinctModels)
+        {
+            comboBox.Items.Add(model);
+        }
+
+        SetComboText(comboBox, selectedModel);
+    }
+
+    private static void SetComboText(ComboBox comboBox, string? value)
+    {
+        comboBox.Text = value ?? string.Empty;
+    }
+
+    private static string GetComboText(ComboBox comboBox) => comboBox.Text.Trim();
+
+    private static string GetSelectionLabel(ComboBox comboBox) =>
+        (comboBox.SelectedItem as ComboBoxItem)?.Content?.ToString()
+        ?? comboBox.Text.Trim();
+
+    private static bool SupportsCloudModelDiscovery(CloudProviderType provider) =>
+        provider is not CloudProviderType.Anthropic
+        and not CloudProviderType.AzureOpenAI
+        and not CloudProviderType.AmazonBedrock;
+
+    private static void SetStatus(TextBlock target, string message, Brush brush)
+    {
+        target.Text = message;
+        target.Foreground = brush;
+    }
+
+    private void SetSaveStatus(string message, Brush brush)
+    {
+        SaveStatusText.Text = message;
+        SaveStatusText.Foreground = brush;
+    }
+
+    private void CloseCompat(bool dialogResult)
+    {
+        try
+        {
+            DialogResult = dialogResult;
+        }
+        catch (InvalidOperationException)
+        {
+            Close();
         }
     }
 

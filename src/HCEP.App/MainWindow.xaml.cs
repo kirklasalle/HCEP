@@ -17,6 +17,7 @@
 // --------------------------------------------------------------
 
 using System.Windows;
+using System.Windows.Input;
 
 namespace HCEP.App;
 
@@ -25,11 +26,40 @@ namespace HCEP.App;
 /// </summary>
 public partial class MainWindow : Window
 {
+    private readonly MainViewModel _viewModel;
+
     public MainWindow(MainViewModel viewModel)
     {
         InitializeComponent();
+        _viewModel = viewModel;
         DataContext = viewModel;
         Loaded += async (_, _) => await viewModel.InitializeAsync();
         Closing += async (_, _) => await viewModel.ShutdownAsync();
+    }
+
+    private void ChatInput_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter)
+        {
+            return;
+        }
+
+        if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift)
+        {
+            return;
+        }
+
+        if (Keyboard.Modifiers != ModifierKeys.None)
+        {
+            return;
+        }
+
+        if (!_viewModel.SendCommand.CanExecute(null))
+        {
+            return;
+        }
+
+        e.Handled = true;
+        _viewModel.SendCommand.Execute(null);
     }
 }

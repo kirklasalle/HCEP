@@ -119,12 +119,13 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 
 ### Intelligence Layer
 
-- **Hybrid LLM**: Local Ollama (llama3:8b) + Cloud GPT-5-mini
+- **Hybrid LLM**: Configurable local engines plus configurable frontier cloud providers
 - HCEP-aware system prompts that modulate AI behavior per mode
-- Automatic local/cloud routing (THINK/LOGIC → local, SPIRIT/AFFECT/HEART → cloud)
+- Shared local/cloud routing for both chat and system prompts, controlled by the active settings profile
 - 5-step agentic reasoning loop with tools: `query_knowledge`, `get_hcep_state`, `store_knowledge`, `summarize_person`, `analyze_gaze_pattern`
 - **Cloud Circuit Breaker**: Opens after 3 consecutive cloud failures; all calls are short-circuited for a 30-second cool-down before retry
 - **Windows Credential Manager**: API keys are read from the WCM vault (`HCEP/OpenAI`, `HCEP/Anthropic`, etc.) first, falling back to environment variables — keys are never exposed in process listings
+- **Model Discovery in Settings**: The settings window can query the active local engine and supported cloud providers for available model IDs before saving
 - **Contextual Intelligence** ✅ *Implemented (Phase 14)*:
   - `ContextSnapshot` model captures Time × Space × Situation; injected as `[TimeOfDay | DayType | Season | Environment | Activity | Register | SilenceProtocol | TZ]` into every LLM prompt
   - `TimeContextProvider` classifies time-of-day band, day type, season; derives `CommunicationRegister` and `TemporalUrgency`
@@ -150,9 +151,10 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - Head pose (pitch, yaw, roll)
 - Pipeline metrics (FPS, vision latency, tracked persons, beam angle)
 - Speech transcript log
-- LLM chat interface
+- LLM chat interface with `Enter` to send and `Shift+Enter` for newline
 - Full Body toggle button (switches Kinect between 20-joint and 10-joint tracking)
 - Sensor Streams and Kinect Video child windows
+- AI settings window with local/cloud model selection, connectivity diagnostics, and save confirmation feedback
 
 ---
 
@@ -205,7 +207,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full list of changes.
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**12 projects** | **193 unit tests** | **.NET 9.0** | **x64 only**
+**12 projects** | **211 unit tests** | **.NET 9.0** | **x64 only**
 
 ---
 

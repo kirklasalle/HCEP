@@ -29,6 +29,16 @@ internal sealed class OllamaResponse
     [JsonPropertyName("response")] public string? Response { get; set; }
 }
 
+internal sealed class OllamaTagsResponse
+{
+    [JsonPropertyName("models")] public List<OllamaTagInfo>? Models { get; set; }
+}
+
+internal sealed class OllamaTagInfo
+{
+    [JsonPropertyName("name")] public string? Name { get; set; }
+}
+
 internal sealed class OllamaStreamResponse
 {
     [JsonPropertyName("response")] public string? Response { get; set; }
@@ -100,6 +110,17 @@ internal sealed class GeminiResponse
     [JsonPropertyName("candidates")] public List<GeminiCandidate>? Candidates { get; set; }
 }
 
+internal sealed class GeminiModelsResponse
+{
+    [JsonPropertyName("models")] public List<GeminiModelInfo>? Models { get; set; }
+}
+
+internal sealed class GeminiModelInfo
+{
+    [JsonPropertyName("name")] public string? Name { get; set; }
+    [JsonPropertyName("supportedGenerationMethods")] public List<string>? SupportedGenerationMethods { get; set; }
+}
+
 internal sealed class GeminiCandidate
 {
     [JsonPropertyName("content")] public GeminiContent? Content { get; set; }
@@ -157,6 +178,16 @@ internal sealed class OpenAiToolCallFunction
 internal sealed class OpenAiResponse
 {
     [JsonPropertyName("choices")] public List<OpenAiChoice>? Choices { get; set; }
+}
+
+internal sealed class OpenAiModelsResponse
+{
+    [JsonPropertyName("data")] public List<OpenAiModelInfo>? Data { get; set; }
+}
+
+internal sealed class OpenAiModelInfo
+{
+    [JsonPropertyName("id")] public string? Id { get; set; }
 }
 
 internal sealed class OpenAiChoice

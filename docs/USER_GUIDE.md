@@ -292,6 +292,9 @@ Simply talk naturally while facing the Kinect. HCEP listens through Whisper spee
 
 You can also type in the chat panel. The AI still uses your current HCEP mode (from gaze analysis) to modulate its response style.
 
+- Press `Enter` to send the current message
+- Press `Shift+Enter` to insert a newline for a multi-line prompt
+
 ### Multi-Person
 
 Kinect v1 supports tracking up to 2 people simultaneously. Each person gets their own identity, knowledge store, and HCEP mode tracking.
@@ -320,6 +323,34 @@ If BrainSim III's Universal Knowledge Store (UKS) is available, HCEP uses it for
 ---
 
 ## 9. Configuration
+
+Most day-to-day AI configuration now happens directly in the **Settings** window from the dashboard header.
+
+### AI Settings Window
+
+Open **Settings** from the top-right toolbar. The dialog is divided into four tabs:
+
+- **Local Engines** — choose the active local runtime (Ollama, llama.cpp, LM Studio, Jan, GPT4All, LocalAI, vLLM, oobabooga, KoboldCpp, BitNet, or Custom OpenAI-compatible), set the base URL, select or type a model, and fetch available model names from the running local engine.
+- **Frontier Cloud** — choose the active cloud provider, enter or update the API key, select or type a model, and fetch available models from providers that expose a compatible model-list endpoint.
+- **Happyface / Emulation** — control whether local routing is preferred, whether agentic tool use is enabled, and how strongly/avatar quickly Happyface mirrors the user.
+- **Context** — set environment, activity, privacy, and location label to influence the contextual system prompt and silence protocol.
+
+### How LLM Routing Works
+
+HCEP currently uses a **shared routing model** for all AI replies:
+
+- The **same active local engine** and **same active cloud provider** are used by both the typed chat assistant and the system-prompt-driven runtime path.
+- If **Prefer Local** is enabled, HCEP tries the active local engine first.
+- If local inference is unavailable and a valid cloud API key is present, HCEP falls back to the active cloud provider.
+- If **Prefer Local** is disabled, the cloud route is preferred first.
+
+There is not a separate “chat model” and “system model” selector in the current architecture.
+
+### Model Discovery and Save Feedback
+
+- Use **Fetch Models** in the Local Engines or Frontier Cloud tabs to query the currently selected backend before saving.
+- The settings window shows inline connectivity status so you can tell whether HCEP actually reached the selected backend.
+- When you save, the button shows progress and HCEP displays a confirmation summary describing what was saved and which backends were reachable.
 
 ---
 
@@ -401,8 +432,11 @@ The Silence Protocol is driven entirely by your face — no manual configuration
 
 | Setting | Default | Description |
 |---|---|---|
-| Local model | `llama3:8b` | Ollama model for THINK/LOGIC modes |
-| Cloud model | `gpt-5-mini` | OpenAI model for SPIRIT/AFFECT modes |
+| Local model | User-selectable | Active model for the selected local engine |
+| Cloud model | User-selectable | Active model for the selected cloud provider |
+| Prefer Local | Enabled by default | Try the active local engine before the active cloud provider |
+| Active local engine | `Ollama` by default | Chooses which local runtime HCEP will contact |
+| Active cloud provider | `OpenAI` by default | Chooses which cloud provider HCEP will contact |
 | Agentic steps | 5 | Maximum reasoning steps per query |
 | Local timeout | 3 seconds | Failover threshold to cloud |
 
@@ -458,10 +492,22 @@ The Silence Protocol is driven entirely by your face — no manual configuration
 
 **Solutions:**
 
-1. **For local AI:** Verify Ollama is running (`ollama list` in terminal)
-2. **For cloud AI:** Verify `OPENAI_API_KEY` environment variable is set
-3. Check logs for HTTP errors or timeouts
-4. Verify internet connectivity (for cloud AI)
+1. Open **Settings** and verify the inline Local/Cloud status text for the active provider.
+2. **For local AI:** Verify the selected local engine is running. For Ollama, `ollama list` should succeed and **Fetch Models** should return model names.
+3. **For cloud AI:** Verify the API key is present for the selected provider. HCEP prefers Windows Credential Manager storage and will also show whether the selected provider could be queried.
+4. Confirm the selected model name is valid for the active backend.
+5. Check logs for HTTP errors, provider authentication failures, or timeouts.
+6. Verify internet connectivity for cloud providers.
+
+### Settings Save Error
+
+**Symptoms:** The settings window appears to save but closes with an error or gives no confirmation.
+
+**Solutions:**
+
+1. Update to the latest build so the non-modal settings window uses the corrected save path.
+2. Reopen **Settings** and save again. The button should show progress and then present a confirmation summary.
+3. If save still fails, inspect the status line at the bottom of the settings window and check the application logs for the underlying exception.
 
 ### App Crashes on Startup
 

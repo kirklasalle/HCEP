@@ -187,27 +187,27 @@ public sealed class HybridLlmEngine : ILlmEngine
                 {
                     string response = Configuration.ActiveCloudProvider switch
                     {
-                        CloudProviderType.Anthropic => await CallAnthropicAsync(systemPrompt, userMessage, ct),
-                        CloudProviderType.Gemini => await CallGeminiAsync(systemPrompt, userMessage, ct),
+                        CloudProviderType.Anthropic => await CallAnthropicAsync(systemPrompt, userMessage, GetCloudApiKey(CloudProviderType.Anthropic), ct),
+                        CloudProviderType.Gemini => await CallGeminiAsync(systemPrompt, userMessage, GetCloudApiKey(CloudProviderType.Gemini), ct),
                         // All other providers use the OpenAI-compatible /v1/chat/completions endpoint
-                        CloudProviderType.Mistral => await CallOpenAiCompatibleApiAsync(Configuration.Mistral.BaseUrl, Configuration.Mistral.ApiKey, Configuration.Mistral.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.xAI => await CallOpenAiCompatibleApiAsync(Configuration.xAI.BaseUrl, Configuration.xAI.ApiKey, Configuration.xAI.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.Cohere => await CallOpenAiCompatibleApiAsync(Configuration.Cohere.BaseUrl, Configuration.Cohere.ApiKey, Configuration.Cohere.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.OpenRouter => await CallOpenAiCompatibleApiAsync(Configuration.OpenRouter.BaseUrl, Configuration.OpenRouter.ApiKey, Configuration.OpenRouter.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.DeepSeek => await CallOpenAiCompatibleApiAsync(Configuration.DeepSeek.BaseUrl, Configuration.DeepSeek.ApiKey, Configuration.DeepSeek.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.Groq => await CallOpenAiCompatibleApiAsync(Configuration.Groq.BaseUrl, Configuration.Groq.ApiKey, Configuration.Groq.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.TogetherAI => await CallOpenAiCompatibleApiAsync(Configuration.TogetherAI.BaseUrl, Configuration.TogetherAI.ApiKey, Configuration.TogetherAI.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.FireworksAI => await CallOpenAiCompatibleApiAsync(Configuration.FireworksAI.BaseUrl, Configuration.FireworksAI.ApiKey, Configuration.FireworksAI.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.Perplexity => await CallOpenAiCompatibleApiAsync(Configuration.Perplexity.BaseUrl, Configuration.Perplexity.ApiKey, Configuration.Perplexity.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.AI21Labs => await CallOpenAiCompatibleApiAsync(Configuration.AI21Labs.BaseUrl, Configuration.AI21Labs.ApiKey, Configuration.AI21Labs.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.Replicate => await CallOpenAiCompatibleApiAsync(Configuration.Replicate.BaseUrl, Configuration.Replicate.ApiKey, Configuration.Replicate.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.HuggingFace => await CallOpenAiCompatibleApiAsync(Configuration.HuggingFace.BaseUrl, Configuration.HuggingFace.ApiKey, Configuration.HuggingFace.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.AzureOpenAI => await CallOpenAiCompatibleApiAsync(Configuration.AzureOpenAI.BaseUrl, Configuration.AzureOpenAI.ApiKey, Configuration.AzureOpenAI.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.AmazonBedrock => await CallOpenAiCompatibleApiAsync(Configuration.AmazonBedrock.BaseUrl, Configuration.AmazonBedrock.ApiKey, Configuration.AmazonBedrock.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.NvidiaNIM => await CallOpenAiCompatibleApiAsync(Configuration.NvidiaNIM.BaseUrl, Configuration.NvidiaNIM.ApiKey, Configuration.NvidiaNIM.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.Cerebras => await CallOpenAiCompatibleApiAsync(Configuration.Cerebras.BaseUrl, Configuration.Cerebras.ApiKey, Configuration.Cerebras.Model, systemPrompt, userMessage, ct),
-                        CloudProviderType.MoonshotAI => await CallOpenAiCompatibleApiAsync(Configuration.MoonshotAI.BaseUrl, Configuration.MoonshotAI.ApiKey, Configuration.MoonshotAI.Model, systemPrompt, userMessage, ct),
-                        _ => await CallOpenAiCompatibleApiAsync(Configuration.OpenAI.BaseUrl, Configuration.OpenAI.ApiKey, Configuration.OpenAI.Model, systemPrompt, userMessage, ct)
+                        CloudProviderType.Mistral => await CallOpenAiCompatibleApiAsync(Configuration.Mistral.BaseUrl, GetCloudApiKey(CloudProviderType.Mistral), Configuration.Mistral.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.xAI => await CallOpenAiCompatibleApiAsync(Configuration.xAI.BaseUrl, GetCloudApiKey(CloudProviderType.xAI), Configuration.xAI.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.Cohere => await CallOpenAiCompatibleApiAsync(Configuration.Cohere.BaseUrl, GetCloudApiKey(CloudProviderType.Cohere), Configuration.Cohere.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.OpenRouter => await CallOpenAiCompatibleApiAsync(Configuration.OpenRouter.BaseUrl, GetCloudApiKey(CloudProviderType.OpenRouter), Configuration.OpenRouter.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.DeepSeek => await CallOpenAiCompatibleApiAsync(Configuration.DeepSeek.BaseUrl, GetCloudApiKey(CloudProviderType.DeepSeek), Configuration.DeepSeek.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.Groq => await CallOpenAiCompatibleApiAsync(Configuration.Groq.BaseUrl, GetCloudApiKey(CloudProviderType.Groq), Configuration.Groq.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.TogetherAI => await CallOpenAiCompatibleApiAsync(Configuration.TogetherAI.BaseUrl, GetCloudApiKey(CloudProviderType.TogetherAI), Configuration.TogetherAI.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.FireworksAI => await CallOpenAiCompatibleApiAsync(Configuration.FireworksAI.BaseUrl, GetCloudApiKey(CloudProviderType.FireworksAI), Configuration.FireworksAI.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.Perplexity => await CallOpenAiCompatibleApiAsync(Configuration.Perplexity.BaseUrl, GetCloudApiKey(CloudProviderType.Perplexity), Configuration.Perplexity.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.AI21Labs => await CallOpenAiCompatibleApiAsync(Configuration.AI21Labs.BaseUrl, GetCloudApiKey(CloudProviderType.AI21Labs), Configuration.AI21Labs.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.Replicate => await CallOpenAiCompatibleApiAsync(Configuration.Replicate.BaseUrl, GetCloudApiKey(CloudProviderType.Replicate), Configuration.Replicate.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.HuggingFace => await CallOpenAiCompatibleApiAsync(Configuration.HuggingFace.BaseUrl, GetCloudApiKey(CloudProviderType.HuggingFace), Configuration.HuggingFace.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.AzureOpenAI => await CallOpenAiCompatibleApiAsync(Configuration.AzureOpenAI.BaseUrl, GetCloudApiKey(CloudProviderType.AzureOpenAI), Configuration.AzureOpenAI.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.AmazonBedrock => await CallOpenAiCompatibleApiAsync(Configuration.AmazonBedrock.BaseUrl, GetCloudApiKey(CloudProviderType.AmazonBedrock), Configuration.AmazonBedrock.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.NvidiaNIM => await CallOpenAiCompatibleApiAsync(Configuration.NvidiaNIM.BaseUrl, GetCloudApiKey(CloudProviderType.NvidiaNIM), Configuration.NvidiaNIM.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.Cerebras => await CallOpenAiCompatibleApiAsync(Configuration.Cerebras.BaseUrl, GetCloudApiKey(CloudProviderType.Cerebras), Configuration.Cerebras.Model, systemPrompt, userMessage, ct),
+                        CloudProviderType.MoonshotAI => await CallOpenAiCompatibleApiAsync(Configuration.MoonshotAI.BaseUrl, GetCloudApiKey(CloudProviderType.MoonshotAI), Configuration.MoonshotAI.Model, systemPrompt, userMessage, ct),
+                        _ => await CallOpenAiCompatibleApiAsync(Configuration.OpenAI.BaseUrl, GetCloudApiKey(CloudProviderType.OpenAI), Configuration.OpenAI.Model, systemPrompt, userMessage, ct)
                     };
 
                     // Success — reset circuit breaker
@@ -386,6 +386,42 @@ public sealed class HybridLlmEngine : ILlmEngine
         }
     }
 
+    public async Task<IReadOnlyList<string>> GetAvailableLocalModelsAsync(CancellationToken ct = default)
+    {
+        var localConfig = GetLocalEngineConfig();
+
+        return Configuration.ActiveLocalEngine switch
+        {
+            LocalEngineType.Ollama => await GetOllamaModelsAsync(localConfig.BaseUrl, ct),
+            LocalEngineType.LlamaCpp when !Configuration.LlamaCpp.UseOaiCompatibleEndpoint =>
+                string.IsNullOrWhiteSpace(localConfig.Model)
+                    ? Array.Empty<string>()
+                    : new[] { localConfig.Model },
+            _ => await GetOpenAiCompatibleModelsAsync(localConfig.BaseUrl, string.Empty, ct)
+        };
+    }
+
+    public async Task<IReadOnlyList<string>> GetAvailableCloudModelsAsync(CloudProviderType provider, CancellationToken ct = default)
+    {
+        var settings = GetCloudProviderSettings(provider);
+        var apiKey = GetCloudApiKey(provider);
+
+        if (string.IsNullOrWhiteSpace(settings.BaseUrl))
+        {
+            return Array.Empty<string>();
+        }
+
+        return provider switch
+        {
+            CloudProviderType.Gemini => await GetGeminiModelsAsync(settings.BaseUrl, apiKey, ct),
+            CloudProviderType.Anthropic or CloudProviderType.AzureOpenAI or CloudProviderType.AmazonBedrock =>
+                string.IsNullOrWhiteSpace(settings.Model)
+                    ? Array.Empty<string>()
+                    : new[] { settings.Model },
+            _ => await GetOpenAiCompatibleModelsAsync(settings.BaseUrl, apiKey, ct)
+        };
+    }
+
     // ── Private Inference Helpers ────────────────────────────────
 
     private string BuildSystemPrompt(HcepReading? hcep)
@@ -461,7 +497,10 @@ public sealed class HybridLlmEngine : ILlmEngine
 
     /// <summary>Returns the active cloud provider's CloudProviderSettings for trace logging.</summary>
     private HCEP.Core.Models.CloudProviderSettings GetActiveCloudProviderSettings() =>
-        Configuration.ActiveCloudProvider switch
+        GetCloudProviderSettings(Configuration.ActiveCloudProvider);
+
+    private HCEP.Core.Models.CloudProviderSettings GetCloudProviderSettings(CloudProviderType provider) =>
+        provider switch
         {
             CloudProviderType.Anthropic => Configuration.Anthropic,
             CloudProviderType.Gemini => Configuration.Gemini,
@@ -509,12 +548,14 @@ public sealed class HybridLlmEngine : ILlmEngine
         _ => Configuration.OpenAI.Model
     };
 
-    private string GetActiveCloudApiKey()
+    private string GetActiveCloudApiKey() => GetCloudApiKey(Configuration.ActiveCloudProvider);
+
+    private string GetCloudApiKey(CloudProviderType provider)
     {
         // Priority: Windows Credential Manager → LlmConfiguration property → empty string.
         // WCM keys are stored under "HCEP/<ProviderName>" and are never visible in
         // process listings or environment dumps.
-        return Configuration.ActiveCloudProvider switch
+        return provider switch
         {
             CloudProviderType.Anthropic =>
                 WindowsCredentialStore.LoadWithFallback(WindowsCredentialStore.Anthropic, "ANTHROPIC_API_KEY", _logger)
@@ -623,10 +664,10 @@ public sealed class HybridLlmEngine : ILlmEngine
 
     // ── Frontier Cloud Client Methods ────────────────────────────
 
-    private async Task<string> CallAnthropicAsync(string system, string prompt, CancellationToken ct)
+    private async Task<string> CallAnthropicAsync(string system, string prompt, string apiKey, CancellationToken ct)
     {
         using var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"{Configuration.Anthropic.BaseUrl}/v1/messages");
-        requestMessage.Headers.Add("x-api-key", Configuration.Anthropic.ApiKey);
+        requestMessage.Headers.Add("x-api-key", apiKey);
         requestMessage.Headers.Add("anthropic-version", "2023-06-01");
 
         var payload = new AnthropicRequest
@@ -645,9 +686,9 @@ public sealed class HybridLlmEngine : ILlmEngine
         return result?.Content?.FirstOrDefault()?.Text ?? string.Empty;
     }
 
-    private async Task<string> CallGeminiAsync(string system, string prompt, CancellationToken ct)
+    private async Task<string> CallGeminiAsync(string system, string prompt, string apiKey, CancellationToken ct)
     {
-        string url = $"{Configuration.Gemini.BaseUrl}/models/{Configuration.Gemini.Model}:generateContent?key={Configuration.Gemini.ApiKey}";
+        string url = $"{Configuration.Gemini.BaseUrl}/models/{Configuration.Gemini.Model}:generateContent?key={apiKey}";
 
         var payload = new GeminiRequest
         {
@@ -783,6 +824,63 @@ public sealed class HybridLlmEngine : ILlmEngine
         }
 
         return messages.LastOrDefault(m => m.Role == "assistant")?.Content ?? "[Max agentic steps reached]";
+    }
+
+    private async Task<IReadOnlyList<string>> GetOllamaModelsAsync(string baseUrl, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync($"{baseUrl}/api/tags", ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<OllamaTagsResponse>(ct);
+        return result?.Models?
+            .Select(model => model.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToArray()
+            ?? Array.Empty<string>();
+    }
+
+    private async Task<IReadOnlyList<string>> GetOpenAiCompatibleModelsAsync(string baseUrl, string apiKey, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/models");
+        if (!string.IsNullOrWhiteSpace(apiKey))
+        {
+            request.Headers.Authorization = new("Bearer", apiKey);
+        }
+
+        using var response = await _httpClient.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<OpenAiModelsResponse>(ct);
+        return result?.Data?
+            .Select(model => model.Id)
+            .Where(id => !string.IsNullOrWhiteSpace(id))
+            .Select(id => id!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(id => id, StringComparer.OrdinalIgnoreCase)
+            .ToArray()
+            ?? Array.Empty<string>();
+    }
+
+    private async Task<IReadOnlyList<string>> GetGeminiModelsAsync(string baseUrl, string apiKey, CancellationToken ct)
+    {
+        using var response = await _httpClient.GetAsync($"{baseUrl}/models?key={apiKey}", ct);
+        response.EnsureSuccessStatusCode();
+
+        var result = await response.Content.ReadFromJsonAsync<GeminiModelsResponse>(ct);
+        return result?.Models?
+            .Where(model => model.SupportedGenerationMethods?.Contains("generateContent", StringComparer.OrdinalIgnoreCase) == true)
+            .Select(model => model.Name?.StartsWith("models/", StringComparison.OrdinalIgnoreCase) == true
+                ? model.Name[7..]
+                : model.Name)
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name!)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToArray()
+            ?? Array.Empty<string>();
     }
 
 }

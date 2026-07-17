@@ -57,6 +57,27 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased] — 2026-07-03
 
+### Added — 2026-07-17
+
+- **Settings model discovery and connectivity diagnostics** — `SettingsWindow` now queries the active local engine and supported cloud providers for available models, displays inline connectivity state, and shows a routing summary explaining the currently active local/cloud path used by chat and system prompts.
+- **Settings save feedback** — The settings dialog now gives visible save-button feedback and a post-save confirmation summary instead of failing silently.
+- **Chat input refinement** — The main chat text box now supports `Enter` to send and `Shift+Enter` to insert a newline for short multi-line prompts.
+
+### Changed — 2026-07-17
+
+- **LLM routing UX** — The settings UI now makes the current architecture explicit: HCEP uses one active local route and one active cloud route shared by both typed chat and the generated system-prompt path.
+- **Chat compose box** — Upgraded from a strictly single-line input to a wrapped multi-line box with bounded height.
+
+### Fixed — 2026-07-17
+
+- **Cloud credential usage at runtime** — `HybridLlmEngine` cloud requests now consistently use API keys loaded from Windows Credential Manager at call time rather than relying on in-memory config fields that could be empty after restart.
+- **Gemini and Anthropic request auth** — Provider-specific request paths now use the resolved active key instead of stale config-only values.
+- **Settings dialog save crash** — Saving from the non-modal settings window no longer throws `DialogResult can be set only after Window is created and shown as dialog.`
+
+### Documentation — 2026-07-17
+
+- **README / User Guide / Developer Guide refresh** — Updated LLM routing, settings behavior, chat controls, troubleshooting, and test-count references to match the current implementation.
+
 ### Added — 2026-07-16
 
 - **Avatar mirroring toggle (default OFF)** — Added `MIRROR` toggle to the Avatar HUD (`AvatarWindow.xaml`) and display-layer gating in `AvatarWindow.xaml.cs` so gaze, head-pose mirroring, smile mirroring, gesture mirroring, and user-AU brow mirroring are only applied when mirroring is enabled. User tracking, telemetry, HCEP classification, social gaze, proxemics, and backchannel processing remain active.

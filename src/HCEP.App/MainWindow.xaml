@@ -154,10 +154,8 @@
                            VerticalAlignment="Center"
                            Margin="12,0,0,0"
                            ToolTip="Full application title"/>
-
                 <!-- Window Launch Buttons -->
-                <Button Grid.Column="2"
-                        Content="◎ Sensor Streams"
+                Content="◎ Sensor Streams"
                         Command="{Binding OpenSensorViewCommand}"
                         Background="{StaticResource SurfaceBrush}"
                         Foreground="{StaticResource AccentBrush}"
@@ -744,6 +742,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <TextBox Grid.Column="0"
+                                     x:Name="ChatInputTextBox"
                                      Text="{Binding ChatInput, UpdateSourceTrigger=PropertyChanged}"
                                      Background="#20FFFFFF"
                                      Foreground="{StaticResource TextBrush}"
@@ -751,7 +750,13 @@
                                      Padding="8,6"
                                      FontSize="12"
                                      VerticalContentAlignment="Center"
-                                     ToolTip="Type a message to send to the LLM assistant — press Enter or click Send"/>
+                                     AcceptsReturn="True"
+                                     TextWrapping="Wrap"
+                                     MinLines="1"
+                                     MaxLines="4"
+                                     VerticalScrollBarVisibility="Auto"
+                                     PreviewKeyDown="ChatInput_PreviewKeyDown"
+                                     ToolTip="Press Enter to send. Press Shift+Enter to insert a new line."/>
                             <Button Grid.Column="1"
                                     Content="Send"
                                     Margin="6,0,0,0"

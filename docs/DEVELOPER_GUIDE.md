@@ -351,10 +351,12 @@ Knowledge persistence and person memory. References `HCEP.Core`.
 Hybrid LLM engine with agentic capabilities. References `HCEP.Core`, `HCEP.Knowledge`.
 
 - `HybridLlmEngine` — Implements `ILlmEngine`. Dual-backend:
-  - **Local:** Ollama HTTP API (`http://localhost:11434/api/generate`), default model `llama3:8b`, streaming support
-  - **Cloud:** OpenAI-compatible API (`https://api.openai.com/v1/chat/completions`), default model `gpt-5-mini`, agentic tool-use
-  - Routing: `HcepPromptBridge.ShouldUseCloud()` decides based on HCEP mode
+  - **Local:** Active local engine selected in `LlmConfiguration` (`Ollama`, `llama.cpp`, `LM Studio`, `Jan`, `GPT4All`, `LocalAI`, `vLLM`, `oobabooga`, `KoboldCpp`, `BitNet`, or custom OpenAI-compatible)
+  - **Cloud:** Active cloud provider selected in `LlmConfiguration` (`OpenAI`, `Anthropic`, `Gemini`, `Mistral`, `xAI`, `Cohere`, `OpenRouter`, `DeepSeek`, `Groq`, `TogetherAI`, `FireworksAI`, `Perplexity`, `AI21Labs`, `Replicate`, `HuggingFace`, `Azure OpenAI`, `Amazon Bedrock`, `NVIDIA NIM`, `Cerebras`, `Moonshot AI`)
+  - Routing: `Configuration.PreferLocal` and runtime availability determine whether the shared chat/system path uses local-first or cloud-first execution
   - Agentic loop: Up to `MaxAgenticSteps = 5` tool-use iterations per query
+  - Model discovery: `GetAvailableLocalModelsAsync()` and `GetAvailableCloudModelsAsync()` are used by `SettingsWindow` to populate selectable model IDs
+  - Credentials: cloud requests resolve API keys from Windows Credential Manager at call time before falling back to environment variables or in-memory config
   - OpenAI DTOs: `OpenAiRequest`, `OpenAiResponse`, `OpenAiToolCallDto`, `OpenAiToolCallFunction`
 
 - `AgenticToolDefinitions` — Defines 5 HCEP tools in OpenAI function-calling format:
@@ -515,10 +517,10 @@ Channels use `BoundedChannelOptions` with `FullMode.DropOldest` to prevent pipel
 
 ### 7.4 Adding a New LLM Backend
 
-1. The `HybridLlmEngine` currently supports Ollama (local) and OpenAI-compatible (cloud)
+1. The `HybridLlmEngine` currently supports multiple local runtimes plus provider-specific and OpenAI-compatible cloud paths.
 2. To add a new backend:
    - Add a new private method: `Task<LlmExchange> CallNewBackendAsync(string prompt, string context)`
-   - Update routing logic in `GenerateAsync()`
+  - Update routing logic in `PromptAsync()`
    - Add configuration for endpoint URL, model name, API key
 3. Or implement a standalone `ILlmEngine` and swap in DI
 

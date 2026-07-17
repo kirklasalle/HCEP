@@ -14,614 +14,690 @@
         ToolTipService.ShowDuration="12000"
         ToolTipService.InitialShowDelay="350">
 
-    <Window.Resources>
-        <Style TargetType="TextBlock">
-            <Setter Property="Foreground"
-                    Value="{StaticResource TextBrush}"/>
-            <Setter Property="FontSize"
-                    Value="12"/>
-            <Setter Property="VerticalAlignment"
-                    Value="Center"/>
-        </Style>
-        <Style TargetType="TextBox">
-            <Setter Property="Background"
-                    Value="#252540"/>
-            <Setter Property="Foreground"
-                    Value="{StaticResource TextBrush}"/>
-            <Setter Property="BorderBrush"
-                    Value="{StaticResource AccentBrush}"/>
-            <Setter Property="BorderThickness"
-                    Value="1"/>
-            <Setter Property="Padding"
-                    Value="5,3"/>
-            <Setter Property="VerticalAlignment"
-                    Value="Center"/>
-            <Setter Property="FontSize"
-                    Value="12"/>
-        </Style>
-        <Style TargetType="ComboBox">
-            <Setter Property="Background"
-                    Value="#252540"/>
-            <Setter Property="Foreground"
-                    Value="Black"/>
-            <Setter Property="Padding"
-                    Value="5,3"/>
-            <Setter Property="VerticalAlignment"
-                    Value="Center"/>
-            <Setter Property="FontSize"
-                    Value="12"/>
-        </Style>
-        <Style TargetType="CheckBox">
-            <Setter Property="Foreground"
-                    Value="{StaticResource TextBrush}"/>
-            <Setter Property="VerticalAlignment"
-                    Value="Center"/>
-            <Setter Property="FontSize"
-                    Value="12"/>
-        </Style>
-        <!-- PasswordBox styled to match TextBox (masked for API keys) -->
-        <Style TargetType="PasswordBox">
-            <Setter Property="Background"
-                    Value="#252540"/>
-            <Setter Property="Foreground"
-                    Value="{StaticResource TextBrush}"/>
-            <Setter Property="BorderBrush"
-                    Value="{StaticResource AccentBrush}"/>
-            <Setter Property="BorderThickness"
-                    Value="1"/>
-            <Setter Property="Padding"
-                    Value="5,3"/>
-            <Setter Property="VerticalAlignment"
-                    Value="Center"/>
-            <Setter Property="FontSize"
-                    Value="12"/>
-            <Setter Property="PasswordChar"
-                    Value="●"/>
-        </Style>
-        <Style TargetType="TabItem">
-            <Setter Property="HeaderTemplate">
-                <Setter.Value>
-                    <DataTemplate>
-                        <ContentPresenter Content="{TemplateBinding Content}"
-                                          Margin="10,5"/>
-                    </DataTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </Window.Resources>
+        <Window.Resources>
+                <Style TargetType="TextBlock">
+                        <Setter Property="Foreground"
+                                Value="{StaticResource TextBrush}"/>
+                        <Setter Property="FontSize"
+                                Value="12"/>
+                        <Setter Property="VerticalAlignment"
+                                Value="Center"/>
+                </Style>
+                <Style TargetType="TextBox">
+                        <Setter Property="Background"
+                                Value="#252540"/>
+                        <Setter Property="Foreground"
+                                Value="{StaticResource TextBrush}"/>
+                        <Setter Property="BorderBrush"
+                                Value="{StaticResource AccentBrush}"/>
+                        <Setter Property="BorderThickness"
+                                Value="1"/>
+                        <Setter Property="Padding"
+                                Value="5,3"/>
+                        <Setter Property="VerticalAlignment"
+                                Value="Center"/>
+                        <Setter Property="FontSize"
+                                Value="12"/>
+                </Style>
+                <Style TargetType="ComboBox">
+                        <Setter Property="Background"
+                                Value="#252540"/>
+                        <Setter Property="Foreground"
+                                Value="Black"/>
+                        <Setter Property="Padding"
+                                Value="5,3"/>
+                        <Setter Property="VerticalAlignment"
+                                Value="Center"/>
+                        <Setter Property="FontSize"
+                                Value="12"/>
+                </Style>
+                <Style TargetType="CheckBox">
+                        <Setter Property="Foreground"
+                                Value="{StaticResource TextBrush}"/>
+                        <Setter Property="VerticalAlignment"
+                                Value="Center"/>
+                        <Setter Property="FontSize"
+                                Value="12"/>
+                </Style>
+                <!-- PasswordBox styled to match TextBox (masked for API keys) -->
+                <Style TargetType="PasswordBox">
+                        <Setter Property="Background"
+                                Value="#252540"/>
+                        <Setter Property="Foreground"
+                                Value="{StaticResource TextBrush}"/>
+                        <Setter Property="BorderBrush"
+                                Value="{StaticResource AccentBrush}"/>
+                        <Setter Property="BorderThickness"
+                                Value="1"/>
+                        <Setter Property="Padding"
+                                Value="5,3"/>
+                        <Setter Property="VerticalAlignment"
+                                Value="Center"/>
+                        <Setter Property="FontSize"
+                                Value="12"/>
+                        <Setter Property="PasswordChar"
+                                Value="●"/>
+                </Style>
+                <Style TargetType="TabItem">
+                        <Setter Property="HeaderTemplate">
+                                <Setter.Value>
+                                        <DataTemplate>
+                                                <ContentPresenter Content="{TemplateBinding Content}"
+                                                                  Margin="10,5"/>
+                                        </DataTemplate>
+                                </Setter.Value>
+                        </Setter>
+                </Style>
+        </Window.Resources>
 
-    <Grid Margin="15">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+        <Grid Margin="15">
+                <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <TextBlock Grid.Row="0"
-                   Text="⚙ HCEP AI Configuration &amp; Settings"
-                   FontSize="18"
-                   FontWeight="Bold"
-                   Foreground="{StaticResource PrimaryBrush}"
-                   Margin="0,0,0,15"
-                   ToolTip="Configure local SLM engines, frontier cloud providers, avatar emulation, and situational context."/>
+                <!-- Header -->
+                <TextBlock Grid.Row="0"
+                           Text="⚙ HCEP AI Configuration &amp; Settings"
+                           FontSize="18"
+                           FontWeight="Bold"
+                           Foreground="{StaticResource PrimaryBrush}"
+                           Margin="0,0,0,15"
+                           ToolTip="Configure local SLM engines, frontier cloud providers, avatar emulation, and situational context."/>
 
-        <!-- Tabbed Settings Content -->
-        <TabControl Grid.Row="1"
-                    Background="{StaticResource SurfaceBrush}"
-                    BorderThickness="0"
-                    Margin="0,0,0,15">
+                <!-- Tabbed Settings Content -->
+                <TabControl Grid.Row="1"
+                            Background="{StaticResource SurfaceBrush}"
+                            BorderThickness="0"
+                            Margin="0,0,0,15">
 
-            <!-- Local AI Engine Settings -->
-            <TabItem Header="Local Engines"
-                     ToolTip="Configure Ollama, Llama.cpp, LM Studio, Jan, GPT4All, and other local SLM engines.&#x0a;Local engines run entirely on your machine — no data leaves your device.">
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                              Padding="15">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
+                        <!-- Local AI Engine Settings -->
+                        <TabItem Header="Local Engines"
+                                 ToolTip="Configure Ollama, Llama.cpp, LM Studio, Jan, GPT4All, and other local SLM engines.&#x0a;Local engines run entirely on your machine — no data leaves your device.">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                              Padding="15">
+                                        <Grid>
+                                                <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="150"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <!-- Selection -->
+                                                <TextBlock Grid.Row="0"
+                                                           Grid.Column="0"
+                                                           Text="Active Local Engine"
+                                                           FontWeight="Bold"
+                                                           Margin="0,5"/>
+                                                <ComboBox Grid.Row="0"
+                                                          Grid.Column="1"
+                                                          x:Name="LocalEngineCombo"
+                                                          Margin="0,5"
+                                                          ToolTip="Choose the active local inference engine.">
+                                                        <ComboBoxItem Content="Ollama (default port 11434)"/>
+                                                        <ComboBoxItem Content="Llama.cpp (default port 8080)"/>
+                                                        <ComboBoxItem Content="LM Studio (default port 1234)"/>
+                                                        <ComboBoxItem Content="Jan (default port 1337)"/>
+                                                        <ComboBoxItem Content="GPT4All (default port 4891)"/>
+                                                        <ComboBoxItem Content="LocalAI (default port 8080)"/>
+                                                        <ComboBoxItem Content="vLLM (default port 8000)"/>
+                                                        <ComboBoxItem Content="Text Gen WebUI / oobabooga (default port 5000)"/>
+                                                        <ComboBoxItem Content="KoboldCpp (default port 5001)"/>
+                                                        <ComboBoxItem Content="BitNet (default port 8080)"/>
+                                                        <ComboBoxItem Content="Custom (OpenAI-compatible)"/>
+                                                </ComboBox>
+
+                                                <!-- Config Section -->
+                                                <Border Grid.Row="1"
+                                                        Grid.ColumnSpan="2"
+                                                        BorderBrush="#3A3A5A"
+                                                        BorderThickness="0,0,0,1"
+                                                        Margin="0,15,0,10"/>
+                                                <TextBlock Grid.Row="2"
+                                                           Grid.ColumnSpan="2"
+                                                           Text="Local Engine Service Configurations"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource AccentBrush}"
+                                                           Margin="0,5"/>
+
+                                                <TextBlock Grid.Row="3"
+                                                           Grid.Column="0"
+                                                           Text="Base URL:"
+                                                           Margin="0,5"/>
+                                                <TextBox Grid.Row="3"
+                                                         Grid.Column="1"
+                                                         x:Name="LocalUrlText"
+                                                         Margin="0,5"
+                                                         ToolTip="Base URL of your local API server."/>
+
+                                                <TextBlock Grid.Row="4"
+                                                           Grid.Column="0"
+                                                           Text="Model Name:"
+                                                           Margin="0,5"/>
+                                                <Grid Grid.Row="4"
+                                                      Grid.Column="1"
+                                                      Margin="0,5">
+                                                        <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <ComboBox Grid.Column="0"
+                                                                  x:Name="LocalModelCombo"
+                                                                  IsEditable="True"
+                                                                  IsTextSearchEnabled="False"
+                                                                  StaysOpenOnEdit="True"
+                                                                  ToolTip="Model name/path to run on the local engine. Use Fetch Models to query the active engine."/>
+                                                        <Button Grid.Column="1"
+                                                                x:Name="RefreshLocalModelsButton"
+                                                                Content="Fetch Models"
+                                                                Click="RefreshLocalModels_Click"
+                                                                Margin="8,0,0,0"
+                                                                Padding="10,4"
+                                                                Background="#2A2A40"
+                                                                Foreground="White"
+                                                                BorderThickness="0"
+                                                                Cursor="Hand"
+                                                                ToolTip="Query the active local engine for available models."/>
+                                                </Grid>
+
+                                                <TextBlock Grid.Row="5"
+                                                           Grid.Column="0"
+                                                           Text="Temperature:"
+                                                           Margin="0,5"/>
+                                                <Grid Grid.Row="5"
+                                                                Grid.Column="1"
+                                                                Margin="0,5">
+                                                        <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="40"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Slider Grid.Column="0"
+                                                                x:Name="LocalTempSlider"
+                                                                Minimum="0.0"
+                                                                Maximum="2.0"
+                                                                TickFrequency="0.1"
+                                                                IsSnapToTickEnabled="True"
+                                                                VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding ElementName=LocalTempSlider, Path=Value, StringFormat={}{0:F1}}"
+                                                                   VerticalAlignment="Center"
+                                                                   HorizontalAlignment="Right"/>
+                                                </Grid>
+
+                                                <TextBlock Grid.Row="6"
+                                                           Grid.Column="1"
+                                                           x:Name="LocalConnectionStatusText"
+                                                           Margin="0,5"
+                                                           Foreground="#9EA7C8"
+                                                           Text="Local engine status will appear here."
+                                                           TextWrapping="Wrap"/>
+
+                                                <CheckBox Grid.Row="7"
+                                                          Grid.Column="1"
+                                                          x:Name="LlamaCppCompatCheck"
+                                                          Content="Use OpenAI-compatible /v1/chat/completions endpoint"
+                                                          Margin="0,5"
+                                                          ToolTip="Disable to use native Llama.cpp /completion endpoint"
+                                                          Visibility="Collapsed"/>
+                                        </Grid>
+                                </ScrollViewer>
+                        </TabItem>
+
+                        <!-- Frontier Cloud Provider Settings -->
+                        <TabItem Header="Frontier Cloud"
+                                 ToolTip="Configure frontier cloud LLM providers (OpenAI, Anthropic, Gemini, etc.).&#x0a;API keys are stored in Windows Credential Manager.">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                              Padding="15">
+                                        <Grid>
+                                                <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="150"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <!-- Selection -->
+                                                <TextBlock Grid.Row="0"
+                                                           Grid.Column="0"
+                                                           Text="Active Cloud Provider"
+                                                           FontWeight="Bold"
+                                                           Margin="0,5"/>
+                                                <ComboBox Grid.Row="0"
+                                                          Grid.Column="1"
+                                                          x:Name="CloudProviderCombo"
+                                                          Margin="0,5"
+                                                          ToolTip="Active frontier cloud LLM provider.&#x0a;&#x0a;API keys are stored in Windows Credential Manager —&#x0a;never visible in process listings or environment variables.">
+                                                        <ComboBoxItem Content="OpenAI"
+                                                                      ToolTip="OpenAI — GPT-4o, GPT-4.1, o3&#x0a;https://api.openai.com/v1"/>
+                                                        <ComboBoxItem Content="Anthropic"
+                                                                      ToolTip="Anthropic — Claude Opus/Sonnet/Haiku&#x0a;https://api.anthropic.com/v1"/>
+                                                        <ComboBoxItem Content="Gemini (Google)"
+                                                                      ToolTip="Google DeepMind — Gemini 2.5 Pro/Flash&#x0a;https://generativelanguage.googleapis.com/v1beta"/>
+                                                        <ComboBoxItem Content="Mistral AI"
+                                                                      ToolTip="Mistral AI — Mistral Large, Codestral&#x0a;https://api.mistral.ai/v1"/>
+                                                        <ComboBoxItem Content="xAI (Grok)"
+                                                                      ToolTip="xAI — Grok-2, Grok-3 (Elon Musk)&#x0a;https://api.x.ai/v1"/>
+                                                        <ComboBoxItem Content="Cohere"
+                                                                      ToolTip="Cohere — Command R+, Embed&#x0a;https://api.cohere.ai/v1"/>
+                                                        <ComboBoxItem Content="OpenRouter"
+                                                                      ToolTip="OpenRouter — Single API for 100+ models&#x0a;Route to any provider via one key&#x0a;https://openrouter.ai/api/v1"/>
+                                                        <ComboBoxItem Content="DeepSeek"
+                                                                      ToolTip="DeepSeek — DeepSeek-V3, DeepSeek-R2&#x0a;High-performance Chinese frontier lab&#x0a;https://api.deepseek.com"/>
+                                                        <ComboBoxItem Content="Groq (Fast LPU)"
+                                                                      ToolTip="Groq — Ultra-fast LPU inference (700+ tok/s)&#x0a;Llama-3.3-70b, Mixtral, Gemma&#x0a;https://api.groq.com/openai/v1"/>
+                                                        <ComboBoxItem Content="Together AI"
+                                                                      ToolTip="Together AI — Open-source model hosting&#x0a;Llama, Mistral, Qwen, DBRX&#x0a;https://api.together.xyz/v1"/>
+                                                        <ComboBoxItem Content="Fireworks AI"
+                                                                      ToolTip="Fireworks AI — Low-latency inference&#x0a;Llama, Mixtral, FireLLaVA&#x0a;https://api.fireworks.ai/inference/v1"/>
+                                                        <ComboBoxItem Content="Perplexity AI"
+                                                                      ToolTip="Perplexity — Search-augmented LLM&#x0a;Sonar Online + real-time web retrieval&#x0a;https://api.perplexity.ai"/>
+                                                        <ComboBoxItem Content="AI21 Labs (Jamba)"
+                                                                      ToolTip="AI21 Labs — Jamba-1.5 hybrid SSM/Transformer&#x0a;256k context, best-in-class efficiency&#x0a;https://api.ai21.com/studio/v1"/>
+                                                        <ComboBoxItem Content="Replicate"
+                                                                      ToolTip="Replicate — Model-hosting platform&#x0a;Llama, Stable Diffusion, SDXL, custom&#x0a;https://api.replicate.com/v1"/>
+                                                        <ComboBoxItem Content="Hugging Face"
+                                                                      ToolTip="Hugging Face Inference Endpoints&#x0a;Llama, Falcon, Mistral and 100k+ models&#x0a;https://api-inference.huggingface.co/v1"/>
+                                                        <ComboBoxItem Content="Azure OpenAI"
+                                                                      ToolTip="Microsoft Azure OpenAI Service&#x0a;GPT-4o, GPT-4.1 via your Azure deployment&#x0a;https://YOUR_RESOURCE.openai.azure.com/..."/>
+                                                        <ComboBoxItem Content="Amazon Bedrock"
+                                                                      ToolTip="AWS Amazon Bedrock gateway&#x0a;Claude, Llama, Titan, Mistral on AWS&#x0a;https://bedrock-runtime.us-east-1.amazonaws.com"/>
+                                                        <ComboBoxItem Content="Nvidia NIM"
+                                                                      ToolTip="NVIDIA Inference Microservices&#x0a;Llama, Mistral, Nemotron on GPU cloud&#x0a;https://integrate.api.nvidia.com/v1"/>
+                                                        <ComboBoxItem Content="Cerebras"
+                                                                      ToolTip="Cerebras — Wafer-scale ultra-fast inference&#x0a;2000+ tok/s on Llama-3.3-70b&#x0a;https://api.cerebras.ai/v1"/>
+                                                        <ComboBoxItem Content="Moonshot AI (Kimi)"
+                                                                      ToolTip="Moonshot AI (Kimi) — Chinese frontier lab&#x0a;128k– to 1M-token context windows&#x0a;https://api.moonshot.cn/v1"/>
+                                                </ComboBox>
+
+                                                <Border Grid.Row="1"
+                                                        Grid.ColumnSpan="2"
+                                                        BorderBrush="#3A3A5A"
+                                                        BorderThickness="0,0,0,1"
+                                                        Margin="0,15,0,10"/>
+                                                <TextBlock Grid.Row="2"
+                                                           Grid.ColumnSpan="2"
+                                                           Text="Active Provider Authentication &amp; Model"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource AccentBrush}"
+                                                           Margin="0,5"/>
+
+                                                <TextBlock Grid.Row="3"
+                                                           Grid.Column="0"
+                                                           Text="Cloud Model Name:"
+                                                           Margin="0,5"/>
+                                                <Grid Grid.Row="3"
+                                                      Grid.Column="1"
+                                                      Margin="0,5">
+                                                        <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <ComboBox Grid.Column="0"
+                                                                  x:Name="CloudModelCombo"
+                                                                  IsEditable="True"
+                                                                  IsTextSearchEnabled="False"
+                                                                  StaysOpenOnEdit="True"
+                                                                  ToolTip="Model identifier for the selected provider. Use Fetch Models after entering credentials to query the provider."/>
+                                                        <Button Grid.Column="1"
+                                                                x:Name="RefreshCloudModelsButton"
+                                                                Content="Fetch Models"
+                                                                Click="RefreshCloudModels_Click"
+                                                                Margin="8,0,0,0"
+                                                                Padding="10,4"
+                                                                Background="#2A2A40"
+                                                                Foreground="White"
+                                                                BorderThickness="0"
+                                                                Cursor="Hand"
+                                                                ToolTip="Query the active cloud provider for available models."/>
+                                                </Grid>
+
+                                                <TextBlock Grid.Row="4"
+                                                           Grid.Column="0"
+                                                           Text="API Key:"
+                                                           Margin="0,5"
+                                                           ToolTip="API key for the selected provider.&#x0a;&#x0a;Saved to Windows Credential Manager (WCM) — encrypted at rest,&#x0a;never stored in plain text or on disk.&#x0a;&#x0a;The key is masked here for security."/>
+                                                <PasswordBox Grid.Row="4"
+                                                             Grid.Column="1"
+                                                             x:Name="CloudApiKeyText"
+                                                             Margin="0,5"
+                                                             PasswordChar="●"
+                                                             ToolTip="API key for the selected provider.&#x0a;&#x0a;Saved to Windows Credential Manager (WCM) — encrypted at rest,&#x0a;never stored in plain text or on disk.&#x0a;Displayed as dots (●) for security."/>
+
+                                                <TextBlock Grid.Row="5"
+                                                           Grid.Column="0"
+                                                           Text="Custom Base URL:"
+                                                           Margin="0,5"/>
+                                                <TextBox Grid.Row="5"
+                                                         Grid.Column="1"
+                                                         x:Name="CloudUrlText"
+                                                         Margin="0,5"
+                                                         ToolTip="Override the default API endpoint for this provider.&#x0a;&#x0a;Leave blank to use the standard endpoint.&#x0a;Useful for Azure OpenAI, custom proxies, or local LiteLLM."/>
+
+                                                <TextBlock Grid.Row="6"
+                                                           Grid.Column="1"
+                                                           x:Name="CloudConnectionStatusText"
+                                                           Margin="0,5"
+                                                           Foreground="#9EA7C8"
+                                                           Text="Cloud provider status will appear here."
+                                                           TextWrapping="Wrap"/>
+                                        </Grid>
+                                </ScrollViewer>
+                        </TabItem>
+
+                        <!-- Happyface & Mirroring Settings -->
+                        <TabItem Header="Happyface / Emulation"
+                                 ToolTip="Configure avatar expression mirroring, LLM routing, and response pacing.">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                              Padding="15">
+                                        <Grid>
+                                                <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="200"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <!-- Routing Rules -->
+                                                <TextBlock Grid.Row="0"
+                                                           Grid.Column="0"
+                                                           Text="Prefer Local Engines (SLM)"
+                                                           FontWeight="Bold"
+                                                           Margin="0,5"/>
+                                                <CheckBox Grid.Row="0"
+                                                          Grid.Column="1"
+                                                          x:Name="PreferLocalCheck"
+                                                          Content="Route requests locally when possible"
+                                                          Margin="0,5"
+                                                          ToolTip="When enabled, all LLM requests are routed to the local SLM engine first.&#x0a;Cloud providers are used only as fallback when local is unavailable.&#x0a;&#x0a;Recommended: ON for privacy-sensitive deployments."/>
+
+                                                <TextBlock Grid.Row="1"
+                                                           Grid.Column="0"
+                                                           Text="Enable Tool Use (Agentic)"
+                                                           FontWeight="Bold"
+                                                           Margin="0,5"/>
+                                                <CheckBox Grid.Row="1"
+                                                          Grid.Column="1"
+                                                          x:Name="AgenticToolCheck"
+                                                          Content="Allow LLM to call local HCEP tools"
+                                                          Margin="0,5"
+                                                          ToolTip="Enables the Agentic Tool Use system.&#x0a;&#x0a;The LLM can call HCEP built-in tools:&#x0a;• Gaze region and mode queries&#x0a;• Person knowledge store lookups&#x0a;• Context snapshot introspection&#x0a;• Silence protocol state&#x0a;&#x0a;Disable to force purely generative responses."/>
+
+                                                <!-- Presets Section -->
+                                                <Border Grid.Row="2"
+                                                        Grid.ColumnSpan="2"
+                                                        BorderBrush="#3A3A5A"
+                                                        BorderThickness="0,0,0,1"
+                                                        Margin="0,15,0,10"/>
+
+                                                <TextBlock Grid.Row="3"
+                                                           Grid.Column="0"
+                                                           Text="Personality Preset:"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource AccentBrush}"
+                                                           Margin="0,5"
+                                                           ToolTip="Select a pre-configured personality profile for the Avatar.&#x0a;This automatically sets the blend weights, pacing, and somatic sync defaults."/>
+                                                <ComboBox Grid.Row="3"
+                                                          Grid.Column="1"
+                                                          x:Name="PresetCombo"
+                                                          Margin="0,5"
+                                                          ToolTip="Choose from 4 pre-configured presets, or make your own.">
+                                                        <ComboBoxItem Content="Attentive Listener (Attuned, responsive)"/>
+                                                        <ComboBoxItem Content="Warm Companion (High empathy, reflective)"/>
+                                                        <ComboBoxItem Content="Silent Observer (Quiet, low mirroring, contemplative)"/>
+                                                        <ComboBoxItem Content="Professional Assistant (Direct, fast pacing)"/>
+                                                        <ComboBoxItem Content="Custom (User-defined blend settings)"/>
+                                                </ComboBox>
+
+                                                <!-- Emulation weight -->
+                                                <TextBlock Grid.Row="4"
+                                                           Grid.Column="0"
+                                                           Text="Somatic Emulation Weight"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource AccentBrush}"
+                                                           Margin="0,5"
+                                                           ToolTip="Controls how strongly Happyface mirrors the user's detected emotional state.&#x0a;&#x0a;0.0 → purely neutral expression&#x0a;0.5 → moderate somatic mirroring&#x0a;1.0 → full emotional contagion (Hatfield et al. 1993)"/>
+                                                <Grid Grid.Row="4"
+                                                      Grid.Column="1"
+                                                      Margin="0,5">
+                                                        <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="40"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Slider Grid.Column="0"
+                                                                x:Name="EmuWeightSlider"
+                                                                Minimum="0"
+                                                                Maximum="1"
+                                                                TickFrequency="0.05"
+                                                                IsSnapToTickEnabled="True"
+                                                                VerticalAlignment="Center"
+                                                                ToolTip="Somatic Emulation Weight [0.0 – 1.0]&#x0a;&#x0a;How strongly Happyface mirrors detected emotions.&#x0a;Recommended: 0.40 – 0.65 for natural mirroring."/>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding ElementName=EmuWeightSlider, Path=Value, StringFormat={}{0:F2}}"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Center"/>
+                                                </Grid>
+
+                                                <TextBlock Grid.Row="5"
+                                                           Grid.Column="0"
+                                                           Text="Reflection Delay (ms)"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource AccentBrush}"
+                                                           Margin="0,5"
+                                                           ToolTip="Milliseconds the LLM waits before generating a reply.&#x0a;&#x0a;Higher values → more reflective, measured responses.&#x0a;Recommended: 150–400ms for natural conversation pacing."/>
+                                                <Grid Grid.Row="5"
+                                                      Grid.Column="1"
+                                                      Margin="0,5">
+                                                        <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="40"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Slider Grid.Column="0"
+                                                                x:Name="DelaySlider"
+                                                                Minimum="50"
+                                                                Maximum="1000"
+                                                                TickFrequency="25"
+                                                                IsSnapToTickEnabled="True"
+                                                                VerticalAlignment="Center"
+                                                                ToolTip="Reflection Delay [50 – 1000 ms]&#x0a;&#x0a;LLM waits this long before generating a response.&#x0a;50ms = near-instant  •  400ms = natural  •  1000ms = contemplative"/>
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding ElementName=DelaySlider, Path=Value, StringFormat={}{0:F0}}"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Center"/>
+                                                </Grid>
+
+                                                <TextBlock Grid.Row="6"
+                                                           Grid.Column="0"
+                                                           Text="Somatic Blink Sync"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource AccentBrush}"
+                                                           Margin="0,5"
+                                                           ToolTip="Synchronize Happyface eye blinks with the user's detected blinks.&#x0a;A subtle somatic mirroring cue (Bavelas et al. 2000)."/>
+                                                <CheckBox Grid.Row="6"
+                                                          Grid.Column="1"
+                                                          x:Name="SyncBlinksCheck"
+                                                          Content="Synchronize Happyface eye blinks with user"
+                                                          Margin="0,5"
+                                                          ToolTip="When ON: Happyface blinks in synchrony with the user's detected eye blinks.&#x0a;Creates a subtle but powerful sense of shared presence."/>
+                                        </Grid>
+                                </ScrollViewer>
+                        </TabItem>
+
+                        <!-- ════════════════════════════════════════════════════════════ -->
+                        <!--  Context tab — Phase 14 time/space/situation awareness      -->
+                        <!-- ════════════════════════════════════════════════════════════ -->
+                        <TabItem Header="Context"
+                                 ToolTip="Set the situational context (environment, activity, privacy).&#x0a;This is injected into the LLM system prompt and governs the Silence Protocol.">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                              Padding="12,8">
+                                        <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="160"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                        <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <TextBlock Grid.Row="0"
+                                                           Grid.Column="0"
+                                                           Grid.ColumnSpan="2"
+                                                           Text="Situational Context — informs LLM system prompt and silence protocol"
+                                                           Foreground="#888"
+                                                           FontStyle="Italic"
+                                                           Margin="0,0,0,10"
+                                                           TextWrapping="Wrap"/>
+
+                                                <TextBlock Grid.Row="1"
+                                                           Grid.Column="0"
+                                                           Text="Environment"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource AccentBrush}"
+                                                           Margin="0,5"/>
+                                                <ComboBox Grid.Row="1"
+                                                          Grid.Column="1"
+                                                          x:Name="EnvironmentCombo"
+                                                          Margin="0,5"
+                                                          Background="#252540"
+                                                          BorderBrush="{StaticResource AccentBrush}"
+                                                          ToolTip="Physical environment type where HCEP is running.&#x0a;&#x0a;Affects the Silence Protocol:&#x0a;• Bedroom + Late Night → maximum attunement (avatar stays silent)&#x0a;• Office/Lab → formal register, professional responses&#x0a;• LivingRoom/Studio → relaxed, informal register">
+                                                        <ComboBoxItem Content="Unknown"/>
+                                                        <ComboBoxItem Content="Bedroom"/>
+                                                        <ComboBoxItem Content="LivingRoom"/>
+                                                        <ComboBoxItem Content="Kitchen"/>
+                                                        <ComboBoxItem Content="Office"/>
+                                                        <ComboBoxItem Content="Laboratory"/>
+                                                        <ComboBoxItem Content="Studio"/>
+                                                        <ComboBoxItem Content="Outdoors"/>
+                                                        <ComboBoxItem Content="PublicSpace"/>
+                                                        <ComboBoxItem Content="Vehicle"/>
+                                                </ComboBox>
+
+                                                <TextBlock Grid.Row="2"
+                                                           Grid.Column="0"
+                                                           Text="Activity"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource AccentBrush}"
+                                                           Margin="0,5"/>
+                                                <ComboBox Grid.Row="2"
+                                                          Grid.Column="1"
+                                                          x:Name="ActivityCombo"
+                                                          Margin="0,5"
+                                                          Background="#252540"
+                                                          BorderBrush="{StaticResource AccentBrush}"
+                                                          ToolTip="Current activity context.&#x0a;&#x0a;Informs the LLM's communication register and urgency:&#x0a;• Working / Learning → professional, concise responses&#x0a;• Relaxing / Socializing → warm, conversational tone&#x0a;• Creating → open, exploratory register">
+                                                        <ComboBoxItem Content="Unknown"/>
+                                                        <ComboBoxItem Content="Working"/>
+                                                        <ComboBoxItem Content="Relaxing"/>
+                                                        <ComboBoxItem Content="Socializing"/>
+                                                        <ComboBoxItem Content="Creating"/>
+                                                        <ComboBoxItem Content="Learning"/>
+                                                        <ComboBoxItem Content="Exercising"/>
+                                                        <ComboBoxItem Content="Eating"/>
+                                                        <ComboBoxItem Content="Commuting"/>
+                                                </ComboBox>
+
+                                                <TextBlock Grid.Row="3"
+                                                           Grid.Column="0"
+                                                           Text="Privacy"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource AccentBrush}"
+                                                           Margin="0,5"/>
+                                                <ComboBox Grid.Row="3"
+                                                          Grid.Column="1"
+                                                          x:Name="PrivacyCombo"
+                                                          Margin="0,5"
+                                                          Background="#252540"
+                                                          BorderBrush="{StaticResource AccentBrush}"
+                                                          ToolTip="Privacy level of the current interaction.&#x0a;&#x0a;• Private → intimate register, Silence Protocol maximally sensitive&#x0a;• SemiPrivate → blended informal/professional&#x0a;• Public → formal register enforced, Silence Protocol relaxed">
+                                                        <ComboBoxItem Content="Private"/>
+                                                        <ComboBoxItem Content="SemiPrivate"/>
+                                                        <ComboBoxItem Content="Public"/>
+                                                </ComboBox>
+
+                                                <TextBlock Grid.Row="4"
+                                                           Grid.Column="0"
+                                                           Text="Location Label"
+                                                           FontWeight="Bold"
+                                                           Foreground="{StaticResource AccentBrush}"
+                                                           Margin="0,5"/>
+                                                <TextBox Grid.Row="4"
+                                                         Grid.Column="1"
+                                                         x:Name="LocationLabelText"
+                                                         Margin="0,5"
+                                                         ToolTip="Optional friendly name for this location.&#x0a;Surfaced directly in the LLM system prompt.&#x0a;&#x0a;Examples: Home Studio, University Lab, Dad's Kitchen&#x0a;&#x0a;Leave blank to omit from context."/>
+                                        </Grid>
+                                </ScrollViewer>
+                        </TabItem>
+                </TabControl>
+
+                <!-- Actions -->
+                <Grid Grid.Row="2">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="150"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Selection -->
-                        <TextBlock Grid.Row="0"
-                                   Grid.Column="0"
-                                   Text="Active Local Engine"
-                                   FontWeight="Bold"
-                                   Margin="0,5"/>
-                        <ComboBox Grid.Row="0"
-                                  Grid.Column="1"
-                                  x:Name="LocalEngineCombo"
-                                  Margin="0,5"
-                                  ToolTip="Choose the active local inference engine.">
-                            <ComboBoxItem Content="Ollama (default port 11434)"/>
-                            <ComboBoxItem Content="Llama.cpp (default port 8080)"/>
-                            <ComboBoxItem Content="LM Studio (default port 1234)"/>
-                            <ComboBoxItem Content="Jan (default port 1337)"/>
-                            <ComboBoxItem Content="GPT4All (default port 4891)"/>
-                            <ComboBoxItem Content="LocalAI (default port 8080)"/>
-                            <ComboBoxItem Content="vLLM (default port 8000)"/>
-                            <ComboBoxItem Content="Text Gen WebUI / oobabooga (default port 5000)"/>
-                            <ComboBoxItem Content="KoboldCpp (default port 5001)"/>
-                            <ComboBoxItem Content="BitNet (default port 8080)"/>
-                            <ComboBoxItem Content="Custom (OpenAI-compatible)"/>
-                        </ComboBox>
-
-                        <!-- Config Section -->
-                        <Border Grid.Row="1"
-                                Grid.ColumnSpan="2"
-                                BorderBrush="#3A3A5A"
-                                BorderThickness="0,0,0,1"
-                                Margin="0,15,0,10"/>
-                        <TextBlock Grid.Row="2"
-                                   Grid.ColumnSpan="2"
-                                   Text="Local Engine Service Configurations"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"/>
-
-                        <TextBlock Grid.Row="3"
-                                   Grid.Column="0"
-                                   Text="Base URL:"
-                                   Margin="0,5"/>
-                        <TextBox Grid.Row="3"
-                                 Grid.Column="1"
-                                 x:Name="LocalUrlText"
-                                 Margin="0,5"
-                                 ToolTip="Base URL of your local API server."/>
-
-                        <TextBlock Grid.Row="4"
-                                   Grid.Column="0"
-                                   Text="Model Name:"
-                                   Margin="0,5"/>
-                        <TextBox Grid.Row="4"
-                                 Grid.Column="1"
-                                 x:Name="LocalModelText"
-                                 Margin="0,5"
-                                 ToolTip="Model name/path to run on the local engine."/>
-
-                        <TextBlock Grid.Row="5"
-                                   Grid.Column="0"
-                                   Text="Temperature:"
-                                   Margin="0,5"/>
-                        <Grid Grid.Row="5" Grid.Column="1" Margin="0,5">
-                            <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="40"/>
-                            </Grid.ColumnDefinitions>
-                            <Slider Grid.Column="0"
-                                    x:Name="LocalTempSlider"
-                                    Minimum="0.0"
-                                    Maximum="2.0"
-                                    TickFrequency="0.1"
-                                    IsSnapToTickEnabled="True"
-                                    VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding ElementName=LocalTempSlider, Path=Value, StringFormat={}{0:F1}}"
-                                       VerticalAlignment="Center"
-                                       HorizontalAlignment="Right"/>
-                        </Grid>
-
-                        <CheckBox Grid.Row="6"
-                                  Grid.Column="1"
-                                  x:Name="LlamaCppCompatCheck"
-                                  Content="Use OpenAI-compatible /v1/chat/completions endpoint"
-                                  Margin="0,5"
-                                  ToolTip="Disable to use native Llama.cpp /completion endpoint"
-                                  Visibility="Collapsed"/>
-                    </Grid>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- Frontier Cloud Provider Settings -->
-            <TabItem Header="Frontier Cloud"
-                     ToolTip="Configure frontier cloud LLM providers (OpenAI, Anthropic, Gemini, etc.).&#x0a;API keys are stored in Windows Credential Manager.">
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                              Padding="15">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="150"/>
-                            <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
 
-                        <!-- Selection -->
-                        <TextBlock Grid.Row="0"
-                                   Grid.Column="0"
-                                   Text="Active Cloud Provider"
-                                   FontWeight="Bold"
-                                   Margin="0,5"/>
-                        <ComboBox Grid.Row="0"
-                                  Grid.Column="1"
-                                  x:Name="CloudProviderCombo"
-                                  Margin="0,5"
-                                  ToolTip="Active frontier cloud LLM provider.&#x0a;&#x0a;API keys are stored in Windows Credential Manager —&#x0a;never visible in process listings or environment variables.">
-                            <ComboBoxItem Content="OpenAI"
-                                          ToolTip="OpenAI — GPT-4o, GPT-4.1, o3&#x0a;https://api.openai.com/v1"/>
-                            <ComboBoxItem Content="Anthropic"
-                                          ToolTip="Anthropic — Claude Opus/Sonnet/Haiku&#x0a;https://api.anthropic.com/v1"/>
-                            <ComboBoxItem Content="Gemini (Google)"
-                                          ToolTip="Google DeepMind — Gemini 2.5 Pro/Flash&#x0a;https://generativelanguage.googleapis.com/v1beta"/>
-                            <ComboBoxItem Content="Mistral AI"
-                                          ToolTip="Mistral AI — Mistral Large, Codestral&#x0a;https://api.mistral.ai/v1"/>
-                            <ComboBoxItem Content="xAI (Grok)"
-                                          ToolTip="xAI — Grok-2, Grok-3 (Elon Musk)&#x0a;https://api.x.ai/v1"/>
-                            <ComboBoxItem Content="Cohere"
-                                          ToolTip="Cohere — Command R+, Embed&#x0a;https://api.cohere.ai/v1"/>
-                            <ComboBoxItem Content="OpenRouter"
-                                          ToolTip="OpenRouter — Single API for 100+ models&#x0a;Route to any provider via one key&#x0a;https://openrouter.ai/api/v1"/>
-                            <ComboBoxItem Content="DeepSeek"
-                                          ToolTip="DeepSeek — DeepSeek-V3, DeepSeek-R2&#x0a;High-performance Chinese frontier lab&#x0a;https://api.deepseek.com"/>
-                            <ComboBoxItem Content="Groq (Fast LPU)"
-                                          ToolTip="Groq — Ultra-fast LPU inference (700+ tok/s)&#x0a;Llama-3.3-70b, Mixtral, Gemma&#x0a;https://api.groq.com/openai/v1"/>
-                            <ComboBoxItem Content="Together AI"
-                                          ToolTip="Together AI — Open-source model hosting&#x0a;Llama, Mistral, Qwen, DBRX&#x0a;https://api.together.xyz/v1"/>
-                            <ComboBoxItem Content="Fireworks AI"
-                                          ToolTip="Fireworks AI — Low-latency inference&#x0a;Llama, Mixtral, FireLLaVA&#x0a;https://api.fireworks.ai/inference/v1"/>
-                            <ComboBoxItem Content="Perplexity AI"
-                                          ToolTip="Perplexity — Search-augmented LLM&#x0a;Sonar Online + real-time web retrieval&#x0a;https://api.perplexity.ai"/>
-                            <ComboBoxItem Content="AI21 Labs (Jamba)"
-                                          ToolTip="AI21 Labs — Jamba-1.5 hybrid SSM/Transformer&#x0a;256k context, best-in-class efficiency&#x0a;https://api.ai21.com/studio/v1"/>
-                            <ComboBoxItem Content="Replicate"
-                                          ToolTip="Replicate — Model-hosting platform&#x0a;Llama, Stable Diffusion, SDXL, custom&#x0a;https://api.replicate.com/v1"/>
-                            <ComboBoxItem Content="Hugging Face"
-                                          ToolTip="Hugging Face Inference Endpoints&#x0a;Llama, Falcon, Mistral and 100k+ models&#x0a;https://api-inference.huggingface.co/v1"/>
-                            <ComboBoxItem Content="Azure OpenAI"
-                                          ToolTip="Microsoft Azure OpenAI Service&#x0a;GPT-4o, GPT-4.1 via your Azure deployment&#x0a;https://YOUR_RESOURCE.openai.azure.com/..."/>
-                            <ComboBoxItem Content="Amazon Bedrock"
-                                          ToolTip="AWS Amazon Bedrock gateway&#x0a;Claude, Llama, Titan, Mistral on AWS&#x0a;https://bedrock-runtime.us-east-1.amazonaws.com"/>
-                            <ComboBoxItem Content="Nvidia NIM"
-                                          ToolTip="NVIDIA Inference Microservices&#x0a;Llama, Mistral, Nemotron on GPU cloud&#x0a;https://integrate.api.nvidia.com/v1"/>
-                            <ComboBoxItem Content="Cerebras"
-                                          ToolTip="Cerebras — Wafer-scale ultra-fast inference&#x0a;2000+ tok/s on Llama-3.3-70b&#x0a;https://api.cerebras.ai/v1"/>
-                            <ComboBoxItem Content="Moonshot AI (Kimi)"
-                                          ToolTip="Moonshot AI (Kimi) — Chinese frontier lab&#x0a;128k– to 1M-token context windows&#x0a;https://api.moonshot.cn/v1"/>
-                        </ComboBox>
-
-                        <Border Grid.Row="1"
-                                Grid.ColumnSpan="2"
-                                BorderBrush="#3A3A5A"
-                                BorderThickness="0,0,0,1"
-                                Margin="0,15,0,10"/>
-                        <TextBlock Grid.Row="2"
-                                   Grid.ColumnSpan="2"
-                                   Text="Active Provider Authentication &amp; Model"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"/>
-
-                        <TextBlock Grid.Row="3"
-                                   Grid.Column="0"
-                                   Text="Cloud Model Name:"
-                                   Margin="0,5"/>
-                        <TextBox Grid.Row="3"
-                                 Grid.Column="1"
-                                 x:Name="CloudModelText"
-                                 Margin="0,5"
-                                 ToolTip="Model identifier for the selected provider.&#x0a;&#x0a;Examples:&#x0a;• OpenAI: gpt-4o, gpt-4o-mini&#x0a;• Anthropic: claude-opus-4-5, claude-sonnet-4-5&#x0a;• Google: gemini-2.5-pro, gemini-2.0-flash&#x0a;• Mistral: mistral-large-latest"/>
-
-                        <TextBlock Grid.Row="4"
-                                   Grid.Column="0"
-                                   Text="API Key:"
-                                   Margin="0,5"
-                                   ToolTip="API key for the selected provider.&#x0a;&#x0a;Saved to Windows Credential Manager (WCM) — encrypted at rest,&#x0a;never stored in plain text or on disk.&#x0a;&#x0a;The key is masked here for security."/>
-                        <PasswordBox Grid.Row="4"
-                                     Grid.Column="1"
-                                     x:Name="CloudApiKeyText"
-                                     Margin="0,5"
-                                     PasswordChar="●"
-                                     ToolTip="API key for the selected provider.&#x0a;&#x0a;Saved to Windows Credential Manager (WCM) — encrypted at rest,&#x0a;never stored in plain text or on disk.&#x0a;Displayed as dots (●) for security."/>
-
-                        <TextBlock Grid.Row="5"
-                                   Grid.Column="0"
-                                   Text="Custom Base URL:"
-                                   Margin="0,5"/>
-                        <TextBox Grid.Row="5"
-                                 Grid.Column="1"
-                                 x:Name="CloudUrlText"
-                                 Margin="0,5"
-                                 ToolTip="Override the default API endpoint for this provider.&#x0a;&#x0a;Leave blank to use the standard endpoint.&#x0a;Useful for Azure OpenAI, custom proxies, or local LiteLLM."/>
-                    </Grid>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- Happyface & Mirroring Settings -->
-            <TabItem Header="Happyface / Emulation"
-                     ToolTip="Configure avatar expression mirroring, LLM routing, and response pacing.">
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                              Padding="15">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="200"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Routing Rules -->
-                        <TextBlock Grid.Row="0"
-                                   Grid.Column="0"
-                                   Text="Prefer Local Engines (SLM)"
-                                   FontWeight="Bold"
-                                   Margin="0,5"/>
-                        <CheckBox Grid.Row="0"
-                                  Grid.Column="1"
-                                  x:Name="PreferLocalCheck"
-                                  Content="Route requests locally when possible"
-                                  Margin="0,5"
-                                  ToolTip="When enabled, all LLM requests are routed to the local SLM engine first.&#x0a;Cloud providers are used only as fallback when local is unavailable.&#x0a;&#x0a;Recommended: ON for privacy-sensitive deployments."/>
-
-                        <TextBlock Grid.Row="1"
-                                   Grid.Column="0"
-                                   Text="Enable Tool Use (Agentic)"
-                                   FontWeight="Bold"
-                                   Margin="0,5"/>
-                        <CheckBox Grid.Row="1"
-                                  Grid.Column="1"
-                                  x:Name="AgenticToolCheck"
-                                  Content="Allow LLM to call local HCEP tools"
-                                  Margin="0,5"
-                                  ToolTip="Enables the Agentic Tool Use system.&#x0a;&#x0a;The LLM can call HCEP built-in tools:&#x0a;• Gaze region and mode queries&#x0a;• Person knowledge store lookups&#x0a;• Context snapshot introspection&#x0a;• Silence protocol state&#x0a;&#x0a;Disable to force purely generative responses."/>
-
-                        <!-- Presets Section -->
-                        <Border Grid.Row="2"
-                                Grid.ColumnSpan="2"
-                                BorderBrush="#3A3A5A"
-                                BorderThickness="0,0,0,1"
-                                Margin="0,15,0,10"/>
-
-                        <TextBlock Grid.Row="3"
-                                   Grid.Column="0"
-                                   Text="Personality Preset:"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"
-                                   ToolTip="Select a pre-configured personality profile for the Avatar.&#x0a;This automatically sets the blend weights, pacing, and somatic sync defaults."/>
-                        <ComboBox Grid.Row="3"
-                                  Grid.Column="1"
-                                  x:Name="PresetCombo"
-                                  Margin="0,5"
-                                  ToolTip="Choose from 4 pre-configured presets, or make your own.">
-                            <ComboBoxItem Content="Attentive Listener (Attuned, responsive)"/>
-                            <ComboBoxItem Content="Warm Companion (High empathy, reflective)"/>
-                            <ComboBoxItem Content="Silent Observer (Quiet, low mirroring, contemplative)"/>
-                            <ComboBoxItem Content="Professional Assistant (Direct, fast pacing)"/>
-                            <ComboBoxItem Content="Custom (User-defined blend settings)"/>
-                        </ComboBox>
-
-                        <!-- Emulation weight -->
-                        <TextBlock Grid.Row="4"
-                                   Grid.Column="0"
-                                   Text="Somatic Emulation Weight"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"
-                                   ToolTip="Controls how strongly Happyface mirrors the user's detected emotional state.&#x0a;&#x0a;0.0 → purely neutral expression&#x0a;0.5 → moderate somatic mirroring&#x0a;1.0 → full emotional contagion (Hatfield et al. 1993)"/>
-                        <Grid Grid.Row="4"
-                              Grid.Column="1"
-                              Margin="0,5">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="40"/>
-                            </Grid.ColumnDefinitions>
-                            <Slider Grid.Column="0"
-                                    x:Name="EmuWeightSlider"
-                                    Minimum="0"
-                                    Maximum="1"
-                                    TickFrequency="0.05"
-                                    IsSnapToTickEnabled="True"
-                                    VerticalAlignment="Center"
-                                    ToolTip="Somatic Emulation Weight [0.0 – 1.0]&#x0a;&#x0a;How strongly Happyface mirrors detected emotions.&#x0a;Recommended: 0.40 – 0.65 for natural mirroring."/>
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding ElementName=EmuWeightSlider, Path=Value, StringFormat={}{0:F2}}"
-                                       HorizontalAlignment="Right"
-                                       VerticalAlignment="Center"/>
-                        </Grid>
-
-                        <TextBlock Grid.Row="5"
-                                   Grid.Column="0"
-                                   Text="Reflection Delay (ms)"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"
-                                   ToolTip="Milliseconds the LLM waits before generating a reply.&#x0a;&#x0a;Higher values → more reflective, measured responses.&#x0a;Recommended: 150–400ms for natural conversation pacing."/>
-                        <Grid Grid.Row="5"
-                              Grid.Column="1"
-                              Margin="0,5">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="40"/>
-                            </Grid.ColumnDefinitions>
-                            <Slider Grid.Column="0"
-                                    x:Name="DelaySlider"
-                                    Minimum="50"
-                                    Maximum="1000"
-                                    TickFrequency="25"
-                                    IsSnapToTickEnabled="True"
-                                    VerticalAlignment="Center"
-                                    ToolTip="Reflection Delay [50 – 1000 ms]&#x0a;&#x0a;LLM waits this long before generating a response.&#x0a;50ms = near-instant  •  400ms = natural  •  1000ms = contemplative"/>
-                            <TextBlock Grid.Column="1"
-                                       Text="{Binding ElementName=DelaySlider, Path=Value, StringFormat={}{0:F0}}"
-                                       HorizontalAlignment="Right"
-                                       VerticalAlignment="Center"/>
-                        </Grid>
-
-                        <TextBlock Grid.Row="6"
-                                   Grid.Column="0"
-                                   Text="Somatic Blink Sync"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"
-                                   ToolTip="Synchronize Happyface eye blinks with the user's detected blinks.&#x0a;A subtle somatic mirroring cue (Bavelas et al. 2000)."/>
-                        <CheckBox Grid.Row="6"
-                                  Grid.Column="1"
-                                  x:Name="SyncBlinksCheck"
-                                  Content="Synchronize Happyface eye blinks with user"
-                                  Margin="0,5"
-                                  ToolTip="When ON: Happyface blinks in synchrony with the user's detected eye blinks.&#x0a;Creates a subtle but powerful sense of shared presence."/>
-                    </Grid>
-                </ScrollViewer>
-            </TabItem>
-
-            <!-- ════════════════════════════════════════════════════════════ -->
-            <!--  Context tab — Phase 14 time/space/situation awareness      -->
-            <!-- ════════════════════════════════════════════════════════════ -->
-            <TabItem Header="Context"
-                     ToolTip="Set the situational context (environment, activity, privacy).&#x0a;This is injected into the LLM system prompt and governs the Silence Protocol.">
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
-                              Padding="12,8">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="160"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-
-                        <TextBlock Grid.Row="0"
-                                   Grid.Column="0"
-                                   Grid.ColumnSpan="2"
-                                   Text="Situational Context — informs LLM system prompt and silence protocol"
-                                   Foreground="#888"
-                                   FontStyle="Italic"
-                                   Margin="0,0,0,10"
+                        <TextBlock Grid.Column="0"
+                                   x:Name="SaveStatusText"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,16,0"
+                                   Foreground="#9EA7C8"
+                                   Text="Chat and the system prompt share the active local/cloud routing shown above."
                                    TextWrapping="Wrap"/>
 
-                        <TextBlock Grid.Row="1"
-                                   Grid.Column="0"
-                                   Text="Environment"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"/>
-                        <ComboBox Grid.Row="1"
-                                  Grid.Column="1"
-                                  x:Name="EnvironmentCombo"
-                                  Margin="0,5"
-                                  Background="#252540"
-                                  BorderBrush="{StaticResource AccentBrush}"
-                                  ToolTip="Physical environment type where HCEP is running.&#x0a;&#x0a;Affects the Silence Protocol:&#x0a;• Bedroom + Late Night → maximum attunement (avatar stays silent)&#x0a;• Office/Lab → formal register, professional responses&#x0a;• LivingRoom/Studio → relaxed, informal register">
-                            <ComboBoxItem Content="Unknown"/>
-                            <ComboBoxItem Content="Bedroom"/>
-                            <ComboBoxItem Content="LivingRoom"/>
-                            <ComboBoxItem Content="Kitchen"/>
-                            <ComboBoxItem Content="Office"/>
-                            <ComboBoxItem Content="Laboratory"/>
-                            <ComboBoxItem Content="Studio"/>
-                            <ComboBoxItem Content="Outdoors"/>
-                            <ComboBoxItem Content="PublicSpace"/>
-                            <ComboBoxItem Content="Vehicle"/>
-                        </ComboBox>
-
-                        <TextBlock Grid.Row="2"
-                                   Grid.Column="0"
-                                   Text="Activity"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"/>
-                        <ComboBox Grid.Row="2"
-                                  Grid.Column="1"
-                                  x:Name="ActivityCombo"
-                                  Margin="0,5"
-                                  Background="#252540"
-                                  BorderBrush="{StaticResource AccentBrush}"
-                                  ToolTip="Current activity context.&#x0a;&#x0a;Informs the LLM's communication register and urgency:&#x0a;• Working / Learning → professional, concise responses&#x0a;• Relaxing / Socializing → warm, conversational tone&#x0a;• Creating → open, exploratory register">
-                            <ComboBoxItem Content="Unknown"/>
-                            <ComboBoxItem Content="Working"/>
-                            <ComboBoxItem Content="Relaxing"/>
-                            <ComboBoxItem Content="Socializing"/>
-                            <ComboBoxItem Content="Creating"/>
-                            <ComboBoxItem Content="Learning"/>
-                            <ComboBoxItem Content="Exercising"/>
-                            <ComboBoxItem Content="Eating"/>
-                            <ComboBoxItem Content="Commuting"/>
-                        </ComboBox>
-
-                        <TextBlock Grid.Row="3"
-                                   Grid.Column="0"
-                                   Text="Privacy"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"/>
-                        <ComboBox Grid.Row="3"
-                                  Grid.Column="1"
-                                  x:Name="PrivacyCombo"
-                                  Margin="0,5"
-                                  Background="#252540"
-                                  BorderBrush="{StaticResource AccentBrush}"
-                                  ToolTip="Privacy level of the current interaction.&#x0a;&#x0a;• Private → intimate register, Silence Protocol maximally sensitive&#x0a;• SemiPrivate → blended informal/professional&#x0a;• Public → formal register enforced, Silence Protocol relaxed">
-                            <ComboBoxItem Content="Private"/>
-                            <ComboBoxItem Content="SemiPrivate"/>
-                            <ComboBoxItem Content="Public"/>
-                        </ComboBox>
-
-                        <TextBlock Grid.Row="4"
-                                   Grid.Column="0"
-                                   Text="Location Label"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"/>
-                        <TextBox Grid.Row="4"
-                                 Grid.Column="1"
-                                 x:Name="LocationLabelText"
-                                 Margin="0,5"
-                                 ToolTip="Optional friendly name for this location.&#x0a;Surfaced directly in the LLM system prompt.&#x0a;&#x0a;Examples: Home Studio, University Lab, Dad's Kitchen&#x0a;&#x0a;Leave blank to omit from context."/>
-                    </Grid>
-                </ScrollViewer>
-            </TabItem>
-        </TabControl>
-
-        <!-- Actions -->
-        <StackPanel Grid.Row="2"
-                    Orientation="Horizontal"
-                    HorizontalAlignment="Right">
-            <Button Content="Save Settings"
-                    Click="Save_Click"
-                    Background="{StaticResource PrimaryBrush}"
-                    Foreground="White"
-                    BorderThickness="0"
-                    Padding="15,6"
-                    Margin="0,0,10,0"
-                    Cursor="Hand"
-                    FontWeight="SemiBold"
-                    ToolTip="Apply all settings and close.&#x0a;Changes take effect immediately — no restart required."/>
-            <Button Content="Cancel"
-                    Click="Cancel_Click"
-                    Background="#2A2A40"
-                    Foreground="{StaticResource TextBrush}"
-                    BorderThickness="0"
-                    Padding="15,6"
-                    Cursor="Hand"
-                    ToolTip="Discard all changes and close."/>
-        </StackPanel>
-    </Grid>
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    HorizontalAlignment="Right">
+                                <Button x:Name="SaveButton"
+                                        Content="Save Settings"
+                                        Click="Save_Click"
+                                        Background="{StaticResource PrimaryBrush}"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        Padding="15,6"
+                                        Margin="0,0,10,0"
+                                        Cursor="Hand"
+                                        FontWeight="SemiBold"
+                                        ToolTip="Apply all settings and close.&#x0a;Changes take effect immediately — no restart required."/>
+                                <Button Content="Cancel"
+                                        Click="Cancel_Click"
+                                        Background="#2A2A40"
+                                        Foreground="{StaticResource TextBrush}"
+                                        BorderThickness="0"
+                                        Padding="15,6"
+                                        Cursor="Hand"
+                                        ToolTip="Discard all changes and close."/>
+                        </StackPanel>
+                </Grid>
+        </Grid>
 </Window>
