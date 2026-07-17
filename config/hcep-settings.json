@@ -1,0 +1,195 @@
+﻿{
+  "PreferLocal": true,
+  "ActiveLocalEngine": "Ollama",
+  "ActiveCloudProvider": "OpenAI",
+  "EmulationBlendWeight": 0.7,
+  "ReflectionDelayMs": 200,
+  "SyncBlinksToUser": true,
+  "Ollama": {
+    "Enabled": true,
+    "BaseUrl": "http://localhost:11434",
+    "Model": "llama3:8b",
+    "Temperature": 0.7
+  },
+  "LlamaCpp": {
+    "Enabled": false,
+    "BaseUrl": "http://localhost:8080",
+    "Model": "local-model",
+    "Temperature": 0.7,
+    "UseOaiCompatibleEndpoint": true
+  },
+  "LMStudio": {
+    "Enabled": false,
+    "BaseUrl": "http://localhost:1234",
+    "Model": "local-model",
+    "Temperature": 0.7
+  },
+  "Jan": {
+    "Enabled": false,
+    "BaseUrl": "http://localhost:1337",
+    "Model": "local-model",
+    "Temperature": 0.7
+  },
+  "GPT4All": {
+    "Enabled": false,
+    "BaseUrl": "http://localhost:4891",
+    "Model": "local-model",
+    "Temperature": 0.7
+  },
+  "LocalAI": {
+    "Enabled": false,
+    "BaseUrl": "http://localhost:8080",
+    "Model": "local-model",
+    "Temperature": 0.7
+  },
+  "vLLM": {
+    "Enabled": false,
+    "BaseUrl": "http://localhost:8000",
+    "Model": "local-model",
+    "Temperature": 0.7
+  },
+  "Oobabooga": {
+    "Enabled": false,
+    "BaseUrl": "http://localhost:5000",
+    "Model": "local-model",
+    "Temperature": 0.7
+  },
+  "KoboldCpp": {
+    "Enabled": false,
+    "BaseUrl": "http://localhost:5001",
+    "Model": "local-model",
+    "Temperature": 0.7
+  },
+  "BitNet": {
+    "Enabled": false,
+    "BaseUrl": "http://localhost:8080",
+    "Model": "local-model",
+    "Temperature": 0.7
+  },
+  "CustomLocal": {
+    "Enabled": false,
+    "BaseUrl": "http://localhost:8000",
+    "Model": "local-model",
+    "Temperature": 0.7
+  },
+  "OpenAI": {
+    "Enabled": false,
+    "BaseUrl": "https://api.openai.com/v1",
+    "Model": "gpt-5-mini",
+    "Temperature": 0.7
+  },
+  "Anthropic": {
+    "Enabled": false,
+    "BaseUrl": "https://api.anthropic.com/v1",
+    "Model": "claude-3-5-sonnet-20241022",
+    "Temperature": 0.7
+  },
+  "Gemini": {
+    "Enabled": false,
+    "BaseUrl": "https://generativelanguage.googleapis.com/v1beta",
+    "Model": "gemini-1.5-flash",
+    "Temperature": 0.7
+  },
+  "Mistral": {
+    "Enabled": false,
+    "BaseUrl": "https://api.mistral.ai/v1",
+    "Model": "mistral-large-latest",
+    "Temperature": 0.7
+  },
+  "xAI": {
+    "Enabled": false,
+    "BaseUrl": "https://api.x.ai/v1",
+    "Model": "grok-beta",
+    "Temperature": 0.7
+  },
+  "Cohere": {
+    "Enabled": false,
+    "BaseUrl": "https://api.cohere.ai/v1",
+    "Model": "command-r-plus",
+    "Temperature": 0.7
+  },
+  "OpenRouter": {
+    "Enabled": false,
+    "BaseUrl": "https://openrouter.ai/api/v1",
+    "Model": "meta-llama/llama-3.3-70b-instruct",
+    "Temperature": 0.7
+  },
+  "DeepSeek": {
+    "Enabled": false,
+    "BaseUrl": "https://api.deepseek.com",
+    "Model": "deepseek-chat",
+    "Temperature": 0.7
+  },
+  "Groq": {
+    "Enabled": false,
+    "BaseUrl": "https://api.groq.com/openai/v1",
+    "Model": "llama-3.3-70b-versatile",
+    "Temperature": 0.7
+  },
+  "TogetherAI": {
+    "Enabled": false,
+    "BaseUrl": "https://api.together.xyz/v1",
+    "Model": "meta-llama/Llama-3-70b-chat-hf",
+    "Temperature": 0.7
+  },
+  "FireworksAI": {
+    "Enabled": false,
+    "BaseUrl": "https://api.fireworks.ai/inference/v1",
+    "Model": "accounts/fireworks/models/llama-v3p3-70b-instruct",
+    "Temperature": 0.7
+  },
+  "Perplexity": {
+    "Enabled": false,
+    "BaseUrl": "https://api.perplexity.ai",
+    "Model": "llama-3.1-sonar-large-128k-online",
+    "Temperature": 0.7
+  },
+  "AI21Labs": {
+    "Enabled": false,
+    "BaseUrl": "https://api.ai21.com/studio/v1",
+    "Model": "jamba-1.5-large",
+    "Temperature": 0.7
+  },
+  "Replicate": {
+    "Enabled": false,
+    "BaseUrl": "https://api.replicate.com/v1",
+    "Model": "meta/llama-3-70b-instruct",
+    "Temperature": 0.7
+  },
+  "HuggingFace": {
+    "Enabled": false,
+    "BaseUrl": "https://api-inference.huggingface.co/v1",
+    "Model": "meta-llama/Llama-3.3-70B-Instruct",
+    "Temperature": 0.7
+  },
+  "AzureOpenAI": {
+    "Enabled": false,
+    "BaseUrl": "https://YOUR_RESOURCE.openai.azure.com/openai/deployments/YOUR_DEPLOYMENT",
+    "Model": "gpt-4o",
+    "Temperature": 0.7
+  },
+  "AmazonBedrock": {
+    "Enabled": false,
+    "BaseUrl": "https://bedrock-runtime.us-east-1.amazonaws.com",
+    "Model": "anthropic.claude-3-5-sonnet-20241022-v2:0",
+    "Temperature": 0.7
+  },
+  "NvidiaNIM": {
+    "Enabled": false,
+    "BaseUrl": "https://integrate.api.nvidia.com/v1",
+    "Model": "meta/llama-3.3-70b-instruct",
+    "Temperature": 0.7
+  },
+  "Cerebras": {
+    "Enabled": false,
+    "BaseUrl": "https://api.cerebras.ai/v1",
+    "Model": "llama3.3-70b",
+    "Temperature": 0.7
+  },
+  "MoonshotAI": {
+    "Enabled": false,
+    "BaseUrl": "https://api.moonshot.cn/v1",
+    "Model": "moonshot-v1-32k",
+    "Temperature": 0.7
+  }
+}
