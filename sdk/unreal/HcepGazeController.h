@@ -50,6 +50,15 @@ public:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HCEP Tracking Data", meta = (ClampMin = "0.1", ClampMax = "20.0"))
     float InterpolationSpeed;
 
+    /**
+     * When enabled (training/observation mode), the avatar mirrors the user's
+     * head and eye rotations from the HCEP stream. When disabled (default),
+     * the avatar operates autonomously. User tracking and data reception
+     * continue in both modes.
+     */
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HCEP Mirroring")
+    bool bMirroringEnabled = false;
+
 private:
     void InitializeWebSocket();
     void CleanupWebSocket();

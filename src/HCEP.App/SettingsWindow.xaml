@@ -114,12 +114,11 @@
 
             <!-- Local AI Engine Settings -->
             <TabItem Header="Local Engines"
-                     ToolTip="Configure Ollama and Llama.cpp local SLM engines.&#x0a;Local engines run entirely on your machine — no data leaves your device.">
+                     ToolTip="Configure Ollama, Llama.cpp, LM Studio, Jan, GPT4All, and other local SLM engines.&#x0a;Local engines run entirely on your machine — no data leaves your device.">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               Padding="15">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
@@ -143,12 +142,21 @@
                                   Grid.Column="1"
                                   x:Name="LocalEngineCombo"
                                   Margin="0,5"
-                                  ToolTip="Choose between Ollama (HTTP API server) or Llama.cpp (direct HTTP server).&#x0a;Only the active engine is used when Prefer Local is enabled.">
-                            <ComboBoxItem Content="Ollama"/>
-                            <ComboBoxItem Content="LlamaCpp"/>
+                                  ToolTip="Choose the active local inference engine.">
+                            <ComboBoxItem Content="Ollama (default port 11434)"/>
+                            <ComboBoxItem Content="Llama.cpp (default port 8080)"/>
+                            <ComboBoxItem Content="LM Studio (default port 1234)"/>
+                            <ComboBoxItem Content="Jan (default port 1337)"/>
+                            <ComboBoxItem Content="GPT4All (default port 4891)"/>
+                            <ComboBoxItem Content="LocalAI (default port 8080)"/>
+                            <ComboBoxItem Content="vLLM (default port 8000)"/>
+                            <ComboBoxItem Content="Text Gen WebUI / oobabooga (default port 5000)"/>
+                            <ComboBoxItem Content="KoboldCpp (default port 5001)"/>
+                            <ComboBoxItem Content="BitNet (default port 8080)"/>
+                            <ComboBoxItem Content="Custom (OpenAI-compatible)"/>
                         </ComboBox>
 
-                        <!-- Ollama Section -->
+                        <!-- Config Section -->
                         <Border Grid.Row="1"
                                 Grid.ColumnSpan="2"
                                 BorderBrush="#3A3A5A"
@@ -156,53 +164,60 @@
                                 Margin="0,15,0,10"/>
                         <TextBlock Grid.Row="2"
                                    Grid.ColumnSpan="2"
-                                   Text="Ollama Service Configurations"
+                                   Text="Local Engine Service Configurations"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource AccentBrush}"
                                    Margin="0,5"/>
 
                         <TextBlock Grid.Row="3"
                                    Grid.Column="0"
-                                   Text="Ollama Base URL:"
+                                   Text="Base URL:"
                                    Margin="0,5"/>
                         <TextBox Grid.Row="3"
                                  Grid.Column="1"
-                                 x:Name="OllamaUrlText"
+                                 x:Name="LocalUrlText"
                                  Margin="0,5"
-                                 ToolTip="Base URL of your local Ollama API server.&#x0a;Default: http://localhost:11434&#x0a;&#x0a;Start Ollama with: ollama serve"/>
+                                 ToolTip="Base URL of your local API server."/>
 
                         <TextBlock Grid.Row="4"
                                    Grid.Column="0"
-                                   Text="Ollama Model:"
+                                   Text="Model Name:"
                                    Margin="0,5"/>
                         <TextBox Grid.Row="4"
                                  Grid.Column="1"
-                                 x:Name="OllamaModelText"
+                                 x:Name="LocalModelText"
                                  Margin="0,5"
-                                 ToolTip="Model name to pull and run via Ollama.&#x0a;Examples: mistral, llama3, phi3:mini, gemma3:12b, qwen2.5:7b&#x0a;&#x0a;Run 'ollama list' to see available models."/>
+                                 ToolTip="Model name/path to run on the local engine."/>
 
-                        <!-- LlamaCpp Section -->
-                        <Border Grid.Row="5"
-                                Grid.ColumnSpan="2"
-                                BorderBrush="#3A3A5A"
-                                BorderThickness="0,0,0,1"
-                                Margin="0,15,0,10"/>
-                        <TextBlock Grid.Row="6"
-                                   Grid.ColumnSpan="2"
-                                   Text="Llama.cpp Service Configurations"
-                                   FontWeight="Bold"
-                                   Foreground="{StaticResource AccentBrush}"
-                                   Margin="0,5"/>
-
-                        <TextBlock Grid.Row="7"
+                        <TextBlock Grid.Row="5"
                                    Grid.Column="0"
-                                   Text="Llama.cpp Base URL:"
+                                   Text="Temperature:"
                                    Margin="0,5"/>
-                        <TextBox Grid.Row="7"
-                                 Grid.Column="1"
-                                 x:Name="LlamaCppUrlText"
-                                 Margin="0,5"
-                                 ToolTip="Base URL of your llama.cpp HTTP server.&#x0a;Default: http://localhost:8080&#x0a;&#x0a;Start with: llama-server --model model.gguf --port 8080"/>
+                        <Grid Grid.Row="5" Grid.Column="1" Margin="0,5">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="40"/>
+                            </Grid.ColumnDefinitions>
+                            <Slider Grid.Column="0"
+                                    x:Name="LocalTempSlider"
+                                    Minimum="0.0"
+                                    Maximum="2.0"
+                                    TickFrequency="0.1"
+                                    IsSnapToTickEnabled="True"
+                                    VerticalAlignment="Center"/>
+                            <TextBlock Grid.Column="1"
+                                       Text="{Binding ElementName=LocalTempSlider, Path=Value, StringFormat={}{0:F1}}"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Right"/>
+                        </Grid>
+
+                        <CheckBox Grid.Row="6"
+                                  Grid.Column="1"
+                                  x:Name="LlamaCppCompatCheck"
+                                  Content="Use OpenAI-compatible /v1/chat/completions endpoint"
+                                  Margin="0,5"
+                                  ToolTip="Disable to use native Llama.cpp /completion endpoint"
+                                  Visibility="Collapsed"/>
                     </Grid>
                 </ScrollViewer>
             </TabItem>
@@ -329,11 +344,13 @@
 
             <!-- Happyface & Mirroring Settings -->
             <TabItem Header="Happyface / Emulation"
-                     ToolTip="Configure avatar expression mirroring, LLM routing, and response timing.">
+                     ToolTip="Configure avatar expression mirroring, LLM routing, and response pacing.">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               Padding="15">
                     <Grid>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
@@ -371,7 +388,7 @@
                                   Margin="0,5"
                                   ToolTip="Enables the Agentic Tool Use system.&#x0a;&#x0a;The LLM can call HCEP built-in tools:&#x0a;• Gaze region and mode queries&#x0a;• Person knowledge store lookups&#x0a;• Context snapshot introspection&#x0a;• Silence protocol state&#x0a;&#x0a;Disable to force purely generative responses."/>
 
-                        <!-- Emulation weight -->
+                        <!-- Presets Section -->
                         <Border Grid.Row="2"
                                 Grid.ColumnSpan="2"
                                 BorderBrush="#3A3A5A"
@@ -380,12 +397,32 @@
 
                         <TextBlock Grid.Row="3"
                                    Grid.Column="0"
+                                   Text="Personality Preset:"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   Margin="0,5"
+                                   ToolTip="Select a pre-configured personality profile for the Avatar.&#x0a;This automatically sets the blend weights, pacing, and somatic sync defaults."/>
+                        <ComboBox Grid.Row="3"
+                                  Grid.Column="1"
+                                  x:Name="PresetCombo"
+                                  Margin="0,5"
+                                  ToolTip="Choose from 4 pre-configured presets, or make your own.">
+                            <ComboBoxItem Content="Attentive Listener (Attuned, responsive)"/>
+                            <ComboBoxItem Content="Warm Companion (High empathy, reflective)"/>
+                            <ComboBoxItem Content="Silent Observer (Quiet, low mirroring, contemplative)"/>
+                            <ComboBoxItem Content="Professional Assistant (Direct, fast pacing)"/>
+                            <ComboBoxItem Content="Custom (User-defined blend settings)"/>
+                        </ComboBox>
+
+                        <!-- Emulation weight -->
+                        <TextBlock Grid.Row="4"
+                                   Grid.Column="0"
                                    Text="Somatic Emulation Weight"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource AccentBrush}"
                                    Margin="0,5"
                                    ToolTip="Controls how strongly Happyface mirrors the user's detected emotional state.&#x0a;&#x0a;0.0 → purely neutral expression&#x0a;0.5 → moderate somatic mirroring&#x0a;1.0 → full emotional contagion (Hatfield et al. 1993)"/>
-                        <Grid Grid.Row="3"
+                        <Grid Grid.Row="4"
                               Grid.Column="1"
                               Margin="0,5">
                             <Grid.ColumnDefinitions>
@@ -406,14 +443,14 @@
                                        VerticalAlignment="Center"/>
                         </Grid>
 
-                        <TextBlock Grid.Row="4"
+                        <TextBlock Grid.Row="5"
                                    Grid.Column="0"
                                    Text="Reflection Delay (ms)"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource AccentBrush}"
                                    Margin="0,5"
                                    ToolTip="Milliseconds the LLM waits before generating a reply.&#x0a;&#x0a;Higher values → more reflective, measured responses.&#x0a;Recommended: 150–400ms for natural conversation pacing."/>
-                        <Grid Grid.Row="4"
+                        <Grid Grid.Row="5"
                               Grid.Column="1"
                               Margin="0,5">
                             <Grid.ColumnDefinitions>
@@ -434,14 +471,14 @@
                                        VerticalAlignment="Center"/>
                         </Grid>
 
-                        <TextBlock Grid.Row="5"
+                        <TextBlock Grid.Row="6"
                                    Grid.Column="0"
                                    Text="Somatic Blink Sync"
                                    FontWeight="Bold"
                                    Foreground="{StaticResource AccentBrush}"
                                    Margin="0,5"
                                    ToolTip="Synchronize Happyface eye blinks with the user's detected blinks.&#x0a;A subtle somatic mirroring cue (Bavelas et al. 2000)."/>
-                        <CheckBox Grid.Row="5"
+                        <CheckBox Grid.Row="6"
                                   Grid.Column="1"
                                   x:Name="SyncBlinksCheck"
                                   Content="Synchronize Happyface eye blinks with user"
@@ -491,7 +528,6 @@
                                   x:Name="EnvironmentCombo"
                                   Margin="0,5"
                                   Background="#252540"
-                                  Foreground="{StaticResource TextBrush}"
                                   BorderBrush="{StaticResource AccentBrush}"
                                   ToolTip="Physical environment type where HCEP is running.&#x0a;&#x0a;Affects the Silence Protocol:&#x0a;• Bedroom + Late Night → maximum attunement (avatar stays silent)&#x0a;• Office/Lab → formal register, professional responses&#x0a;• LivingRoom/Studio → relaxed, informal register">
                             <ComboBoxItem Content="Unknown"/>
@@ -517,7 +553,6 @@
                                   x:Name="ActivityCombo"
                                   Margin="0,5"
                                   Background="#252540"
-                                  Foreground="{StaticResource TextBrush}"
                                   BorderBrush="{StaticResource AccentBrush}"
                                   ToolTip="Current activity context.&#x0a;&#x0a;Informs the LLM's communication register and urgency:&#x0a;• Working / Learning → professional, concise responses&#x0a;• Relaxing / Socializing → warm, conversational tone&#x0a;• Creating → open, exploratory register">
                             <ComboBoxItem Content="Unknown"/>
@@ -542,7 +577,6 @@
                                   x:Name="PrivacyCombo"
                                   Margin="0,5"
                                   Background="#252540"
-                                  Foreground="{StaticResource TextBrush}"
                                   BorderBrush="{StaticResource AccentBrush}"
                                   ToolTip="Privacy level of the current interaction.&#x0a;&#x0a;• Private → intimate register, Silence Protocol maximally sensitive&#x0a;• SemiPrivate → blended informal/professional&#x0a;• Public → formal register enforced, Silence Protocol relaxed">
                             <ComboBoxItem Content="Private"/>

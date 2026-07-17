@@ -49,6 +49,13 @@ public sealed class HcepGazeController : MonoBehaviour
     [Range(0.01f, 1f)]
     public float smoothingFactor = 0.15f;
 
+    [Header("Mirroring Mode")]
+    [Tooltip("When enabled (training/observation mode), the avatar mirrors the user's "
+           + "head and eye rotations from the HCEP stream. When disabled (default), "
+           + "the avatar operates autonomously. User tracking and data reception "
+           + "continue in both modes.")]
+    public bool mirroringEnabled = false;
+
     private ClientWebSocket _webSocket;
     private CancellationTokenSource _cts;
     private Thread _receiveThread;
@@ -75,9 +82,15 @@ public sealed class HcepGazeController : MonoBehaviour
 
     private void Update()
     {
-        // Smoothly interpolate rotations on the main Unity thread
+        // Smoothly interpolate rotations on the main Unity thread.
+        // Data layer: always track targets so transitions are smooth when mirroring is toggled on.
         _currentGazeDirection = Vector3.Slerp(_currentGazeDirection, _targetGazeDirection, smoothingFactor);
         _currentHeadRotation = Vector3.Lerp(_currentHeadRotation, _targetHeadRotation, smoothingFactor);
+
+        // Display-layer gate: only apply rotations to avatar bones when mirroring is enabled.
+        // When mirroring is disabled, the avatar operates autonomously — bones are not driven
+        // by the HCEP stream. Data reception and parsing continue for telemetry.
+        if (!mirroringEnabled) return;
 
         // Apply Head Rotation (pitch, yaw, roll)
         if (headBone != null)

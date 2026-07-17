@@ -37,6 +37,7 @@ public sealed partial class KinectSensorSource
     // Face model mesh (from FaceTrackLib SDK — like FaceTrackingBasics-WPF sample)
     private IFTModel? _faceModel;
     private (int First, int Second, int Third)[]? _cachedTriangles;
+    private Vector2[]? _cachedNeutralVertices;   // last successful neutral mesh (fallback for failed frames)
     private uint _meshVertexCount;
     private FT_CAMERA_CONFIG _videoConfig;
     private uint _suModelCount;      // IFTModel.GetSUCount() — fixed at model load
@@ -538,18 +539,21 @@ public sealed partial class KinectSensorSource
                                 _lastMeshHr = 0;  // success
 
                                 // Project neutral face model shape (no expressions, no head pose)
+                                // Use actual tracked scale and Z-distance for consistent sizing.
+                                // Only zero out rotation and AUs — face stays front-facing
+                                // but at the same screen scale as the live mesh.
                                 IntPtr neutralVertBuf = Marshal.AllocHGlobal(bufSize);
                                 try
                                 {
                                     var neutralRotVec = new FT_VECTOR3D { x = 0, y = 0, z = 0 };
-                                    var neutralTransVec = new FT_VECTOR3D { x = 0, y = 0, z = 1.0f }; // fixed at 1.0m
+                                    var neutralTransVec = new FT_VECTOR3D { x = 0, y = 0, z = translation[2] };
                                     int hrNeutral = _faceModel.GetProjectedShape(
                                         ref _videoConfig,
                                         1.0f,
                                         viewOffset,
                                         suToPass, suPassCount,
                                         IntPtr.Zero, 0, // no AUs (neutral expression)
-                                        1.0f, // neutral scale
+                                        scale, // use actual tracked scale for consistent sizing
                                         ref neutralRotVec,
                                         ref neutralTransVec,
                                         neutralVertBuf,
@@ -565,11 +569,19 @@ public sealed partial class KinectSensorSource
                                             float vy = Marshal.PtrToStructure<float>(p + 4);
                                             neutralMeshVertices[i] = new Vector2(vx, vy);
                                         }
+                                        // Cache the last successful neutral mesh for fallback
+                                        _cachedNeutralVertices = neutralMeshVertices;
+                                    }
+                                    else
+                                    {
+                                        // Use cached neutral mesh if this frame's projection failed
+                                        neutralMeshVertices = _cachedNeutralVertices;
                                     }
                                 }
                                 catch (Exception ex)
                                 {
                                     _logger.LogDebug(ex, "Failed to project neutral face shape");
+                                    neutralMeshVertices = _cachedNeutralVertices;
                                 }
                                 finally
                                 {

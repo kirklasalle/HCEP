@@ -22,8 +22,17 @@ namespace HCEP.Core.Models;
 /// </summary>
 public enum LocalEngineType
 {
-    Ollama,
-    LlamaCpp
+    Ollama = 0,
+    LlamaCpp = 1,
+    LMStudio = 2,
+    Jan = 3,
+    GPT4All = 4,
+    LocalAI = 5,
+    vLLM = 6,
+    Oobabooga = 7,
+    KoboldCpp = 8,
+    BitNet = 9,
+    Custom = 10
 }
 
 /// <summary>
@@ -72,6 +81,15 @@ public sealed class LlmConfiguration
     // ── Local Engines ──────────────────────────────────────────
     public OllamaSettings Ollama { get; set; } = new();
     public LlamaCppSettings LlamaCpp { get; set; } = new();
+    public GenericLocalSettings LMStudio { get; set; } = new() { BaseUrl = "http://localhost:1234", Model = "local-model" };
+    public GenericLocalSettings Jan { get; set; } = new() { BaseUrl = "http://localhost:1337", Model = "local-model" };
+    public GenericLocalSettings GPT4All { get; set; } = new() { BaseUrl = "http://localhost:4891", Model = "local-model" };
+    public GenericLocalSettings LocalAI { get; set; } = new() { BaseUrl = "http://localhost:8080", Model = "local-model" };
+    public GenericLocalSettings vLLM { get; set; } = new() { BaseUrl = "http://localhost:8000", Model = "local-model" };
+    public GenericLocalSettings Oobabooga { get; set; } = new() { BaseUrl = "http://localhost:5000", Model = "local-model" };
+    public GenericLocalSettings KoboldCpp { get; set; } = new() { BaseUrl = "http://localhost:5001", Model = "local-model" };
+    public GenericLocalSettings BitNet { get; set; } = new() { BaseUrl = "http://localhost:8080", Model = "local-model" };
+    public GenericLocalSettings CustomLocal { get; set; } = new() { BaseUrl = "http://localhost:8000", Model = "local-model" };
 
     // ── Frontier Cloud Providers ────────────────────────────────
     public CloudProviderSettings OpenAI { get; set; } = new()
@@ -266,5 +284,16 @@ public sealed class CloudProviderSettings
         }
     }
 
+    public float Temperature { get; set; } = 0.7f;
+}
+
+/// <summary>
+/// Settings for generic local engines (LM Studio, Jan, GPT4All, LocalAI, vLLM, Oobabooga, KoboldCpp, BitNet, Custom).
+/// </summary>
+public sealed class GenericLocalSettings
+{
+    public bool Enabled { get; set; } = false;
+    public string BaseUrl { get; set; } = string.Empty;
+    public string Model { get; set; } = string.Empty;
     public float Temperature { get; set; } = 0.7f;
 }

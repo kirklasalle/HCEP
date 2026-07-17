@@ -54,6 +54,14 @@ public partial class AvatarWindow : Window
     private (int First, int Second, int Third)[]? _lastMeshTris;
     private Vector3 _lastMeshBakedRot;
 
+    /// <summary>
+    /// When true, avatar mirrors user's gaze, expression, brows, and gestures
+    /// (training/observation mode). When false (default), avatar operates
+    /// autonomously using HCEP-mode-driven expressions only.
+    /// User tracking and telemetry remain active in both modes.
+    /// </summary>
+    public bool IsMirroringEnabled { get; private set; }
+
     // ── TTS viseme subscription (Phase 13) ────────────────────────
     // Wired in Window_Loaded to HybridLlmEngine's TTS engine if available.
     private HCEP.Speech.HybridTtsEngine? _ttsEngine;
@@ -142,10 +150,14 @@ public partial class AvatarWindow : Window
         });
     }
 
-    // ── Phase 9: head gesture handler ─────────────────────────────────────
+    // ── Phase 9: head gesture handler — classifier always runs (data layer). ──────
+    // The avatar only mirrors the detected gesture when mirroring is enabled.
 
     private void OnHeadGestureDetected(HeadGestureType gesture)
     {
+        // Gate: display-layer mirroring only
+        if (!IsMirroringEnabled) return;
+
         // Called from the pipeline thread — route to UI for avatar controls.
         Dispatcher.BeginInvoke(() =>
         {
@@ -198,11 +210,15 @@ public partial class AvatarWindow : Window
         Avatar3D.TriggerNod();
     }
 
-    // ── Phase 10: expression mirror handler ────────────────────────────────
+    // ── Phase 10: expression mirror handler (display-layer gate) ───────────
 
     private void OnSmileRequested(float intensity)
     {
-        // ExpressionMirror fires from the pipeline thread — dispatch to UI.
+        // ExpressionMirror always detects smiles (data layer).
+        // Only apply to avatar display when mirroring is enabled.
+        if (!IsMirroringEnabled) return;
+
+        // Dispatch to UI thread.
         Dispatcher.BeginInvoke(() =>
         {
             Avatar.SetSmile(intensity);
@@ -307,8 +323,12 @@ public partial class AvatarWindow : Window
             Avatar3D.UpdateEyeData(face.FeaturePoints2D);
             // Pass user's actual head rotation so the avatars can compute eye-relative gaze
             // and cancel out the user's rotation for the mesh rendering.
-            Avatar3D.SetHeadPose(face.HeadRotation);
-            Avatar.SetHeadPose(face.HeadRotation);
+            // Display-layer gate: only mirror head pose to avatar when mirroring is enabled.
+            if (IsMirroringEnabled)
+            {
+                Avatar3D.SetHeadPose(face.HeadRotation);
+                Avatar.SetHeadPose(face.HeadRotation);
+            }
 
             // ── Phase 9: feed head pose to gesture classifier ────────────────
             _gestureClassifier.Update(
@@ -319,11 +339,15 @@ public partial class AvatarWindow : Window
 
             // ── Eyebrow animation ──────────────────────────────────────────────
             // Extract AU3 (BrowLowerer) and AU5 (OuterBrowRaiser) from Kinect AUs.
+            // Data layer: AUs are always read for telemetry and HCEP classification.
+            // Display layer: user AU values are only applied to the avatar when mirroring.
             var aus = face.ActionUnits;
-            float auRaise = aus.Length > (int)HCEP.Core.Enums.ActionUnit.OuterBrowRaiser
+            float rawAuRaise = aus.Length > (int)HCEP.Core.Enums.ActionUnit.OuterBrowRaiser
                 ? aus[(int)HCEP.Core.Enums.ActionUnit.OuterBrowRaiser] : 0f;
-            float auLower = aus.Length > (int)HCEP.Core.Enums.ActionUnit.BrowLowerer
+            float rawAuLower = aus.Length > (int)HCEP.Core.Enums.ActionUnit.BrowLowerer
                 ? aus[(int)HCEP.Core.Enums.ActionUnit.BrowLowerer] : 0f;
+            float auRaise = IsMirroringEnabled ? rawAuRaise : 0f;
+            float auLower = IsMirroringEnabled ? rawAuLower : 0f;
 
             var hcep = snapshot.PrimaryPerson?.LatestHcep;
             float modeFurrow = hcep?.Mode switch
@@ -375,19 +399,40 @@ public partial class AvatarWindow : Window
         if (!_is3DMode) return;
         if (face is null) return;
 
-        bool isNeutral = face.NeutralFaceMeshVertices2D != null;
-        var bakedRotation = isNeutral ? System.Numerics.Vector3.Zero : face.HeadRotation;
+        // When mirroring is OFF, ALWAYS use the neutral (de-rotated) mesh so the
+        // wireframe stays stable and front-facing. The live mesh has the user's
+        // head rotation baked into its vertices — using it causes erratic warping.
+        // When mirroring is ON, prefer neutral mesh but fall back to live mesh.
+        Vector2[]? meshToUse;
+        Vector3 bakedRotation;
 
-        var neutralOrLiveVerts = face.NeutralFaceMeshVertices2D ?? face.FaceMeshVertices2D;
-        if (neutralOrLiveVerts is { Length: > 0 } && face.FaceMeshTriangles is { Length: > 0 })
+        if (face.NeutralFaceMeshVertices2D is { Length: > 0 })
+        {
+            // Neutral mesh available — always preferred
+            meshToUse = face.NeutralFaceMeshVertices2D;
+            bakedRotation = System.Numerics.Vector3.Zero;
+        }
+        else if (IsMirroringEnabled && face.FaceMeshVertices2D is { Length: > 0 })
+        {
+            // Mirroring ON and neutral unavailable — fall back to live mesh
+            meshToUse = face.FaceMeshVertices2D;
+            bakedRotation = face.HeadRotation;
+        }
+        else
+        {
+            meshToUse = null;
+            bakedRotation = System.Numerics.Vector3.Zero;
+        }
+
+        if (meshToUse is { Length: > 0 } && face.FaceMeshTriangles is { Length: > 0 })
         {
             var tris = face.FaceMeshTriangles;
-            _lastMeshVerts = neutralOrLiveVerts;
+            _lastMeshVerts = meshToUse;
             _lastMeshTris = tris;
             _lastMeshBakedRot = bakedRotation;
             Dispatcher.BeginInvoke(() =>
             {
-                Avatar3D.SetMesh(neutralOrLiveVerts, tris, bakedRotation);
+                Avatar3D.SetMesh(meshToUse, tris, bakedRotation);
                 MeshStatusText.Text = $"{Avatar3D.MeshVertexCount}V";
                 MeshStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
             });
@@ -431,7 +476,10 @@ public partial class AvatarWindow : Window
         // Marshal to UI thread, update Avatar pupils and HUD.
         Dispatcher.BeginInvoke(() =>
         {
-            _activeAvatar.SetGaze(pitch, yaw, distanceM);
+            // Display-layer gate: only drive avatar pupils when mirroring is enabled.
+            // Telemetry HUD always updates — that's data, not mirroring.
+            if (IsMirroringEnabled)
+                _activeAvatar.SetGaze(pitch, yaw, distanceM);
 
             PitchText.Text = $"{pitch * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
             YawText.Text = $"{yaw * 180f / MathF.PI:+0.0;-0.0;+0.0}°";
@@ -459,5 +507,30 @@ public partial class AvatarWindow : Window
         TrackingModeText.Text = "BLINK";
         TrackingModeText.Foreground = Brushes.LightBlue;
         e.Handled = true;
+    }
+
+    // ── Mirror toggle handler ─────────────────────────────────────────────
+
+    private void MirrorToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        IsMirroringEnabled = MirrorToggle.IsChecked == true;
+
+        // Update visual state indicator
+        MirrorStateText.Text = IsMirroringEnabled ? "ON" : "OFF";
+        MirrorStateText.Foreground = IsMirroringEnabled
+            ? System.Windows.Media.Brushes.Cyan
+            : new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromArgb(0x88, 0x88, 0x88, 0x88));
+
+        // When disabling mirroring, reset avatar to neutral pose so it doesn't
+        // freeze on the last mirrored state.
+        if (!IsMirroringEnabled)
+        {
+            _activeAvatar.ResetGaze();
+            _activeAvatar.SetSmile(0f);
+            _activeAvatar.SetBrows(0f, 0f, 0f);
+            Avatar.SetHeadPose(Vector3.Zero);
+            Avatar3D.SetHeadPose(Vector3.Zero);
+        }
     }
 }

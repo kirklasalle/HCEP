@@ -1,7 +1,7 @@
 // ──────────────────────────────────────────────────────────────
 // HCEP SDK — Unreal Engine Gaze Controller Component
 // Copyright © 2026 Kirk LaSalle. All rights reserved.
-// 
+//
 // LICENSE NOTICE (MIT):
 // This SDK component is open-source and permissively licensed under
 // the MIT License. It is designed to interface with the proprietary
@@ -22,7 +22,7 @@ UHcepGazeController::UHcepGazeController()
 
     TargetGazeDirection = FVector::ForwardVector;
     TargetHeadRotation = FRotator::ZeroRotator;
-    
+
     CurrentGazeDirection = FVector::ForwardVector;
     CurrentHeadRotation = FRotator::ZeroRotator;
 }
@@ -41,13 +41,22 @@ void UHcepGazeController::EndPlay(const EEndPlayReason::Type EndPlayReason)
     Super::EndPlay(EndPlayReason);
 }
 
-void UHcepGazeController::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UHcepGazeController::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction)
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-    // Smoothly interpolate current gaze and head values towards targets
+    // Data layer: always track latest targets so toggling mirroring on is smooth.
     CurrentGazeDirection = FMath::VInterpTo(CurrentGazeDirection, TargetGazeDirection, DeltaTime, InterpolationSpeed);
     CurrentHeadRotation = FMath::RInterpTo(CurrentHeadRotation, TargetHeadRotation, DeltaTime, InterpolationSpeed);
+
+    // Display-layer gate: when mirroring is disabled, expose neutral pose values.
+    // WebSocket ingestion and target tracking continue in both modes.
+    if (!bMirroringEnabled)
+    {
+        CurrentGazeDirection = FVector::ForwardVector;
+        CurrentHeadRotation = FRotator::ZeroRotator;
+        return;
+    }
 
     // Expose interpolated tracking variables to blueprints
     // E.g., developer can retrieve UHcepGazeController->CurrentGazeDirection inside AnimInstance
@@ -86,17 +95,17 @@ void UHcepGazeController::OnWebSocketConnected()
     UE_LOG(LogTemp, Log, TEXT("[HCEP Unreal SDK] Successfully connected to HCEP WebSocket stream."));
 }
 
-void UHcepGazeController::OnWebSocketConnectionError(const FString& Error)
+void UHcepGazeController::OnWebSocketConnectionError(const FString &Error)
 {
     UE_LOG(LogTemp, Error, TEXT("[HCEP Unreal SDK] WebSocket connection error: %s"), *Error);
 }
 
-void UHcepGazeController::OnWebSocketClosed(int32 StatusCode, const FString& Reason, bool bWasClean)
+void UHcepGazeController::OnWebSocketClosed(int32 StatusCode, const FString &Reason, bool bWasClean)
 {
     UE_LOG(LogTemp, Log, TEXT("[HCEP Unreal SDK] WebSocket closed. Status: %d, Reason: %s"), StatusCode, *Reason);
 }
 
-void UHcepGazeController::OnWebSocketMessageReceived(const FString& MessageString)
+void UHcepGazeController::OnWebSocketMessageReceived(const FString &MessageString)
 {
     TSharedPtr<FJsonObject> JsonObject;
     TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(MessageString);

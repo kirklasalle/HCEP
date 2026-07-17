@@ -1,0 +1,42 @@
+# NEXUS HANDOVER BATON — HCEP SETTINGS & WIREFRAME OPTIMIZATION
+Date: July 16, 2026
+Origin: Antigravity AI Agent
+
+## 1. Context & Task Overview
+We have successfully implemented the Mirroring Toggle, Settings Panel Overhauls, and 3D Wireframe Avatar Stabilization. The codebase builds with 0 errors/warnings (`dotnet build` successful).
+
+## 2. Completed Milestones & Implementations
+
+### A. 3D Wireframe Avatar Stabilization (`AvatarWindow.xaml.cs` & `KinectSensorSource.FaceTracking.cs`)
+- **Neutral shape projection scaling**: Fixed erratic lopsided mesh warping by tracking real-time scale/depth translation and feeding them into the neutral model projection instead of using fixed constants.
+- **Flicker minimization**: Added `_cachedNeutralVertices` in the face tracking bridge to EMA-smooth and fallback on successful frames when Kinect's COM methods temporarily fail.
+- **Mirroring isolate**: When Mirroring is toggled OFF (default state), `AvatarWindow.xaml.cs` forces the stable neutral mesh, isolating the rendering from lopsided head rotations while maintaining blink and pupil tracking.
+
+### B. Context Tab Readability (`SettingsWindow.xaml`)
+- Removed explicit light `Foreground` text overrides from the three Context tab ComboBoxes (`EnvironmentCombo`, `ActivityCombo`, `PrivacyCombo`). Dropdown options now use default black/high-contrast system text.
+
+### C. 11 Local SLM Engines (`LlmConfiguration.cs`, `HybridLlmEngine.cs`, `SettingsWindow.xaml`, `SettingsWindow.xaml.cs`)
+- **Expanded Engines**: Custom, Ollama, LM Studio, Llama.cpp, Jan, GPT4All, LocalAI, vLLM, Text Generation WebUI, KoboldCpp, and BitNet.
+- **Dynamic Configuration UI**: Converted the `Local Engines` tab in `SettingsWindow.xaml` to use a dynamic shared layout (matching the Frontier Cloud pattern) consisting of an Active Engine ComboBox, Base URL, Model Name, Temperature slider, and a compatibility checkbox.
+- **Dynamic API Routing**: `HybridLlmEngine.cs` parses the active engine config and routes standard OpenAI-compatible requests (LM Studio, Jan, vLLM, BitNet, etc.) to the `/v1/chat/completions` client pipeline.
+- **Cloning & Saving**: `SettingsWindow.xaml.cs` updated to load/save selection state using WCM and copy/clone properties.
+
+### D. Happyface / Emulation Personality Presets (`SettingsWindow.xaml`, `SettingsWindow.xaml.cs`)
+- Added `PresetCombo` with 4 default profiles:
+  - **Attentive Listener**: Emulation Weight `0.70`, Reflection Delay `200 ms`, Blink Sync `True`
+  - **Warm Companion**: Emulation Weight `0.90`, Reflection Delay `350 ms`, Blink Sync `True`
+  - **Silent Observer**: Emulation Weight `0.15`, Reflection Delay `700 ms`, Blink Sync `False`
+  - **Professional Assistant**: Emulation Weight `0.40`, Reflection Delay `150 ms`, Blink Sync `True`
+- Selecting a preset auto-updates all sliders/checkboxes. Adjusting any slider or checkbox manually automatically changes the selection state to **Custom**.
+
+## 3. Current Code State
+- **Build Status**: Compiles successfully (`dotnet build` finishes with 0 errors/warnings).
+- **Test Status**: Test assembly compiled. (Note: Integration tests may try to initialize actual Kinect drivers/sockets, so verify unit-only tests inside `tests\HCEP.Tests`).
+
+## 4. Handoff Steps for GitHub Copilot in VS Code
+Copilot, you are now taking the baton. Here is how you can continue:
+1. **Verify settings runtime**: Run `run.bat` or launch the application to test opening the Settings window. Check that clicking between different local engines correctly loads/saves URLs, Models, and Temperatures.
+2. **Verify Presets**: Go to the Happyface/Emulation tab, change presets, verify the sliders update, then tweak a slider manually to confirm it switches to **Custom**. Click Save and reopen to ensure WCM & local file persistence works flawlessly.
+3. **Verify Wireframe stability**: Enable/disable mirroring using the toggle in the main HUD or Emulation tab. Ensure the 3D wireframe mesh remains stable and centered when mirroring is disabled.
+
+*The baton is yours, Copilot.*

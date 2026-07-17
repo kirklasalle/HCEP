@@ -134,10 +134,12 @@ public sealed class HybridLlmEngine : ILlmEngine
             {
                 try
                 {
+                    var localConfig = GetLocalEngineConfig();
                     string response = Configuration.ActiveLocalEngine switch
                     {
+                        LocalEngineType.Ollama => await CallOllamaAsync(systemPrompt, userMessage, ct),
                         LocalEngineType.LlamaCpp => await CallLlamaCppAsync(systemPrompt, userMessage, ct),
-                        _ => await CallOllamaAsync(systemPrompt, userMessage, ct)
+                        _ => await CallOpenAiCompatibleApiAsync(localConfig.BaseUrl, string.Empty, localConfig.Model, systemPrompt, userMessage, ct)
                     };
 
                     return new LlmExchange
@@ -328,16 +330,25 @@ public sealed class HybridLlmEngine : ILlmEngine
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             cts.CancelAfter(2000);
 
+            var localConfig = GetLocalEngineConfig();
+
             if (Configuration.ActiveLocalEngine == LocalEngineType.LlamaCpp)
             {
                 // Verify llama.cpp health endpoint
-                var response = await _httpClient.GetAsync($"{Configuration.LlamaCpp.BaseUrl}/health", cts.Token);
+                var response = await _httpClient.GetAsync($"{localConfig.BaseUrl}/health", cts.Token);
+                return response.IsSuccessStatusCode;
+            }
+            else if (Configuration.ActiveLocalEngine == LocalEngineType.Ollama)
+            {
+                // Verify Ollama tags endpoint
+                var response = await _httpClient.GetAsync($"{localConfig.BaseUrl}/api/tags", cts.Token);
                 return response.IsSuccessStatusCode;
             }
             else
             {
-                // Verify Ollama tags endpoint
-                var response = await _httpClient.GetAsync($"{Configuration.Ollama.BaseUrl}/api/tags", cts.Token);
+                // For generic OpenAI-compatible local engines, require an explicit
+                // success response from /v1/models to avoid false positives.
+                var response = await _httpClient.GetAsync($"{localConfig.BaseUrl}/v1/models", cts.Token);
                 return response.IsSuccessStatusCode;
             }
         }
@@ -427,11 +438,26 @@ public sealed class HybridLlmEngine : ILlmEngine
         return sb.ToString();
     }
 
-    private string GetActiveLocalModel() => Configuration.ActiveLocalEngine switch
+    private (string BaseUrl, string Model, float Temperature) GetLocalEngineConfig()
     {
-        LocalEngineType.LlamaCpp => Configuration.LlamaCpp.Model,
-        _ => Configuration.Ollama.Model
-    };
+        return Configuration.ActiveLocalEngine switch
+        {
+            LocalEngineType.Ollama => (Configuration.Ollama.BaseUrl, Configuration.Ollama.Model, Configuration.Ollama.Temperature),
+            LocalEngineType.LlamaCpp => (Configuration.LlamaCpp.BaseUrl, Configuration.LlamaCpp.Model, Configuration.LlamaCpp.Temperature),
+            LocalEngineType.LMStudio => (Configuration.LMStudio.BaseUrl, Configuration.LMStudio.Model, Configuration.LMStudio.Temperature),
+            LocalEngineType.Jan => (Configuration.Jan.BaseUrl, Configuration.Jan.Model, Configuration.Jan.Temperature),
+            LocalEngineType.GPT4All => (Configuration.GPT4All.BaseUrl, Configuration.GPT4All.Model, Configuration.GPT4All.Temperature),
+            LocalEngineType.LocalAI => (Configuration.LocalAI.BaseUrl, Configuration.LocalAI.Model, Configuration.LocalAI.Temperature),
+            LocalEngineType.vLLM => (Configuration.vLLM.BaseUrl, Configuration.vLLM.Model, Configuration.vLLM.Temperature),
+            LocalEngineType.Oobabooga => (Configuration.Oobabooga.BaseUrl, Configuration.Oobabooga.Model, Configuration.Oobabooga.Temperature),
+            LocalEngineType.KoboldCpp => (Configuration.KoboldCpp.BaseUrl, Configuration.KoboldCpp.Model, Configuration.KoboldCpp.Temperature),
+            LocalEngineType.BitNet => (Configuration.BitNet.BaseUrl, Configuration.BitNet.Model, Configuration.BitNet.Temperature),
+            LocalEngineType.Custom => (Configuration.CustomLocal.BaseUrl, Configuration.CustomLocal.Model, Configuration.CustomLocal.Temperature),
+            _ => (Configuration.Ollama.BaseUrl, Configuration.Ollama.Model, Configuration.Ollama.Temperature)
+        };
+    }
+
+    private string GetActiveLocalModel() => GetLocalEngineConfig().Model;
 
     /// <summary>Returns the active cloud provider's CloudProviderSettings for trace logging.</summary>
     private HCEP.Core.Models.CloudProviderSettings GetActiveCloudProviderSettings() =>

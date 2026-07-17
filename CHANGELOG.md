@@ -57,6 +57,31 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased] — 2026-07-03
 
+### Added — 2026-07-16
+
+- **Avatar mirroring toggle (default OFF)** — Added `MIRROR` toggle to the Avatar HUD (`AvatarWindow.xaml`) and display-layer gating in `AvatarWindow.xaml.cs` so gaze, head-pose mirroring, smile mirroring, gesture mirroring, and user-AU brow mirroring are only applied when mirroring is enabled. User tracking, telemetry, HCEP classification, social gaze, proxemics, and backchannel processing remain active.
+- **Local engine expansion (11 providers)** — Extended `LocalEngineType` and settings model coverage (`LlmConfiguration`) to include LM Studio, Jan, GPT4All, LocalAI, vLLM, oobabooga, KoboldCpp, BitNet, and Custom OpenAI-compatible endpoints via new `GenericLocalSettings` entries.
+- **Happyface personality presets** — Added preset controls to `SettingsWindow` (`Attentive Listener`, `Warm Companion`, `Silent Observer`, `Professional Assistant`, `Custom`) with bidirectional preset/value synchronization logic.
+- **SDK mirroring controls** — Added Unity `mirroringEnabled` toggle and Unreal `bMirroringEnabled` property for training/observation mirroring mode configuration.
+
+### Changed — 2026-07-16
+
+- **Settings local-engine UX** — Refactored Local Engines tab to a shared dynamic editor (`Base URL`, `Model Name`, `Temperature`) with llama.cpp OpenAI-compatibility toggle visibility controlled by selected engine.
+- **Hybrid local-engine routing** — `HybridLlmEngine` now resolves local engine runtime settings through `GetLocalEngineConfig()` and routes non-Ollama/non-native-llama local engines through OpenAI-compatible local endpoints.
+- **3D wireframe stability path** — Neutral mesh projection now uses tracked scale/depth instead of fixed 1.0m assumptions, and neutral mesh fallback cache is used when per-frame projection fails.
+- **Context tab readability** — Removed explicit Context-combo foreground overrides so dropdown content uses readable popup text colors.
+
+### Documentation — 2026-07-16
+
+- **Telemetry trust verification docs** — Added README guidance for SDK-side trust-envelope verification.
+- **Implementation planning docs** — Added planning docs for mirroring toggle and settings/wireframe stabilization (`docs/mirroring_toggle_plan.md`, `docs/settings_and_wireframe_plan.md`).
+
+### Fixed — 2026-07-16 (Audit Follow-up)
+
+- **Local engine availability false-positive hardening** — `HybridLlmEngine.IsLocalAvailableAsync()` now requires a successful `/v1/models` response for generic OpenAI-compatible local engines, avoiding accidental routing on unrelated endpoints.
+- **Unreal SDK mirroring parity** — `UHcepGazeController` now enforces `bMirroringEnabled` in `TickComponent`: data ingestion continues while exported runtime pose/gaze outputs are neutralized when mirroring is disabled.
+- **Mirror-off head pose reset** — `AvatarWindow` now resets both 2D and 3D avatar head pose to neutral when mirroring is turned off, preventing stale mirrored orientation.
+
 ### Added — Phase 9 Head Gesture Classifier + Phase 10 Backchannel Engine + Binocular Convergence + Context Settings UI
 
 - **`HeadGestureClassifier`** (Phase 9, `HCEP.Spatial`) — 30 Hz velocity-threshold classifier detects Nod, Shake, TiltLeft, TiltRight, ForwardLean, BackwardLean from Kinect head-pose stream. Nod/Shake use reversal confirmation (min 70ms, max 1800ms); Tilt uses 450ms hold; Lean uses 1200ms hold. 600ms refractory period prevents re-triggering. Fed from `face.HeadRotation` + `TrackedPerson.DistanceM` in `AvatarWindow.OnSnapshotReady`. `GestureDetected` event routed to `TriggerAvatarNod()` so user nods produce a reciprocal avatar nod.

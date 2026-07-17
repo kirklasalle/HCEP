@@ -45,6 +45,7 @@
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- TrackingMode -->
@@ -129,8 +130,37 @@
                                HorizontalAlignment="Center"/>
                 </StackPanel>
 
+                <!-- Mirror mode toggle (OFF = autonomous, ON = training/observation) -->
+                <StackPanel Grid.Column="5"
+                            Orientation="Vertical"
+                            Margin="6,0,2,0"
+                            ToolTip="Mirror Mode (training/observation).
+&#x0a;OFF (default): Avatar operates autonomously — its natural state.
+&#x0a;ON: Avatar mirrors user's gaze, expression, brows, and gestures.
+&#x0a;User tracking and telemetry remain active in both modes.">
+                    <TextBlock Text="MIRROR"
+                               Foreground="#44FFFFFF"
+                               FontFamily="Segoe UI"
+                               FontSize="9"
+                               HorizontalAlignment="Center"/>
+                    <CheckBox x:Name="MirrorToggle"
+                              IsChecked="False"
+                              Checked="MirrorToggle_Changed"
+                              Unchecked="MirrorToggle_Changed"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Cursor="Hand">
+                        <TextBlock x:Name="MirrorStateText"
+                                   Text="OFF"
+                                   Foreground="#88888888"
+                                   FontFamily="Segoe Mono,Consolas"
+                                   FontSize="10"
+                                   FontWeight="SemiBold"/>
+                    </CheckBox>
+                </StackPanel>
+
                 <!-- Avatar mode selector (2D / 3D) -->
-                <ComboBox Grid.Column="5"
+                <ComboBox Grid.Column="6"
                           x:Name="AvatarModeCombo"
                           SelectionChanged="AvatarMode_SelectionChanged"
                           Margin="6,2,2,2"

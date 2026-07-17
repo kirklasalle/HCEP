@@ -28,9 +28,11 @@ public partial class SettingsWindow : Window
     private readonly HybridLlmEngine? _llmEngine;
     private readonly LlmConfiguration _configCopy;
     private CloudProviderType _currentSelectedCloudProvider;
+    private LocalEngineType _currentSelectedLocalEngine;
     private readonly TimeContextProvider? _contextProvider;
     /// <summary>True while Loaded is populating controls; suppresses SelectionChanged save.</summary>
     private bool _isInitializing;
+    private bool _isInitializingPreset;
     private readonly ILogger<SettingsWindow> _logger;
 
     public SettingsWindow(ILlmEngine llmEngine, TimeContextProvider contextProvider, ILogger<SettingsWindow> logger)
@@ -52,43 +54,51 @@ public partial class SettingsWindow : Window
 
         Loaded += SettingsWindow_Loaded;
         CloudProviderCombo.SelectionChanged += CloudProviderCombo_SelectionChanged;
+        LocalEngineCombo.SelectionChanged += LocalEngineCombo_SelectionChanged;
+        PresetCombo.SelectionChanged += PresetCombo_SelectionChanged;
+
+        // Wire preset dynamic triggers
+        EmuWeightSlider.ValueChanged += Control_ValueChanged;
+        DelaySlider.ValueChanged += Control_ValueChanged;
+        SyncBlinksCheck.Checked += Control_CheckChanged;
+        SyncBlinksCheck.Unchecked += Control_CheckChanged;
     }
 
     private void SettingsWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        // 1. Local Engines
-        LocalEngineCombo.SelectedIndex = _configCopy.ActiveLocalEngine == LocalEngineType.LlamaCpp ? 1 : 0;
-        OllamaUrlText.Text = _configCopy.Ollama.BaseUrl;
-        OllamaModelText.Text = _configCopy.Ollama.Model;
-        LlamaCppUrlText.Text = _configCopy.LlamaCpp.BaseUrl;
-
-        // 2. Cloud Provider Selection
-        _currentSelectedCloudProvider = _configCopy.ActiveCloudProvider;
-        _isInitializing = true;         // prevent SelectionChanged from wiping fields
+        _isInitializing = true;
         try
         {
+            // 1. Local Engines Selection
+            _currentSelectedLocalEngine = _configCopy.ActiveLocalEngine;
+            LocalEngineCombo.SelectedIndex = (int)_configCopy.ActiveLocalEngine;
+            LoadLocalEngineFields(_currentSelectedLocalEngine);
+
+            // 2. Cloud Provider Selection
+            _currentSelectedCloudProvider = _configCopy.ActiveCloudProvider;
             CloudProviderCombo.SelectedIndex = (int)_configCopy.ActiveCloudProvider;
+            LoadCloudProviderFields(_currentSelectedCloudProvider);
+
+            // 3. Happyface & Emulation settings
+            PreferLocalCheck.IsChecked = _configCopy.PreferLocal;
+            AgenticToolCheck.IsChecked = _llmEngine?.AgenticToolUseEnabled ?? true;
+            EmuWeightSlider.Value = _configCopy.EmulationBlendWeight;
+            DelaySlider.Value = _configCopy.ReflectionDelayMs;
+            SyncBlinksCheck.IsChecked = _configCopy.SyncBlinksToUser;
+            SetActivePresetFromValues();
+
+            // 4. Context (Phase 14)
+            if (_contextProvider is not null)
+            {
+                EnvironmentCombo.SelectedIndex = (int)_contextProvider.Environment;
+                ActivityCombo.SelectedIndex = (int)_contextProvider.Activity;
+                PrivacyCombo.SelectedIndex = (int)_contextProvider.Privacy;
+                LocationLabelText.Text = _contextProvider.UserDefinedLocation ?? string.Empty;
+            }
         }
         finally
         {
             _isInitializing = false;
-        }
-        LoadCloudProviderFields(_currentSelectedCloudProvider);
-
-        // 3. Happyface & Emulation
-        PreferLocalCheck.IsChecked = _configCopy.PreferLocal;
-        AgenticToolCheck.IsChecked = _llmEngine?.AgenticToolUseEnabled ?? true;
-        EmuWeightSlider.Value = _configCopy.EmulationBlendWeight;
-        DelaySlider.Value = _configCopy.ReflectionDelayMs;
-        SyncBlinksCheck.IsChecked = _configCopy.SyncBlinksToUser;
-
-        // 4. Context (Phase 14)
-        if (_contextProvider is not null)
-        {
-            EnvironmentCombo.SelectedIndex = (int)_contextProvider.Environment;
-            ActivityCombo.SelectedIndex = (int)_contextProvider.Activity;
-            PrivacyCombo.SelectedIndex = (int)_contextProvider.Privacy;
-            LocationLabelText.Text = _contextProvider.UserDefinedLocation ?? string.Empty;
         }
     }
 
@@ -179,13 +189,11 @@ public partial class SettingsWindow : Window
         // Save current cloud provider fields
         SaveCloudProviderFields(_currentSelectedCloudProvider);
 
-        // Apply local engine settings
-        _configCopy.ActiveLocalEngine = LocalEngineCombo.SelectedIndex == 1 ? LocalEngineType.LlamaCpp : LocalEngineType.Ollama;
-        _configCopy.Ollama.BaseUrl = OllamaUrlText.Text.Trim();
-        _configCopy.Ollama.Model = OllamaModelText.Text.Trim();
-        _configCopy.LlamaCpp.BaseUrl = LlamaCppUrlText.Text.Trim();
+        // Save current local engine fields
+        SaveLocalEngineFields(_currentSelectedLocalEngine);
 
-        // Apply cloud settings
+        // Apply active selections
+        _configCopy.ActiveLocalEngine = (LocalEngineType)LocalEngineCombo.SelectedIndex;
         _configCopy.ActiveCloudProvider = (CloudProviderType)CloudProviderCombo.SelectedIndex;
 
         // Apply Happyface & Emulation settings
@@ -201,7 +209,7 @@ public partial class SettingsWindow : Window
             "Settings being saved: provider={Provider} model={Model} url={BaseUrl} " +
             "hasKey={HasKey} preferLocal={PreferLocal} agentic={Agentic} " +
             "emulation={Emulation:F2} delay={Delay}ms syncBlinks={SyncBlinks} " +
-            "localEngine={LocalEngine} ollamaModel={OllamaModel}",
+            "localEngine={LocalEngine}",
             _configCopy.ActiveCloudProvider,
             activeSettings.Model,
             activeSettings.BaseUrl,
@@ -211,8 +219,7 @@ public partial class SettingsWindow : Window
             _configCopy.EmulationBlendWeight,
             _configCopy.ReflectionDelayMs,
             _configCopy.SyncBlinksToUser,
-            _configCopy.ActiveLocalEngine,
-            _configCopy.Ollama.Model);
+            _configCopy.ActiveLocalEngine);
 
         // Apply context settings (Phase 14)
         if (_contextProvider is not null)
@@ -246,6 +253,177 @@ public partial class SettingsWindow : Window
         Close();
     }
 
+    private void LocalEngineCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializing) return;
+
+        // Save fields of the previous local engine before switching
+        SaveLocalEngineFields(_currentSelectedLocalEngine);
+
+        // Switch to the newly selected local engine
+        var newEngine = (LocalEngineType)LocalEngineCombo.SelectedIndex;
+        _currentSelectedLocalEngine = newEngine;
+        LoadLocalEngineFields(newEngine);
+    }
+
+    private void LoadLocalEngineFields(LocalEngineType engine)
+    {
+        LlamaCppCompatCheck.Visibility = (engine == LocalEngineType.LlamaCpp) ? Visibility.Visible : Visibility.Collapsed;
+
+        if (engine == LocalEngineType.Ollama)
+        {
+            LocalUrlText.Text = _configCopy.Ollama.BaseUrl;
+            LocalModelText.Text = _configCopy.Ollama.Model;
+            LocalTempSlider.Value = _configCopy.Ollama.Temperature;
+        }
+        else if (engine == LocalEngineType.LlamaCpp)
+        {
+            LocalUrlText.Text = _configCopy.LlamaCpp.BaseUrl;
+            LocalModelText.Text = _configCopy.LlamaCpp.Model;
+            LocalTempSlider.Value = _configCopy.LlamaCpp.Temperature;
+            LlamaCppCompatCheck.IsChecked = _configCopy.LlamaCpp.UseOaiCompatibleEndpoint;
+        }
+        else
+        {
+            var settings = GetGenericLocalSettings(engine);
+            LocalUrlText.Text = settings.BaseUrl;
+            LocalModelText.Text = settings.Model;
+            LocalTempSlider.Value = settings.Temperature;
+        }
+    }
+
+    private void SaveLocalEngineFields(LocalEngineType engine)
+    {
+        if (engine == LocalEngineType.Ollama)
+        {
+            _configCopy.Ollama.BaseUrl = LocalUrlText.Text.Trim();
+            _configCopy.Ollama.Model = LocalModelText.Text.Trim();
+            _configCopy.Ollama.Temperature = (float)LocalTempSlider.Value;
+        }
+        else if (engine == LocalEngineType.LlamaCpp)
+        {
+            _configCopy.LlamaCpp.BaseUrl = LocalUrlText.Text.Trim();
+            _configCopy.LlamaCpp.Model = LocalModelText.Text.Trim();
+            _configCopy.LlamaCpp.Temperature = (float)LocalTempSlider.Value;
+            _configCopy.LlamaCpp.UseOaiCompatibleEndpoint = LlamaCppCompatCheck.IsChecked == true;
+        }
+        else
+        {
+            var settings = GetGenericLocalSettings(engine);
+            settings.BaseUrl = LocalUrlText.Text.Trim();
+            settings.Model = LocalModelText.Text.Trim();
+            settings.Temperature = (float)LocalTempSlider.Value;
+        }
+    }
+
+    private GenericLocalSettings GetGenericLocalSettings(LocalEngineType engine)
+    {
+        return engine switch
+        {
+            LocalEngineType.LMStudio => _configCopy.LMStudio,
+            LocalEngineType.Jan => _configCopy.Jan,
+            LocalEngineType.GPT4All => _configCopy.GPT4All,
+            LocalEngineType.LocalAI => _configCopy.LocalAI,
+            LocalEngineType.vLLM => _configCopy.vLLM,
+            LocalEngineType.Oobabooga => _configCopy.Oobabooga,
+            LocalEngineType.KoboldCpp => _configCopy.KoboldCpp,
+            LocalEngineType.BitNet => _configCopy.BitNet,
+            _ => _configCopy.CustomLocal
+        };
+    }
+
+    private void PresetCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_isInitializingPreset) return;
+
+        int index = PresetCombo.SelectedIndex;
+        if (index == 4) return; // Custom - do nothing
+
+        _isInitializingPreset = true;
+        try
+        {
+            switch (index)
+            {
+                case 0: // Attentive Listener
+                    EmuWeightSlider.Value = 0.70;
+                    DelaySlider.Value = 200;
+                    SyncBlinksCheck.IsChecked = true;
+                    break;
+                case 1: // Warm Companion
+                    EmuWeightSlider.Value = 0.90;
+                    DelaySlider.Value = 350;
+                    SyncBlinksCheck.IsChecked = true;
+                    break;
+                case 2: // Silent Observer
+                    EmuWeightSlider.Value = 0.15;
+                    DelaySlider.Value = 700;
+                    SyncBlinksCheck.IsChecked = false;
+                    break;
+                case 3: // Professional Assistant
+                    EmuWeightSlider.Value = 0.40;
+                    DelaySlider.Value = 150;
+                    SyncBlinksCheck.IsChecked = true;
+                    break;
+            }
+        }
+        finally
+        {
+            _isInitializingPreset = false;
+        }
+    }
+
+    private void Control_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        SetCustomPreset();
+    }
+
+    private void Control_CheckChanged(object sender, RoutedEventArgs e)
+    {
+        SetCustomPreset();
+    }
+
+    private void SetCustomPreset()
+    {
+        if (_isInitializing || _isInitializingPreset) return;
+        PresetCombo.SelectedIndex = 4; // Select "Custom"
+    }
+
+    private void SetActivePresetFromValues()
+    {
+        _isInitializingPreset = true;
+        try
+        {
+            float emu = _configCopy.EmulationBlendWeight;
+            int delay = _configCopy.ReflectionDelayMs;
+            bool blinks = _configCopy.SyncBlinksToUser;
+
+            if (Math.Abs(emu - 0.70f) < 0.01f && delay == 200 && blinks)
+            {
+                PresetCombo.SelectedIndex = 0;
+            }
+            else if (Math.Abs(emu - 0.90f) < 0.01f && delay == 350 && blinks)
+            {
+                PresetCombo.SelectedIndex = 1;
+            }
+            else if (Math.Abs(emu - 0.15f) < 0.01f && delay == 700 && !blinks)
+            {
+                PresetCombo.SelectedIndex = 2;
+            }
+            else if (Math.Abs(emu - 0.40f) < 0.01f && delay == 150 && blinks)
+            {
+                PresetCombo.SelectedIndex = 3;
+            }
+            else
+            {
+                PresetCombo.SelectedIndex = 4; // Custom
+            }
+        }
+        finally
+        {
+            _isInitializingPreset = false;
+        }
+    }
+
     // ── Helper Cloning Operations ───────────────────────────────
 
     private static LlmConfiguration CloneConfig(LlmConfiguration src)
@@ -262,6 +440,15 @@ public partial class SettingsWindow : Window
 
         CloneSettings(src.Ollama, copy.Ollama);
         CloneSettings(src.LlamaCpp, copy.LlamaCpp);
+        CloneSettings(src.LMStudio, copy.LMStudio);
+        CloneSettings(src.Jan, copy.Jan);
+        CloneSettings(src.GPT4All, copy.GPT4All);
+        CloneSettings(src.LocalAI, copy.LocalAI);
+        CloneSettings(src.vLLM, copy.vLLM);
+        CloneSettings(src.Oobabooga, copy.Oobabooga);
+        CloneSettings(src.KoboldCpp, copy.KoboldCpp);
+        CloneSettings(src.BitNet, copy.BitNet);
+        CloneSettings(src.CustomLocal, copy.CustomLocal);
         CloneSettings(src.OpenAI, copy.OpenAI);
         CloneSettings(src.Anthropic, copy.Anthropic);
         CloneSettings(src.Gemini, copy.Gemini);
@@ -297,6 +484,15 @@ public partial class SettingsWindow : Window
 
         CloneSettings(src.Ollama, dest.Ollama);
         CloneSettings(src.LlamaCpp, dest.LlamaCpp);
+        CloneSettings(src.LMStudio, dest.LMStudio);
+        CloneSettings(src.Jan, dest.Jan);
+        CloneSettings(src.GPT4All, dest.GPT4All);
+        CloneSettings(src.LocalAI, dest.LocalAI);
+        CloneSettings(src.vLLM, dest.vLLM);
+        CloneSettings(src.Oobabooga, dest.Oobabooga);
+        CloneSettings(src.KoboldCpp, dest.KoboldCpp);
+        CloneSettings(src.BitNet, dest.BitNet);
+        CloneSettings(src.CustomLocal, dest.CustomLocal);
         CloneSettings(src.OpenAI, dest.OpenAI);
         CloneSettings(src.Anthropic, dest.Anthropic);
         CloneSettings(src.Gemini, dest.Gemini);
@@ -342,6 +538,14 @@ public partial class SettingsWindow : Window
         dest.BaseUrl = src.BaseUrl;
         dest.Model = src.Model;
         dest.ApiKey = src.ApiKey;
+        dest.Temperature = src.Temperature;
+    }
+
+    private static void CloneSettings(GenericLocalSettings src, GenericLocalSettings dest)
+    {
+        dest.Enabled = src.Enabled;
+        dest.BaseUrl = src.BaseUrl;
+        dest.Model = src.Model;
         dest.Temperature = src.Temperature;
     }
 }
