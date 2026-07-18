@@ -126,6 +126,8 @@ public partial class App : Application
                 services.AddSingleton<IContextPriorEngine, ContextPriorEngine>();
                 // Workstream B: PAD-bound telemetry trust
                 services.AddSingleton<ITelemetryTrustService, TelemetryTrustService>();
+                services.AddSingleton<StartupHealthCheckService>();
+                services.AddSingleton<IAvatarCatalog, AvatarCatalog>();
 
                 // -- Pipeline Orchestrator ----------------------
                 services.AddSingleton<HCEPPipelineOrchestrator>();
@@ -145,10 +147,25 @@ public partial class App : Application
                 services.AddTransient<CalibrationWindow>();
                 services.AddTransient<AvatarWindow>();
                 services.AddTransient<SettingsWindow>();
+                services.AddTransient<FaceMeshAlignmentWindow>();
+                services.AddTransient<SkeletalAlignmentWindow>();
+                services.AddTransient<PnPHeadPoseCalibrationWindow>();
+                services.AddTransient<CheckForUpdatesWindow>();
+
+                // -- Updater --------------------------------------
+                services.AddSingleton<HCEP.App.Updates.UpdateService>(sp =>
+                    new HCEP.App.Updates.UpdateService(
+                        new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(30) },
+                        sp.GetService<ILogger<HCEP.App.Updates.UpdateService>>()));
             })
             .Build();
 
         _appLogger = _host.Services.GetRequiredService<ILogger<App>>();
+
+        // ── Load persisted overlay alignment (face-mesh offset, etc.) ───
+        // Values live in %LocalAppData%\HCEP\overlay-alignment.json and are
+        // safe to migrate across upgrades. Missing/corrupt files are ignored.
+        HCEP.App.OverlayAlignment.Load();
 
         // ── Load persisted settings (non-secret fields from JSON file) ──────
         // API keys are NOT in the JSON file; they are loaded from Windows
@@ -160,11 +177,25 @@ public partial class App : Application
             if (loaded is not null)
             {
                 llmEngine.Configuration = loaded;
+
+                var contextProvider = _host.Services.GetService<HCEP.Intelligence.TimeContextProvider>();
+                if (contextProvider is not null)
+                {
+                    contextProvider.Environment = loaded.ContextEnvironment;
+                    contextProvider.Activity = loaded.ContextActivity;
+                    contextProvider.Privacy = loaded.ContextPrivacy;
+                    contextProvider.UserDefinedLocation = loaded.ContextUserDefinedLocation;
+                }
+
                 _appLogger.LogInformation(
-                    "Persisted settings applied — provider={Provider} preferLocal={PreferLocal}",
-                    loaded.ActiveCloudProvider, loaded.PreferLocal);
+                    "Persisted settings applied — provider={Provider} preferLocal={PreferLocal} context={Environment}/{Activity}/{Privacy}",
+                    loaded.ActiveCloudProvider, loaded.PreferLocal,
+                    loaded.ContextEnvironment, loaded.ContextActivity, loaded.ContextPrivacy);
             }
         }
+
+        // ── Explicit startup health pass (audit recommendation) ───────────
+        _ = RunStartupHealthChecksAsync();
 
         // ── Window routing: --window avatar launches Avatar directly ─
         bool avatarMode = e.Args.Length > 0 &&
@@ -185,6 +216,37 @@ public partial class App : Application
         {
             var mainWindow = _host.Services.GetRequiredService<MainWindow>();
             mainWindow.Show();
+        }
+    }
+
+    private async Task RunStartupHealthChecksAsync()
+    {
+        if (_host is null) return;
+
+        try
+        {
+            var svc = _host.Services.GetRequiredService<StartupHealthCheckService>();
+            var report = await svc.RunAsync();
+            if (!report.HasWarningsOrCritical) return;
+
+            if (string.Equals(Environment.GetEnvironmentVariable("HCEP_SUPPRESS_STARTUP_HEALTH_DIALOG"), "true", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            string summary = string.Join(
+                "\n\n",
+                report.Items.Select(item => $"[{item.Severity}] {item.Title}\n{item.Detail}"));
+
+            MessageBox.Show(
+                summary,
+                "HCEP Startup Health Check",
+                MessageBoxButton.OK,
+                report.Items.Any(i => i.Severity == StartupHealthSeverity.Critical)
+                    ? MessageBoxImage.Warning
+                    : MessageBoxImage.Information);
+        }
+        catch (Exception ex)
+        {
+            _appLogger?.LogError(ex, "Startup health check failed unexpectedly");
         }
     }
 

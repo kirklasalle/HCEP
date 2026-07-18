@@ -215,8 +215,8 @@
                                                            Text="Temperature:"
                                                            Margin="0,5"/>
                                                 <Grid Grid.Row="5"
-                                                                Grid.Column="1"
-                                                                Margin="0,5">
+                                                      Grid.Column="1"
+                                                      Margin="0,5">
                                                         <Grid.ColumnDefinitions>
                                                                 <ColumnDefinition Width="*"/>
                                                                 <ColumnDefinition Width="40"/>
@@ -688,7 +688,16 @@
                                         Margin="0,0,10,0"
                                         Cursor="Hand"
                                         FontWeight="SemiBold"
-                                        ToolTip="Apply all settings and close.&#x0a;Changes take effect immediately — no restart required."/>
+                                        ToolTip="Apply all settings. Window stays open so you can keep tuning.&#x0a;Changes take effect immediately — no restart required."/>
+                                <Button Content="Close"
+                                        Click="Close_Click"
+                                        Background="#2A2A40"
+                                        Foreground="{StaticResource TextBrush}"
+                                        BorderThickness="0"
+                                        Padding="15,6"
+                                        Margin="0,0,10,0"
+                                        Cursor="Hand"
+                                        ToolTip="Close the settings window.&#x0a;Any previously saved changes remain applied."/>
                                 <Button Content="Cancel"
                                         Click="Cancel_Click"
                                         Background="#2A2A40"

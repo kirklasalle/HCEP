@@ -59,6 +59,7 @@ public static class SettingsPersistence
     {
         try
         {
+            config.SchemaVersion = ConfigurationMigration.CurrentSchemaVersion;
             string path = GetSettingsFilePath();
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             string json = JsonSerializer.Serialize(config, _jsonOptions);
@@ -88,6 +89,7 @@ public static class SettingsPersistence
             }
 
             string json = File.ReadAllText(path, Encoding.UTF8);
+            int detectedSchemaVersion = TryReadSchemaVersion(json);
             var config = JsonSerializer.Deserialize<LlmConfiguration>(json, _jsonOptions);
 
             if (config is null)
@@ -96,6 +98,7 @@ public static class SettingsPersistence
                 return null;
             }
 
+            config = ConfigurationMigration.Apply(config, detectedSchemaVersion, logger);
             logger?.LogInformation("Settings loaded from {Path}", path);
             return config;
         }
@@ -127,5 +130,25 @@ public static class SettingsPersistence
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "HCEP",
             SettingsFileName);
+    }
+
+    private static int TryReadSchemaVersion(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind == JsonValueKind.Object
+                && doc.RootElement.TryGetProperty("SchemaVersion", out var prop)
+                && prop.TryGetInt32(out int version))
+            {
+                return version;
+            }
+        }
+        catch
+        {
+            // Fall through to legacy version 0.
+        }
+
+        return 0;
     }
 }

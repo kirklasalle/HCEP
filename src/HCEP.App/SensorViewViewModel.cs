@@ -33,6 +33,12 @@ public partial class SensorViewViewModel : ObservableObject
     private int _colorThrottle;
     private int _irThrottle;
     private int _depthThrottle;
+    private long _rgbFrameReceivedCount;
+    private long _rgbFrameRenderedCount;
+    private long _irFrameReceivedCount;
+    private long _irFrameRenderedCount;
+    private long _depthFrameReceivedCount;
+    private long _depthFrameRenderedCount;
 
     public SensorViewViewModel(
         IPipelineOrchestrator pipeline,
@@ -108,40 +114,126 @@ public partial class SensorViewViewModel : ObservableObject
 
     private void OnColorFrameReady(ColorFrame frame)
     {
+        var receivedCount = Interlocked.Increment(ref _rgbFrameReceivedCount);
+        var receivedAt = DateTimeOffset.UtcNow;
+        if (AppLog.ShouldTraceFrame(receivedCount))
+            _logger.LogTrace(
+                "SensorView RGB frame received — count={Count} frame={Frame} ageMs={AgeMs:F1} size={Width}x{Height} bytes={Bytes}",
+                receivedCount,
+                frame.FrameNumber,
+                (receivedAt - frame.Timestamp).TotalMilliseconds,
+                frame.Width,
+                frame.Height,
+                frame.PixelData.Length);
+
         // Throttle to ~15 fps
         if (Interlocked.Increment(ref _colorThrottle) % 2 != 0) return;
 
         _dispatcher.InvokeAsync(() =>
         {
-            EnsureBitmap(ref _rgbFrame, frame.Width, frame.Height, nameof(RgbFrame));
+            try
+            {
+                EnsureBitmap(ref _rgbFrame, frame.Width, frame.Height, nameof(RgbFrame));
 
-            _rgbFrame!.WritePixels(
-                new Int32Rect(0, 0, frame.Width, frame.Height),
-                frame.PixelData,
-                frame.Width * frame.BytesPerPixel,
-                0);
+                _rgbFrame!.WritePixels(
+                    new Int32Rect(0, 0, frame.Width, frame.Height),
+                    frame.PixelData,
+                    frame.Width * frame.BytesPerPixel,
+                    0);
+
+                var renderedCount = Interlocked.Increment(ref _rgbFrameRenderedCount);
+                if (AppLog.ShouldTraceFrame(renderedCount))
+                    _logger.LogTrace(
+                        "SensorView RGB frame rendered — rendered={Rendered} sourceFrame={Frame} queueMs={QueueMs:F1} size={Width}x{Height}",
+                        renderedCount,
+                        frame.FrameNumber,
+                        (DateTimeOffset.UtcNow - receivedAt).TotalMilliseconds,
+                        frame.Width,
+                        frame.Height);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "SensorView RGB render failed — sourceFrame={Frame} received={Received} rendered={Rendered} size={Width}x{Height} bytes={Bytes}",
+                    frame.FrameNumber,
+                    _rgbFrameReceivedCount,
+                    _rgbFrameRenderedCount,
+                    frame.Width,
+                    frame.Height,
+                    frame.PixelData.Length);
+            }
         }, DispatcherPriority.Render);
     }
 
     private void OnInfraredFrameReady(ColorFrame frame)
     {
+        var receivedCount = Interlocked.Increment(ref _irFrameReceivedCount);
+        var receivedAt = DateTimeOffset.UtcNow;
+        if (AppLog.ShouldTraceFrame(receivedCount))
+            _logger.LogTrace(
+                "SensorView IR frame received — count={Count} frame={Frame} ageMs={AgeMs:F1} size={Width}x{Height} bytes={Bytes}",
+                receivedCount,
+                frame.FrameNumber,
+                (receivedAt - frame.Timestamp).TotalMilliseconds,
+                frame.Width,
+                frame.Height,
+                frame.PixelData.Length);
+
         // Throttle to ~15 fps
         if (Interlocked.Increment(ref _irThrottle) % 2 != 0) return;
 
         _dispatcher.InvokeAsync(() =>
         {
-            EnsureBitmap(ref _irFrame, frame.Width, frame.Height, nameof(IrFrame));
+            try
+            {
+                EnsureBitmap(ref _irFrame, frame.Width, frame.Height, nameof(IrFrame));
 
-            _irFrame!.WritePixels(
-                new Int32Rect(0, 0, frame.Width, frame.Height),
-                frame.PixelData,
-                frame.Width * frame.BytesPerPixel,
-                0);
+                _irFrame!.WritePixels(
+                    new Int32Rect(0, 0, frame.Width, frame.Height),
+                    frame.PixelData,
+                    frame.Width * frame.BytesPerPixel,
+                    0);
+
+                var renderedCount = Interlocked.Increment(ref _irFrameRenderedCount);
+                if (AppLog.ShouldTraceFrame(renderedCount))
+                    _logger.LogTrace(
+                        "SensorView IR frame rendered — rendered={Rendered} sourceFrame={Frame} queueMs={QueueMs:F1} size={Width}x{Height}",
+                        renderedCount,
+                        frame.FrameNumber,
+                        (DateTimeOffset.UtcNow - receivedAt).TotalMilliseconds,
+                        frame.Width,
+                        frame.Height);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "SensorView IR render failed — sourceFrame={Frame} received={Received} rendered={Rendered} size={Width}x{Height} bytes={Bytes}",
+                    frame.FrameNumber,
+                    _irFrameReceivedCount,
+                    _irFrameRenderedCount,
+                    frame.Width,
+                    frame.Height,
+                    frame.PixelData.Length);
+            }
         }, DispatcherPriority.Render);
     }
 
     private void OnDepthFrameReady(DepthFrame frame)
     {
+        var receivedCount = Interlocked.Increment(ref _depthFrameReceivedCount);
+        var receivedAt = DateTimeOffset.UtcNow;
+        if (AppLog.ShouldTraceFrame(receivedCount))
+            _logger.LogTrace(
+                "SensorView depth frame received — count={Count} frame={Frame} ageMs={AgeMs:F1} size={Width}x{Height} depthSamples={Samples}",
+                receivedCount,
+                frame.FrameNumber,
+                (receivedAt - frame.Timestamp).TotalMilliseconds,
+                frame.Width,
+                frame.Height,
+                frame.DepthData.Length);
+
         // Throttle to ~15 fps
         if (Interlocked.Increment(ref _depthThrottle) % 2 != 0) return;
 
@@ -150,13 +242,38 @@ public partial class SensorViewViewModel : ObservableObject
 
         _dispatcher.InvokeAsync(() =>
         {
-            EnsureBitmap(ref _depthFrame, frame.Width, frame.Height, nameof(DepthFrame));
+            try
+            {
+                EnsureBitmap(ref _depthFrame, frame.Width, frame.Height, nameof(DepthFrame));
 
-            _depthFrame!.WritePixels(
-                new Int32Rect(0, 0, frame.Width, frame.Height),
-                colorized,
-                frame.Width * 4,
-                0);
+                _depthFrame!.WritePixels(
+                    new Int32Rect(0, 0, frame.Width, frame.Height),
+                    colorized,
+                    frame.Width * 4,
+                    0);
+
+                var renderedCount = Interlocked.Increment(ref _depthFrameRenderedCount);
+                if (AppLog.ShouldTraceFrame(renderedCount))
+                    _logger.LogTrace(
+                        "SensorView depth frame rendered — rendered={Rendered} sourceFrame={Frame} queueMs={QueueMs:F1} size={Width}x{Height}",
+                        renderedCount,
+                        frame.FrameNumber,
+                        (DateTimeOffset.UtcNow - receivedAt).TotalMilliseconds,
+                        frame.Width,
+                        frame.Height);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "SensorView depth render failed — sourceFrame={Frame} received={Received} rendered={Rendered} size={Width}x{Height} depthSamples={Samples}",
+                    frame.FrameNumber,
+                    _depthFrameReceivedCount,
+                    _depthFrameRenderedCount,
+                    frame.Width,
+                    frame.Height,
+                    frame.DepthData.Length);
+            }
         }, DispatcherPriority.Render);
     }
 

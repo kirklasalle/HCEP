@@ -1,9 +1,9 @@
 # HCEP — User Guide
 
 **Product:** HCEP — Human Communication Eye Protocol  
-**Version:** 1.3.0  
+**Version:** 1.4.0
 **Author:** Kirk LaSalle  
-**Last Updated:** July 4, 2026  
+**Last Updated:** July 17, 2026
 
 ---
 
@@ -25,9 +25,9 @@
 
 ## 1. Introduction
 
-HCEP (Human Communication Eye Points) is a desktop application that watches your face through an Xbox 360 Kinect sensor or standard USB webcam and understands *how* you're communicating — not just what you say, but what your eyes reveal about your cognitive and emotional state.
+HCEP (Human Communication Eye Protocol) is a desktop application that watches your face through an Xbox 360 Kinect sensor or standard USB webcam and understands *how* you're communicating — not just what you say, but what your eyes reveal about your cognitive and emotional state.
 
-HCEP implements Kirk LaSalle's HCEP (Human Communication Eye Points) theory: a classification of five fundamental communication modes that people naturally cycle through during face-to-face conversation — **Logic, Affect, Spirit, Heart,** and **Think**.
+HCEP implements Kirk LaSalle's HCEP (Human Communication Eye Protocol) theory: a classification of five fundamental communication modes that people naturally cycle through during face-to-face conversation — **Logic, Affect, Spirit, Heart,** and **Think**.
 
 The application:
 
@@ -117,7 +117,7 @@ HCEP uses a multi-drive architecture with separate SSDs for isolation and perfor
 
 ### Step 2: Install HCEP
 
-1. Extract `HCEP-v0.1.0.zip` to a folder (e.g., `C:\HCEP`)
+1. Extract `HCEP-v1.4.0.zip` to a folder (e.g., `C:\HCEP`)
 2. Or, if building from source:
 
    ```
@@ -239,7 +239,7 @@ The HCEP dashboard is a dark-themed WPF window with a 3-column resizable layout.
 ### Header Bar
 
 - **Application title:** "◉ HCEP — Human Communication Eye Protocol"
-- **Window launchers:** Sensor Streams, Kinect Video
+- **Window launchers:** Sensor Streams, Check for Updates, Kinect Video, Settings
 - **Full Body toggle:** Switches between 20-joint full-body and 10-joint seated skeleton tracking
 - **Sensor status:** Green dot = connected, Red = disconnected
 
@@ -251,6 +251,7 @@ The HCEP dashboard is a dark-themed WPF window with a 3-column resizable layout.
 - **Face bounding box:** Yellow rectangle around detected face
 - **Face wireframe:** 87-point facial feature mesh (eyes, eyebrows, lips, jawline, nose)
 - **Pupil markers:** Magenta dots marking pupil positions
+- **Overlay calibration:** Face Mesh Alignment controls face/mesh X/Y/scale, and Skeletal Alignment controls the green skeleton X/Y/scale independently.
 
 ### Center Column — HCEP Analysis
 
@@ -351,6 +352,23 @@ There is not a separate “chat model” and “system model” selector in the 
 - Use **Fetch Models** in the Local Engines or Frontier Cloud tabs to query the currently selected backend before saving.
 - The settings window shows inline connectivity status so you can tell whether HCEP actually reached the selected backend.
 - When you save, the button shows progress and HCEP displays a confirmation summary describing what was saved and which backends were reachable.
+
+### Calibration Suite
+
+Open **Avatar → Calibration** from the main menu. HCEP exposes every calibration protocol directly:
+
+| Menu item | What it adjusts |
+|---|---|
+| **Gaze Calibration** | Full-screen crosshair protocol for Kinect-to-screen gaze offset. |
+| **Face Mesh Alignment** | Face bounding box, facial mesh, eye markers, and identity label X/Y/scale. Use this when the mesh sits too high, too low, or left/right of your actual face. |
+| **Skeletal Alignment** | Green skeleton bones and joint dots only. Use this when the body overlay is shifted or too wide/narrow while the face mesh is already correct. |
+| **PnP Head Pose** | Live Perspective-n-Point diagnostic showing observed landmarks, reprojected landmarks, residuals, pose axes, and pitch/yaw/roll. |
+
+Face and skeleton adjustment values are saved to `%LocalAppData%\HCEP\overlay-alignment.json` and are preserved by the updater.
+
+### Updates
+
+Use either **Help → Check for Updates...** or the header **Check for Updates** button. The updater checks GitHub releases, stages downloads under `%LocalAppData%\HCEP\Updates\`, verifies staged ZIP integrity, backs up app binaries, and preserves settings, logs, overlay alignment, and Windows Credential Manager keys.
 
 ---
 

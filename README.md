@@ -75,6 +75,7 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - **Model Context Protocol (MCP):** Serves JSON-RPC tools list and HCEP state snapshots over `POST /mcp`
 - **OpenAI Function Calling:** Auto-generates GPT-4/o1 tool invocation schemas at `/api/tools/openai`
 - **SDK Integrations:** Built-in wrappers for LangChain, LlamaIndex, Semantic Kernel, Unity (C#), and Unreal Engine (C++)
+- **Traceability:** REST/WebSocket responses include signed trust envelopes and `X-Correlation-ID` headers / `correlation_id` payload fields so downstream tools can tie telemetry, chat, and plugin traffic together.
 - **Enterprise-Grade Compliance:** AES-256 equivalent DPAPI key storage, GDPR user erasure, and UI biometrics consent dialogs
 
 ### HCEP Analysis
@@ -93,6 +94,7 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - 87-point facial feature wireframe with edge chains (eyes, eyebrows, lips, jaw, nose)
 - Pupil markers (magenta dots at indices 69, 73)
 - Pinhole camera projection (fx=fy=525, cx=320, cy=240)
+- Independent overlay calibration: Face Mesh Alignment adjusts face/mesh X/Y/scale, while Skeletal Alignment adjusts skeleton X/Y/scale without moving the face mesh.
 
 ### Face & Identity
 
@@ -155,6 +157,7 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - Full Body toggle button (switches Kinect between 20-joint and 10-joint tracking)
 - Sensor Streams and Kinect Video child windows
 - AI settings window with local/cloud model selection, connectivity diagnostics, and save confirmation feedback
+- Calibration suite from `Avatar → Calibration`: Gaze Calibration, Face Mesh Alignment, Skeletal Alignment, and PnP Head Pose visualizer
 
 ---
 
@@ -425,4 +428,4 @@ HCEP utilizes a dual-licensing hybrid model designed to protect core intellectua
 
 ---
 
-*HCEP — Human Communication Eye Protocol v1.0.0 (Stable Release)*
+*HCEP — Human Communication Eye Protocol v1.4.0*

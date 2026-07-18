@@ -1,9 +1,9 @@
 # HCEP — Developer Guide
 
 **Product:** HCEP — Human Communication Eye Protocol  
-**Version:** 1.3.0  
+**Version:** 1.4.0
 **Author:** Kirk LaSalle  
-**Last Updated:** July 4, 2026  
+**Last Updated:** July 17, 2026
 
 ---
 
@@ -160,7 +160,7 @@ All projects inherit shared settings from the root `Directory.Build.props`:
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>0.1.0</Version>
+    <Version>1.4.0</Version>
     <Copyright>Copyright © 2026 Kirk LaSalle</Copyright>
   </PropertyGroup>
 </Project>
@@ -199,7 +199,7 @@ dotnet test HCEP.sln --filter "FullyQualifiedName~Knowledge"
 | `Vision/` | 18 | HCEP mode analyzer, ArcFace negative paths, concurrency stress |
 | `Core/` | 24 | Models, enums, constants |
 | `Integration/` | 69 | End-to-end API server, MCP endpoints, pipeline execution |
-| **Total** | **193** | All passing |
+| **Total** | **211** | Current full suite passing |
 
 ### Writing New Tests
 
@@ -260,7 +260,7 @@ The foundation layer. Zero external dependencies. Defines:
 - `FaceFrame` — 87+ feature points, 6 AUs, pupil indices 69/73, `CyclopeanPoint3D`
 - `Anthropometrics` — Constants: IPD=63mm, Sellion-Menton=118mm, Eye Depth=12mm, canonical face model (6 3D points)
 - `SceneSnapshot` — Aggregates all sensor data for one frame
-- `LlmExchange` — Input/output/model record for conversation history
+- `LlmExchange` — Input/output/model record for conversation history; includes `CorrelationId` for traceability across chat, telemetry, and plugin API traffic.
 
 **Interfaces (the contracts):**
 
@@ -392,7 +392,8 @@ WPF desktop application. References all other projects.
   - Right: Pipeline metrics, LLM chat
   - Drag-resizable horizontal and vertical GridSplitters with grip styling
 - `MainViewModel` — MVVM ViewModel using CommunityToolkit.Mvvm (`ObservableObject`, `RelayCommand`). Properties for ShowFullSkeleton toggle (controls Kinect SeatedMode at runtime), sensor settings, and all UI bindings.
-- `VideoOverlayControl` — Custom `FrameworkElement` rendered via `OnRender`. Draws skeleton wireframe (20 joints, 19 bones with tracked/inferred pen styles), face bounding box, 87-point face wireframe with edge chains, pupil markers. Supports ShowFullSkeleton dependency property. Includes automatic sitting/standing detection based on knee-to-hip Y-delta heuristic.
+- `VideoOverlayControl` — Custom `FrameworkElement` rendered via `OnRender`. Draws skeleton wireframe (20 joints, 19 bones with tracked/inferred pen styles), face bounding box, 87-point face wireframe with edge chains, pupil markers. Supports ShowFullSkeleton dependency property. Includes automatic sitting/standing detection based on knee-to-hip Y-delta heuristic. Face overlays use `OverlayAlignment.VerticalOffsetPx` / `HorizontalOffsetPx` / `MeshScale`; skeleton bones and joints use independent `SkeletonVerticalOffsetPx` / `SkeletonHorizontalOffsetPx` / `SkeletonScale` through `MapSkeletonPixel()`.
+- `FaceMeshAlignmentWindow` and `SkeletalAlignmentWindow` — Live calibration windows for independently tuning face/mesh overlay alignment and skeleton overlay alignment. Both persist through `%LocalAppData%\HCEP\overlay-alignment.json` and raise `OverlayAlignment.Changed` so active overlays redraw immediately.
 - `GazeVisualizationControl` — Custom `FrameworkElement` rendered via `OnRender`. Vertical layout: face schematic (oval with eyes, nose, mouth, gaze region dots, crosshair targeting) on top, 2-column info panel (tracking, head pose, action unit bars, gaze stats, skeleton info) on bottom.
 - `HcepPipelineOrchestrator` — Implements `IPipelineOrchestrator`. Starts/stops the sensor, reads from channels, dispatches to analyzers, updates UI via `Dispatcher`
 
@@ -520,9 +521,11 @@ Channels use `BoundedChannelOptions` with `FullMode.DropOldest` to prevent pipel
 1. The `HybridLlmEngine` currently supports multiple local runtimes plus provider-specific and OpenAI-compatible cloud paths.
 2. To add a new backend:
    - Add a new private method: `Task<LlmExchange> CallNewBackendAsync(string prompt, string context)`
-  - Update routing logic in `PromptAsync()`
-   - Add configuration for endpoint URL, model name, API key
-3. Or implement a standalone `ILlmEngine` and swap in DI
+
+- Update routing logic in `PromptAsync()`
+- Add configuration for endpoint URL, model name, API key
+
+1. Or implement a standalone `ILlmEngine` and swap in DI
 
 ### 7.5 Adding a New Knowledge Backend
 
@@ -755,6 +758,10 @@ A dedicated endpoint at `GET /api/tools/openai` outputs valid JSON schemas for O
 - **C# (`sdk/csharp/`):** Exposes `HcepSemanticKernelPlugin` to map HCEP tools to Microsoft Semantic Kernel.
 - **Unity (`sdk/unity/`):** Provides a MonoBehaviour component `HcepGazeController.cs` that parses live telemetry WebSockets (`ws://localhost:5000/ws/stream`) and applies real-time bone rotations to avatar rigs.
 - **Unreal Engine (`sdk/unreal/`):** Features a native C++ `UActorComponent` driving character eyes and head sockets with configurable interpolation speeds.
+
+### 13.4 Trust and Correlation
+
+REST and WebSocket telemetry payloads are wrapped in the PAD-bound trust envelope and include a `correlation_id` field. HTTP responses also emit `X-Correlation-ID`; callers may provide either `X-Correlation-ID` or `X-Request-ID` to propagate an external trace ID. Internally, `HCEP.Core.Diagnostics.CorrelationContext` carries that ID across async chat, speech-triggered LLM, telemetry fingerprint gauges, and plugin API code paths.
 
 ---
 

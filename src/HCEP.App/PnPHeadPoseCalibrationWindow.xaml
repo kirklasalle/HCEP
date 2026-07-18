@@ -1,0 +1,189 @@
+<Window x:Class="HCEP.App.PnPHeadPoseCalibrationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="HCEP — PnP Head Pose Calibration"
+        Width="820"
+        Height="640"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        MinWidth="700"
+        MinHeight="540"
+        ToolTip="Live visualisation of the Perspective-n-Point head-pose solve — model landmarks (yellow), observed image points (cyan), residuals (red), and pose axes.">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="◇ PnP Head Pose Calibration"
+                   FontSize="20"
+                   FontWeight="Bold"
+                   Foreground="{StaticResource PrimaryBrush}"
+                   Margin="0,0,0,4"/>
+
+        <TextBlock Grid.Row="1"
+                   TextWrapping="Wrap"
+                   Foreground="{StaticResource TextDimBrush}"
+                   Margin="0,0,0,10"
+                   Text="Solves for the 3D head pose (pitch/yaw/roll + translation) from the tracked face landmarks. This view displays the reprojection of the canonical 3D face model onto the color image plane, along with per-landmark residuals and pose axes. Face the sensor and stay still for the most accurate readout."/>
+
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="260"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: 640×480 pose canvas -->
+            <Border Grid.Column="0"
+                    Background="#0A0A12"
+                    CornerRadius="6"
+                    BorderBrush="#33FFFFFF"
+                    BorderThickness="1"
+                    Margin="0,0,10,0"
+                    ClipToBounds="True">
+                <Grid>
+                    <!-- Fixed logical 640×480 canvas, scaled uniformly to the container. -->
+                    <Viewbox Stretch="Uniform">
+                        <Canvas x:Name="PoseCanvas"
+                                Width="640"
+                                Height="480"
+                                Background="#0A0A12">
+                            <!-- Legend -->
+                            <TextBlock Canvas.Left="10"
+                                       Canvas.Top="8"
+                                       Text="Yellow: model landmark reprojection    Cyan: observed 2D feature    Red: residual"
+                                       Foreground="#88FFFFFF"
+                                       FontSize="10"/>
+                            <TextBlock Canvas.Left="10"
+                                       Canvas.Top="24"
+                                       Text="Axes: R=X (yaw)   G=Y (pitch)   B=Z (roll)   Origin = head centre"
+                                       Foreground="#88FFFFFF"
+                                       FontSize="10"/>
+                            <!-- Content drawn from code-behind -->
+                        </Canvas>
+                    </Viewbox>
+                </Grid>
+            </Border>
+
+            <!-- Right: numeric readout -->
+            <Border Grid.Column="1"
+                    Background="{StaticResource SurfaceBrush}"
+                    CornerRadius="6"
+                    Padding="12"
+                    BorderBrush="#33FFFFFF"
+                    BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="PnP SOLVE — LIVE"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource AccentBrush}"
+                               FontSize="12"/>
+
+                    <TextBlock Text="Status"
+                               Margin="0,10,0,0"
+                               Foreground="{StaticResource TextDimBrush}"
+                               FontSize="11"/>
+                    <TextBlock x:Name="StatusText"
+                               Text="—"
+                               Foreground="{StaticResource TextBrush}"
+                               FontFamily="Consolas"
+                               FontSize="12"/>
+
+                    <TextBlock Text="Landmarks used"
+                               Margin="0,10,0,0"
+                               Foreground="{StaticResource TextDimBrush}"
+                               FontSize="11"/>
+                    <TextBlock x:Name="LandmarkCountText"
+                               Text="—"
+                               Foreground="{StaticResource TextBrush}"
+                               FontFamily="Consolas"
+                               FontSize="12"/>
+
+                    <TextBlock Text="Pitch  (°)"
+                               Margin="0,10,0,0"
+                               Foreground="{StaticResource TextDimBrush}"
+                               FontSize="11"/>
+                    <TextBlock x:Name="PitchText"
+                               Text="—"
+                               Foreground="#FFFFD700"
+                               FontFamily="Consolas"
+                               FontSize="14"/>
+
+                    <TextBlock Text="Yaw    (°)"
+                               Margin="0,6,0,0"
+                               Foreground="{StaticResource TextDimBrush}"
+                               FontSize="11"/>
+                    <TextBlock x:Name="YawText"
+                               Text="—"
+                               Foreground="#FFFFD700"
+                               FontFamily="Consolas"
+                               FontSize="14"/>
+
+                    <TextBlock Text="Roll   (°)"
+                               Margin="0,6,0,0"
+                               Foreground="{StaticResource TextDimBrush}"
+                               FontSize="11"/>
+                    <TextBlock x:Name="RollText"
+                               Text="—"
+                               Foreground="#FFFFD700"
+                               FontFamily="Consolas"
+                               FontSize="14"/>
+
+                    <TextBlock Text="Translation (mm)"
+                               Margin="0,10,0,0"
+                               Foreground="{StaticResource TextDimBrush}"
+                               FontSize="11"/>
+                    <TextBlock x:Name="TranslationText"
+                               Text="—"
+                               Foreground="#FF64D8FF"
+                               FontFamily="Consolas"
+                               FontSize="12"/>
+
+                    <TextBlock Text="Mean reprojection error (px)"
+                               Margin="0,10,0,0"
+                               Foreground="{StaticResource TextDimBrush}"
+                               FontSize="11"/>
+                    <TextBlock x:Name="MeanReprojectionText"
+                               Text="—"
+                               Foreground="#FF90EE90"
+                               FontFamily="Consolas"
+                               FontSize="12"/>
+
+                    <TextBlock Text="Max reprojection error (px)"
+                               Margin="0,10,0,0"
+                               Foreground="{StaticResource TextDimBrush}"
+                               FontSize="11"/>
+                    <TextBlock x:Name="MaxReprojectionText"
+                               Text="—"
+                               Foreground="#FFFFA500"
+                               FontFamily="Consolas"
+                               FontSize="12"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <Border Grid.Row="3"
+                Margin="0,10,0,10"
+                Padding="10,8"
+                Background="#22FFFFFF"
+                CornerRadius="4">
+            <TextBlock TextWrapping="Wrap"
+                       Foreground="{StaticResource TextDimBrush}"
+                       FontSize="11"
+                       Text="Pose values come directly from the live face-tracking loop. Reprojection error is computed from the six canonical landmarks (nose, chin, eye corners, mouth corners) using the standard pinhole camera model (fx = fy = 525, cx = 320, cy = 240)."/>
+        </Border>
+
+        <StackPanel Grid.Row="4"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+            <Button Content="Close"
+                    Padding="14,4"
+                    IsCancel="True"
+                    Click="CloseButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

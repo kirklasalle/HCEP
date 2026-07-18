@@ -46,6 +46,7 @@ namespace HCEP.App;
 public partial class AvatarWindow : Window
 {
     private readonly HCEPPipelineOrchestrator _orchestrator;
+    private readonly IAvatarCatalog _avatarCatalog;
     private bool _is3DMode;
     private IAvatarComponent _activeAvatar = null!;
     private float _screenWidthPx;
@@ -74,9 +75,13 @@ public partial class AvatarWindow : Window
     private readonly ExpressionMirror _expressionMirror = new();
 
     // ── Phase 10 — Social Gaze Controller (triangle scanning) ─────────────────
-    private readonly SocialGazeController _socialGaze = new(); public AvatarWindow(HCEPPipelineOrchestrator orchestrator)
+    private readonly SocialGazeController _socialGaze = new();
+    private IReadOnlyList<AvatarDescriptor> _selectableAvatars = Array.Empty<AvatarDescriptor>();
+
+    public AvatarWindow(HCEPPipelineOrchestrator orchestrator, IAvatarCatalog avatarCatalog)
     {
         _orchestrator = orchestrator;
+        _avatarCatalog = avatarCatalog;
         InitializeComponent();
 
         Loaded += Window_Loaded;
@@ -137,7 +142,23 @@ public partial class AvatarWindow : Window
 
         TrackingModeText.Text = "waiting";
         _activeAvatar = Avatar;
-        AvatarModeCombo.SelectedIndex = 0;
+        InitializeAvatarCatalog();
+    }
+
+    private void InitializeAvatarCatalog()
+    {
+        _selectableAvatars = _avatarCatalog.GetSelectableAvatars();
+        AvatarModeCombo.Items.Clear();
+        foreach (var avatar in _selectableAvatars)
+        {
+            AvatarModeCombo.Items.Add(new System.Windows.Controls.ComboBoxItem
+            {
+                Content = avatar.DisplayName,
+                Tag = avatar,
+            });
+        }
+
+        AvatarModeCombo.SelectedIndex = _selectableAvatars.Count > 1 ? 0 : 0;
     }
 
     private void OnVisemeChanged(HCEP.Speech.VisemeData viseme)
@@ -243,7 +264,8 @@ public partial class AvatarWindow : Window
     private void AvatarMode_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         if (AvatarModeCombo.SelectedIndex < 0) return;
-        ApplyMode(AvatarModeCombo.SelectedIndex == 1);
+        var descriptor = GetSelectedAvatarDescriptor();
+        ApplyMode(descriptor?.Use3DMode == true);
     }
 
     /// <summary>Externally switch the avatar mode (called from MainViewModel).</summary>
@@ -253,7 +275,10 @@ public partial class AvatarWindow : Window
         if (!IsLoaded) return;
         Dispatcher.BeginInvoke(() =>
         {
-            AvatarModeCombo.SelectedIndex = use3D ? 1 : 0;
+            int index = _selectableAvatars
+                .Select((avatar, idx) => new { avatar, idx })
+                .FirstOrDefault(entry => entry.avatar.Use3DMode == use3D)?.idx ?? 0;
+            AvatarModeCombo.SelectedIndex = index;
             ApplyMode(use3D);
         });
     }
@@ -268,6 +293,14 @@ public partial class AvatarWindow : Window
                        : "HCEP — True Gaze Avatar";
         // Re-register provider so GazeVectorEngine reads the active control's eye positions.
         if (_screenWidthPx > 0) RegisterEyeProvider();
+    }
+
+    private AvatarDescriptor? GetSelectedAvatarDescriptor()
+    {
+        if (AvatarModeCombo.SelectedItem is System.Windows.Controls.ComboBoxItem item
+            && item.Tag is AvatarDescriptor descriptor)
+            return descriptor;
+        return null;
     }
 
     /// <summary>

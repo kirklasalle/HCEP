@@ -6,6 +6,83 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.0] — 2026-07-17
+
+### Added — LLM Telemetry Grounding (world-class "seeing via telemetry")
+
+- **`HcepTelemetryBundle`** (`HCEP.Core.Models`) — Immutable snapshot of every live HCEP signal at chat send time: pipeline FPS, tracked-person count, primary HCEP reading (mode/region/cognitive/valence/confidence), identity, distance, left/right eye positions, inter-ocular distance (mm), head rotation (pitch/yaw/roll), context (time/space/situation), speech cadence, most-recent transcript, and connection/calibration state. Emits a stable `ToPromptString()` representation with labeled fields and explicit `unavailable` markers for missing values.
+- **`HybridLlmEngine.LatestTelemetry`** — New volatile property populated by the UI immediately before each `PromptAsync` call so the LLM can "see" via structured telemetry instead of hallucinating a visual channel.
+- **`BuildSystemPrompt` — grounding + non-hallucination policy** — The system prompt now opens with an explicit *Perception Model* and a five-clause *Grounding & Non-Hallucination Policy* that:
+    1. Requires every factual claim be supported by the telemetry block, the knowledge store (via `query_knowledge` / `summarize_person`), or the user's message.
+    2. Forbids invention of identities, gaze directions, emotions, distances, timestamps, or any numeric/categorical sensor value.
+    3. Instructs the model to respond **exactly** with `"I don't have that information right now."` when a claim cannot be verified.
+    4. Corrects the "I have no way of seeing" and "I don't know what to do with the telemetry" failure modes by defining the telemetry block *as* the model's perceptual channel.
+    5. Forbids fabricated tool results.
+- **`MainViewModel.SendAsync` — telemetry attach path** — Builds an `HcepTelemetryBundle` from `LatestSnapshot`, `PrimaryPerson`, `LatestCadence`, and `HybridLlmEngine.CurrentContext`, then writes it to `LatestTelemetry` before the LLM call. Additive — existing `HcepReading` argument is preserved.
+- **Rolling chat telemetry harness** — The LLM Assistant panel now exposes a top-of-chat `Telemetry Window` slider (`Snapshot → 5s`) and a `Density` slider (`Sparse` / `Balanced` / `Dense`). HCEP keeps a bounded 5-second in-memory telemetry ring buffer, summarizes the selected window into dominant-mode / dominant-region / dominant-valence / confidence-trend / distance-trend / head-pose-range / speech-activity stats, and appends a sampled timeline to the prompt.
+- **Prompt-budget auto-coarsening** — When the selected telemetry window gets speech-heavy or sample-heavy, HCEP now automatically reduces timeline density before sending the prompt, preserving grounding while preventing unbounded prompt growth. The telemetry block explicitly reports when this auto-coarsening occurs.
+- **Prompt-debug surfaces** — The LLM Assistant panel now includes `Prompt Telemetry Debug` (telemetry-only) and `Full System Prompt Debug` expanders showing the exact telemetry block and full system prompt used for the last chat send.
+- **Chat harness persistence** — `ChatTelemetryWindowSeconds` and `ChatTelemetryDensityLevel` now persist through `LlmConfiguration` / `SettingsPersistence`, and `SettingsWindow` clone/copy helpers preserve them so opening and saving Settings does not wipe the chat-harness controls.
+- **Prompt-size estimate + clipboard tools** — The chat harness now shows a live approximate request-size estimate (`prompt + current input`) and exposes `Copy` actions for both prompt-debug panes. The expanded/collapsed state of both debug panes is now persisted through `LlmConfiguration` as well.
+
+### Added — In-App Updater (non-destructive)
+
+- **`HCEP.App.Updates.UpdateService`** — Queries the public GitHub releases API for `kirklasalle/HCEP`, compares the tag against `AssemblyInformationalVersion`, downloads the best matching Windows x64 ZIP asset to `%LocalAppData%\HCEP\Updates\<tag>\`, and generates a PowerShell installer script (`install-update.ps1`) that:
+  - Waits for `HCEP.App.exe` to exit.
+  - Backs up user data to `%LocalAppData%\HCEP\Updates\<tag>\backup\`.
+  - Uses `robocopy /XD config logs Logs .venv /XF hcep-settings.json overlay-alignment.json` to copy the new bits **around** user state.
+  - Never touches Windows Credential Manager entries under the `HCEP/*` target family — API keys are structurally out of the update path.
+- **`CheckForUpdatesWindow`** — New modal window showing installed vs latest version, release notes, download progress, and the non-destructive-update guarantee. Reveals the staged installer in File Explorer on completion.
+- **Menu + Header entry points** — New "⬆ Check for Updates" button in the top-right header row next to `Sensor Streams`, plus `Help → Check for Updates…` MenuItem. Both bind to the new `CheckForUpdatesCommand`.
+- **`Help → About HCEP`** — Previously an inert MenuItem; now bound to `ShowAboutCommand`, which prints the current `AssemblyInformationalVersion` and copyright.
+
+### Added — Production Hardening / Platform Foundations
+
+- **`LlmConfiguration.SchemaVersion` + migration pipeline** — `SettingsPersistence` now reads an explicit schema version (or detects legacy unversioned payloads), applies `ConfigurationMigration`, normalizes newer chat-harness settings, and stamps the current schema on save. This is the first formal settings-evolution path for HCEP.
+- **`StartupHealthCheckService`** — New startup health pass audits settings-path readiness, active sensor-route probing, LLM-route availability posture, and plugin API configuration. Warnings/critical findings are logged and can be surfaced in a startup dialog unless suppressed with `HCEP_SUPPRESS_STARTUP_HEALTH_DIALOG=true`.
+- **Plugin API operational controls** — `PluginApiServer` now supports `HCEP_PLUGIN_PORT`, `HCEP_PLUGIN_BIND`, optional `HCEP_PLUGIN_API_KEY` auth, and a public `/health` endpoint reporting bind/port/auth/trust/orchestrator status.
+- **Avatar catalog scaffolding** — Added `AvatarDescriptor`, `IAvatarCatalog`, and `AvatarCatalog` as the first formal avatar-platform registry layer. `AvatarWindow` now populates its selector from the catalog instead of hard-coding avatar modes directly.
+
+### Changed — Production Hardening / Platform Foundations
+
+- **Explicit shutdown drain sequencing** — `HCEPPipelineOrchestrator.StopAsync()` now enforces a bounded `ShutdownDrainTimeout`, logs completion/timeout per shutdown stage (snapshot loop, HCEP consumer, speech loop, sensor, vision, audio), and continues teardown deterministically under timeout pressure rather than silently waiting indefinitely.
+- **Updater integrity + rollback hardening** — `UpdateService.GenerateInstallerScript(...)` now supports SHA-256 verification for the staged ZIP before extraction, snapshots app binaries (excluding protected user-state paths) before install, validates `robocopy` exit codes, and performs automatic rollback of binaries if update copy fails.
+- **Updater window staging details** — `CheckForUpdatesWindow` now computes and surfaces the ZIP SHA-256 and stages installers with explicit integrity/rollback messaging.
+- **Structured correlation IDs** — Added async-flow correlation context and propagation across typed chat sends, speech-triggered LLM calls, LLM exchanges, telemetry fingerprint gauges, and plugin API HTTP/WebSocket envelopes/headers (`X-Correlation-ID`) for end-to-end traceability.
+
+### Added — Calibration Suite (world-class visuals, selectable from the menu)
+
+- **`Avatar → Calibration` submenu** — Existing single "Gaze Calibration" entry replaced by a submenu listing every calibration protocol:
+  - **Gaze Calibration** — Full-screen crosshair overlay (unchanged; existing behaviour preserved).
+  - **Face Mesh Alignment…** — New live-preview window with vertical, horizontal, and mesh-scale sliders that update the overlay in real time and persist to `%LocalAppData%\HCEP\overlay-alignment.json`. Directly fixes the "top of mesh at tip of nose" tracking bug reported in this release cycle by making the depth→color offset user-tunable rather than a hard-coded 48 px.
+  - **PnP Head Pose…** — New live-visualisation window rendering, on a fixed logical 640×480 canvas, the six canonical face landmarks (nose tip, chin, eye corners, mouth corners) reprojected through the current head pose (yellow), the observed 2D image points from the face tracker (cyan), residual lines (red), and the head-centre R/G/B pose axes. Numeric readout includes pitch, yaw, roll, translation (mm), mean and max reprojection error (px), and landmark count.
+
+### Added — Overlay Alignment Persistence
+
+- **`HCEP.App.OverlayAlignment`** — New static class with `VerticalOffsetPx`, `HorizontalOffsetPx`, `MeshScale`, a `Changed` event, and `Load()` / `Save()` / `ResetToDefaults()` methods. Persisted to `%LocalAppData%\HCEP\overlay-alignment.json`.
+- **`VideoOverlayControl` — live re-alignment** — `MapPixel` now reads from `OverlayAlignment` instead of a compiled `DepthToColorOffsetY` constant. A per-control redraw hook invalidates the overlay whenever alignment values change, so slider drags feel instantaneous.
+- **`App.xaml.cs` — startup load** — `OverlayAlignment.Load()` runs before the main window opens.
+- **Skeletal Alignment calibration** — Added `Avatar → Calibration → Skeletal Alignment…` with independent skeleton X/Y/scale controls persisted in the same overlay-alignment file. Skeleton bones and joints now use a separate mapping path, so body tracking can be tuned without moving the face mesh.
+
+### Changed — Versioning
+
+- **`Directory.Build.props`** — `<Version>` bumped `0.1.0 → 1.4.0`; new `<AssemblyVersion>1.4.0.0</AssemblyVersion>`, `<FileVersion>1.4.0.0</FileVersion>`, `<InformationalVersion>1.4.0</InformationalVersion>` so the About dialog and Updater report a version consistent with the changelog history (previously the props file lagged behind the docs by three minor versions).
+- **`publish/app/AppxManifest.xml`** — `Version="0.1.0.0" → "1.4.0.0"` to match.
+
+### Documentation
+
+- **`docs/release_notes_v1.4.0.md`** — New. Detailed operator-facing release notes for the LLM grounding, updater, and calibration suite.
+- **Repo memory** — `/memories/repo/hcep-llm-settings.md` updated with the new telemetry-bundle contract and calibration menu structure.
+
+### Tests
+
+- Fixed prior assertion drift in `HybridLlmEngineCircuitBreakerTests` by asserting the current fallback contract (`[No LLM response]`) and circuit-breaker-open diagnostics.
+- Stabilized `PipelineIntegrationTests.Pipeline_WithSpeechInjection_ChangesCognitiveState` by reducing timing race sensitivity around transient speech injection.
+- CI now collects and uploads `coverage.cobertura.xml` alongside TRX results via `dotnet test --collect:"XPlat Code Coverage"`.
+- Build: green, 0 errors, `TreatWarningsAsErrors` active.
+
+---
+
 ## [1.3.0] — 2026-07-04
 
 ### Added — Workstream A: Contextual Prior Inference

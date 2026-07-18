@@ -1,9 +1,9 @@
 # HCEP — Development Roadmap
 
 **Product:** HCEP — Human Communication Eye Protocol  
-**Version:** v1.3.0  
+**Version:** v1.4.0
 **Author:** Kirk LaSalle  
-**Last Updated:** July 4, 2026  
+**Last Updated:** July 17, 2026
 
 ---
 
@@ -13,7 +13,7 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 
 ---
 
-## Current Project State (v1.3.0)
+## Current Project State (v1.4.0)
 
 | Metric | Value |
 |---|---------|
@@ -103,6 +103,106 @@ This roadmap documents the phased path from the initial alpha codebase (v0.1.0) 
 1. **Multi-Person Telemetry Extension:** Extend the pipeline to analyze cognitive-emotional modes of 3+ simultaneous participants.
 2. **Voice Prosody Fusion:** Train an audio model to augment the face Action Unit weights with pitch/prosody emotion classifiers.
 3. **Cross-Platform Client UI:** Port the WPF app to Avalonia UI for native Linux and macOS support.
+
+---
+
+## Audit-Driven Strategic Addendum — July 17, 2026
+
+This addendum supersedes the older assumption that the roadmap is purely a post-v1.0 linear delivery sequence. HCEP now has enough implementation depth that the roadmap should be read across three coordinated tracks:
+
+1. **Platform Hardening** — production-readiness, testing, migration, operability
+2. **Interaction Intelligence** — stronger telemetry grounding, context, validation, and multimodal reasoning
+3. **Avatar Platform** — more avatar types, higher fidelity, stronger behavioral expressivity, and future consent-based cloned-avatar R&D
+
+### Immediate Audit Priorities (P0 / P1)
+
+* [x] Add configuration schema versioning and migration support for `LlmConfiguration`
+* [x] Add startup health checks for sensor, LLM route, updater, and plugin API readiness
+* [x] Add explicit shutdown/drain sequencing with timeout and final-state diagnostics
+* [x] Close known failing/flaky tests and establish CI enforcement
+* [x] Expand updater rollback and integrity verification
+* [ ] Add provider-aware prompt-budget management and tracing beyond UI-only debug panes
+
+---
+
+## Phase 13 — Pre-Production Hardening & Operability — [PLANNED — Q3 2026]
+
+**Goal:** Move HCEP from advanced prototype toward dependable pre-production desktop software.
+
+**Milestones:**
+
+* [x] `LlmConfiguration.SchemaVersion` + migration pipeline
+* [x] Startup health-check service with operator diagnostics
+* [x] Ordered orchestrator shutdown with drain timeout
+* [x] Update rollback + integrity verification
+* [x] Plugin API configuration for port/bind/auth/health
+* [x] Structured correlation IDs across telemetry, chat, and plugin API traffic
+* [x] Coverage reporting and CI policy for failing/flaky tests
+
+---
+
+## Phase 14 — Interaction Intelligence & Validation Expansion — [PLANNED — Q4 2026]
+
+**Goal:** Raise the reliability and scientific defensibility of the perception → inference → response loop.
+
+**Milestones:**
+
+* [ ] Multi-person telemetry planning and active-person arbitration rules
+* [ ] Voice prosody fusion into the HCEP state engine
+* [ ] Session-level tracking quality scorecard (stability, drop rate, occlusion frequency, confidence volatility)
+* [ ] Calibration-health diagnostics (`valid`, `drifting`, `stale`, `recalibration recommended`)
+* [ ] Replayable prompt/telemetry audit bundles for empirical validation
+* [ ] Provider-aware token-budget controls and truncation reporting
+
+---
+
+## Phase 15 — Avatar Platform Expansion — [PLANNED — Q4 2026 to Q1 2027]
+
+**Goal:** Transform the current avatar subsystem into a formal avatar platform with multiple rendering tiers and stronger behavioral personality control.
+
+**Milestones:**
+
+* [x] Introduce avatar factory/registry architecture on top of `IAvatarComponent` (first-stage catalog scaffolding)
+* [ ] Add at least one new stylized 2D avatar family
+* [ ] Add at least one higher-fidelity 3D avatar family
+* [ ] Add avatar personality/style profiles that modulate gaze dwell, blink cadence, gesture amplitude, smile timing, and backchannel pacing
+* [ ] Add explicit avatar capability descriptors (gaze, viseme, brows, smile, nod, tilt, social gaze, proxemics)
+* [ ] Add runtime avatar fallback and quality-tier selection
+
+**Candidate Avatar Lines:**
+
+* Stylized assistant avatars
+* Warm companion avatars
+* Analytical / professional avatars
+* Brand / custom identity avatars
+* Higher-fidelity textured 3D avatars
+
+---
+
+## Phase 16 — Personalized Avatar & Cloned-Likeness Research — [PLANNED R&D — 2027]
+
+**Goal:** Explore consent-based user-derived avatars, beginning with safer personalized avatar forms and progressing toward near-real-time cloned-likeness systems only if ethics, privacy, and local-runtime constraints are satisfied.
+
+**Principles:**
+
+* [ ] Explicit consent
+* [ ] Revocable enrollment
+* [ ] Local-first biometric storage and processing
+* [ ] Clear disclosure when a likeness is synthetic rather than live
+* [ ] No deceptive impersonation mode
+
+**Milestones:**
+
+* [ ] Draft cloned-avatar ethics and governance specification
+* [ ] Define biometric asset storage, encryption, export, and deletion rules
+* [ ] Build a personalized non-photoreal avatar prototype derived from user enrollment
+* [ ] Benchmark local GPU feasibility for real-time facial reenactment / neural rendering
+* [ ] Evaluate stylized, semi-realistic, and photoreal avatar tracks separately
+* [ ] Gate any photoreal real-time clone work behind explicit ethics, privacy, and technical review
+
+**Recommendation:**
+
+Begin with a **personalized avatar** rather than a full real-time photoreal clone. The personalized-avatar path is safer, easier to govern, and more likely to reach a high-quality product state sooner.
 
 ---
 

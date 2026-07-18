@@ -17,6 +17,9 @@ namespace HCEP.Core.Models;
 /// </summary>
 public sealed record LlmExchange
 {
+    /// <summary>Operation correlation ID propagated across telemetry/logging.</summary>
+    public string? CorrelationId { get; init; }
+
     /// <summary>System prompt or context preamble.</summary>
     public string SystemPrompt { get; init; } = string.Empty;
 

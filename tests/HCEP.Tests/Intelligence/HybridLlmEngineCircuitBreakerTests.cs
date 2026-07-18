@@ -62,7 +62,8 @@ public sealed class HybridLlmEngineCircuitBreakerTests
         var result = await engine.PromptAsync("hello", ct: CancellationToken.None);
 
         Assert.NotNull(result.Response);
-        Assert.Contains("No LLM available", result.Response);
+        Assert.Contains("[No LLM response]", result.Response);
+        Assert.Contains("Cloud", result.Response);
     }
 
     [Fact]
@@ -84,7 +85,8 @@ public sealed class HybridLlmEngineCircuitBreakerTests
         var result = await engine.PromptAsync("ping", ct: CancellationToken.None);
         sw.Stop();
 
-        Assert.Contains("No LLM available", result.Response);
+        Assert.Contains("[No LLM response]", result.Response);
+        Assert.Contains("circuit breaker open", result.Response);
         // Open-circuit bypass is fast — no network round-trip attempted
         Assert.True(sw.ElapsedMilliseconds < 500,
             $"Circuit-open call took {sw.ElapsedMilliseconds}ms — network was not bypassed");
@@ -109,7 +111,7 @@ public sealed class HybridLlmEngineCircuitBreakerTests
         // After cool-down, the engine should attempt the cloud call again
         // (it will fail again, but the point is it tried — failure count increments again)
         var result = await engine.PromptAsync("ping", ct: CancellationToken.None);
-        Assert.Contains("No LLM available", result.Response);
+        Assert.Contains("[No LLM response]", result.Response);
     }
 
     [Fact]
@@ -121,6 +123,7 @@ public sealed class HybridLlmEngineCircuitBreakerTests
         engine.Configuration.PreferLocal = false;
 
         var result = await engine.PromptAsync("hello", ct: CancellationToken.None);
-        Assert.Contains("No LLM available", result.Response);
+        Assert.Contains("[No LLM response]", result.Response);
+        Assert.Contains("Cloud", result.Response);
     }
 }

@@ -68,9 +68,20 @@
                           ToolTip="Enable or disable the depth + IR streams from the Kinect sensor"/>
             </MenuItem>
             <MenuItem Header="_Avatar">
-                <MenuItem Header="_Gaze Calibration"
-                          Command="{Binding OpenCalibrationCommand}"
-                          ToolTip="Open the full-screen gaze calibration overlay to compute the Kinect-to-screen offset"/>
+                <MenuItem Header="_Calibration">
+                    <MenuItem Header="_Gaze Calibration"
+                              Command="{Binding OpenCalibrationCommand}"
+                              ToolTip="Open the full-screen gaze calibration overlay to compute the Kinect-to-screen offset"/>
+                    <MenuItem Header="_Face Mesh Alignment…"
+                              Command="{Binding OpenFaceMeshAlignmentCommand}"
+                              ToolTip="Live-adjust the vertical/horizontal offset applied to overlay pixels so the face mesh lines up with the real face"/>
+                    <MenuItem Header="_Skeletal Alignment…"
+                              Command="{Binding OpenSkeletalAlignmentCommand}"
+                              ToolTip="Live-adjust the skeleton overlay independently from the face mesh overlay"/>
+                    <MenuItem Header="_PnP Head Pose…"
+                              Command="{Binding OpenPnPCalibrationCommand}"
+                              ToolTip="Visualise the Perspective-n-Point head-pose solve — reprojection residuals, pose axes, and live pitch/yaw/roll"/>
+                </MenuItem>
                 <MenuItem Header="_Show Avatar"
                           Command="{Binding OpenAvatarWindowCommand}"
                           ToolTip="Open the True Gaze Avatar window — Happy Face with live pupil gaze tracking"/>
@@ -115,7 +126,12 @@
                 </MenuItem>
             </MenuItem>
             <MenuItem Header="_Help">
+                <MenuItem Header="_Check for Updates…"
+                          Command="{Binding CheckForUpdatesCommand}"
+                          ToolTip="Query the HCEP GitHub releases feed for a newer version — configuration is never overwritten"/>
+                <Separator Style="{StaticResource MenuSeparatorStyle}"/>
                 <MenuItem Header="_About HCEP"
+                          Command="{Binding ShowAboutCommand}"
                           ToolTip="Information about HCEP — Human Communication Eye Protocol"/>
             </MenuItem>
         </Menu>
@@ -131,6 +147,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
@@ -155,7 +172,8 @@
                            Margin="12,0,0,0"
                            ToolTip="Full application title"/>
                 <!-- Window Launch Buttons -->
-                Content="◎ Sensor Streams"
+                <Button Grid.Column="2"
+                        Content="◎ Sensor Streams"
                         Command="{Binding OpenSensorViewCommand}"
                         Background="{StaticResource SurfaceBrush}"
                         Foreground="{StaticResource AccentBrush}"
@@ -168,6 +186,19 @@
                         VerticalAlignment="Center"
                         ToolTip="Open the Kinect Sensor Streams window showing RGB, IR, and Depth views side-by-side"/>
                 <Button Grid.Column="3"
+                        Content="⬆ Check for Updates"
+                        Command="{Binding CheckForUpdatesCommand}"
+                        Background="{StaticResource SurfaceBrush}"
+                        Foreground="{StaticResource PrimaryBrush}"
+                        BorderBrush="{StaticResource PrimaryBrush}"
+                        BorderThickness="1"
+                        Padding="12,4"
+                        Margin="0,0,12,0"
+                        FontSize="11"
+                        Cursor="Hand"
+                        VerticalAlignment="Center"
+                        ToolTip="Check for and stage new HCEP releases. User settings, credentials, and logs are preserved by design."/>
+                <Button Grid.Column="4"
                         Content="▶ Kinect Video"
                         Command="{Binding OpenKinectVideoCommand}"
                         Background="{StaticResource SurfaceBrush}"
@@ -181,7 +212,7 @@
                         VerticalAlignment="Center"
                         ToolTip="Open the dedicated Kinect RGB video feed window with FPS counter"/>
 
-                <Button Grid.Column="4"
+                <Button Grid.Column="5"
                         Content="⚙ Settings"
                         Command="{Binding OpenSettingsCommand}"
                         Background="{StaticResource SurfaceBrush}"
@@ -195,7 +226,7 @@
                         VerticalAlignment="Center"
                         ToolTip="Configure local/cloud AI models and oculo-postural mirroring settings"/>
 
-                <StackPanel Grid.Column="5"
+                <StackPanel Grid.Column="6"
                             Orientation="Horizontal"
                             VerticalAlignment="Center"
                             Margin="0,0,12,0"
@@ -225,7 +256,7 @@
                 </StackPanel>
 
                 <!-- Face Enrollment -->
-                <StackPanel Grid.Column="6"
+                <StackPanel Grid.Column="7"
                             Orientation="Horizontal"
                             VerticalAlignment="Center"
                             Margin="0,0,12,0"
@@ -259,7 +290,7 @@
                                ToolTip="Currently recognized face identity"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="7"
+                <StackPanel Grid.Column="8"
                             Orientation="Horizontal"
                             VerticalAlignment="Center"
                             ToolTip="Kinect sensor connection status indicator">
@@ -717,46 +748,402 @@
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <TextBlock Text="LLM ASSISTANT"
-                                   FontSize="11"
-                                   FontWeight="SemiBold"
-                                   Foreground="{StaticResource TextDimBrush}"
-                                   Margin="0,0,0,8"/>
+                        <!-- Header: title · message count · Clear -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                        <ListBox Grid.Row="1"
-                                 ItemsSource="{Binding ChatLog}"
-                                 Background="Transparent"
-                                 BorderThickness="0"
-                                 Foreground="{StaticResource TextBrush}"
-                                 FontSize="12"
-                                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                            <TextBlock Text="LLM ASSISTANT"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       VerticalAlignment="Center"
+                                       Foreground="{StaticResource TextDimBrush}"/>
 
-                        <Grid Grid.Row="2"
+                            <Border Grid.Column="1"
+                                    Margin="8,0,0,0"
+                                    Padding="6,1"
+                                    CornerRadius="8"
+                                    Background="#22FFFFFF"
+                                    VerticalAlignment="Center"
+                                    ToolTip="Number of messages in the current chat history">
+                                <TextBlock Text="{Binding ChatLog.Count, FallbackValue=0}"
+                                           FontSize="10"
+                                           Foreground="{StaticResource TextDimBrush}"/>
+                            </Border>
+
+                            <Button Grid.Column="3"
+                                    Content="Clear"
+                                    Command="{Binding ClearChatCommand}"
+                                    Background="Transparent"
+                                    Foreground="{StaticResource TextDimBrush}"
+                                    BorderBrush="#33FFFFFF"
+                                    BorderThickness="1"
+                                    Padding="8,2"
+                                    FontSize="10"
+                                    Cursor="Hand"
+                                    ToolTip="Clear the chat history (does not affect saved logs)"/>
+                        </Grid>
+
+                        <!-- Telemetry-window slider -->
+                        <Border Grid.Row="1"
+                                Margin="0,0,0,10"
+                                Padding="10,8"
+                                CornerRadius="6"
+                                Background="#18FFFFFF"
+                                BorderBrush="#22FFFFFF"
+                                BorderThickness="1"
+                                ToolTip="Choose how much recent telemetry history the LLM receives: Snapshot only, or a bounded rolling window up to 5 seconds.">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Row="0"
+                                            Grid.Column="0"
+                                            Margin="0,0,10,0">
+                                    <TextBlock Text="Telemetry Window"
+                                               FontSize="10"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextDimBrush}"/>
+                                    <TextBlock Text="Snapshot → 5s trend context"
+                                               FontSize="10"
+                                               Foreground="#7094A3B8"/>
+                                </StackPanel>
+
+                                <Slider Grid.Row="0"
+                                        Grid.Column="1"
+                                        Minimum="0"
+                                        Maximum="5"
+                                        TickFrequency="1"
+                                        IsSnapToTickEnabled="True"
+                                        Value="{Binding ChatTelemetryWindowSeconds, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        VerticalAlignment="Center"
+                                        ToolTip="0 = only the latest telemetry snapshot. 5 = a bounded rolling 5-second summary plus sampled timeline."/>
+
+                                <StackPanel Grid.Row="0"
+                                            Grid.Column="2"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center"
+                                            Margin="12,0,0,0"
+                                            ToolTip="How densely to sample the recent telemetry timeline inside the prompt.">
+                                    <TextBlock Text="Density"
+                                               FontSize="10"
+                                               Foreground="{StaticResource TextDimBrush}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0"/>
+                                    <Slider Width="84"
+                                            Minimum="1"
+                                            Maximum="3"
+                                            TickFrequency="1"
+                                            IsSnapToTickEnabled="True"
+                                            Value="{Binding ChatTelemetryDensityLevel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                            VerticalAlignment="Center"
+                                            ToolTip="Sparse = fewer timeline anchors, Dense = more timeline anchors."/>
+                                </StackPanel>
+
+                                <Border Grid.Row="0"
+                                        Grid.Column="3"
+                                        Margin="12,0,0,0"
+                                        Padding="8,2"
+                                        CornerRadius="8"
+                                        Background="#22FFFFFF"
+                                        VerticalAlignment="Center">
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding ChatTelemetryWindowLabel}"
+                                                   FontSize="10"
+                                                   FontWeight="SemiBold"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{StaticResource AccentBrush}"/>
+                                        <TextBlock Text="{Binding ChatTelemetryDensityLabel}"
+                                                   FontSize="9"
+                                                   HorizontalAlignment="Center"
+                                                   Foreground="{StaticResource TextDimBrush}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBlock Grid.Row="1"
+                                           Grid.ColumnSpan="4"
+                                           Margin="0,8,0,0"
+                                           Text="{Binding ChatPromptBudgetEstimateText}"
+                                           FontSize="10"
+                                           Foreground="#8FB0C8"
+                                           TextWrapping="Wrap"
+                                           ToolTip="Approximate token budget for the next request based on the full prompt preview and current input."/>
+                            </Grid>
+                        </Border>
+
+                        <Expander Grid.Row="2"
+                                  Margin="0,0,0,10"
+                                  Header="Prompt Telemetry Debug"
+                                  IsExpanded="{Binding ChatTelemetryDebugExpanded, Mode=TwoWay}"
+                                  Foreground="{StaticResource TextDimBrush}"
+                                  Background="Transparent"
+                                  ToolTip="Inspect the exact telemetry block injected into the next chat prompt.">
+                            <Border Margin="0,6,0,0"
+                                    Padding="10"
+                                    CornerRadius="6"
+                                    Background="#141A26"
+                                    BorderBrush="#22FFFFFF"
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <Button Grid.Row="0"
+                                            Content="Copy"
+                                            Command="{Binding CopyTelemetryPromptCommand}"
+                                            HorizontalAlignment="Right"
+                                            Padding="10,3"
+                                            Margin="0,0,0,8"
+                                            FontSize="10"
+                                            Cursor="Hand"
+                                            ToolTip="Copy the telemetry-only prompt block to the clipboard."/>
+                                    <TextBox Grid.Row="1"
+                                             Text="{Binding LastInjectedTelemetryText}"
+                                             Background="Transparent"
+                                             Foreground="{StaticResource TextBrush}"
+                                             BorderThickness="0"
+                                             IsReadOnly="True"
+                                             FontFamily="Consolas"
+                                             FontSize="11"
+                                             TextWrapping="Wrap"
+                                             AcceptsReturn="True"
+                                             MinLines="6"
+                                             MaxLines="14"
+                                             VerticalScrollBarVisibility="Auto"
+                                             HorizontalScrollBarVisibility="Disabled"
+                                             ToolTip="This is the telemetry section the LLM receives from the chat harness."/>
+                                </Grid>
+                            </Border>
+                        </Expander>
+
+                        <Expander Grid.Row="3"
+                                  Margin="0,0,0,10"
+                                  Header="Full System Prompt Debug"
+                                  IsExpanded="{Binding ChatSystemPromptDebugExpanded, Mode=TwoWay}"
+                                  Foreground="{StaticResource TextDimBrush}"
+                                  Background="Transparent"
+                                  ToolTip="Inspect the entire system prompt, including PAD, personality harness, telemetry, and context layers.">
+                            <Border Margin="0,6,0,0"
+                                    Padding="10"
+                                    CornerRadius="6"
+                                    Background="#11151D"
+                                    BorderBrush="#22FFFFFF"
+                                    BorderThickness="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <Button Grid.Row="0"
+                                            Content="Copy"
+                                            Command="{Binding CopySystemPromptCommand}"
+                                            HorizontalAlignment="Right"
+                                            Padding="10,3"
+                                            Margin="0,0,0,8"
+                                            FontSize="10"
+                                            Cursor="Hand"
+                                            ToolTip="Copy the full system prompt to the clipboard."/>
+                                    <TextBox Grid.Row="1"
+                                             Text="{Binding LastInjectedSystemPromptText}"
+                                             Background="Transparent"
+                                             Foreground="{StaticResource TextBrush}"
+                                             BorderThickness="0"
+                                             IsReadOnly="True"
+                                             FontFamily="Consolas"
+                                             FontSize="11"
+                                             TextWrapping="Wrap"
+                                             AcceptsReturn="True"
+                                             MinLines="8"
+                                             MaxLines="18"
+                                             VerticalScrollBarVisibility="Auto"
+                                             HorizontalScrollBarVisibility="Disabled"
+                                             ToolTip="This is the full system prompt used for the last chat send."/>
+                                </Grid>
+                            </Border>
+                        </Expander>
+
+                        <!-- Chat message list (bubbles) -->
+                        <Grid Grid.Row="4">
+                            <ListBox x:Name="ChatListBox"
+                                     ItemsSource="{Binding ChatLog}"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     Foreground="{StaticResource TextBrush}"
+                                     FontSize="12"
+                                     HorizontalContentAlignment="Stretch"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Background"
+                                                Value="Transparent"/>
+                                        <Setter Property="Padding"
+                                                Value="0"/>
+                                        <Setter Property="Margin"
+                                                Value="0"/>
+                                        <Setter Property="BorderThickness"
+                                                Value="0"/>
+                                        <Setter Property="HorizontalContentAlignment"
+                                                Value="Stretch"/>
+                                        <Setter Property="Focusable"
+                                                Value="False"/>
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ListBoxItem">
+                                                    <ContentPresenter/>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,4">
+                                            <Border MaxWidth="{Binding ActualWidth, ElementName=ChatListBox, Converter={StaticResource WidthFractionConverter}, ConverterParameter=0.88}"
+                                                    HorizontalAlignment="{Binding Converter={StaticResource ChatAlignmentConverter}}"
+                                                    Background="{Binding Converter={StaticResource ChatBubbleBrushConverter}}"
+                                                    BorderBrush="{Binding Converter={StaticResource ChatBorderBrushConverter}}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="12"
+                                                    Padding="10,7">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding Converter={StaticResource ChatBadgeConverter}}"
+                                                               FontSize="10"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="{StaticResource TextDimBrush}"
+                                                               Margin="0,0,0,3"/>
+                                                    <TextBox Text="{Binding Converter={StaticResource ChatTextConverter}, Mode=OneWay}"
+                                                             IsReadOnly="True"
+                                                             IsReadOnlyCaretVisible="False"
+                                                             Background="Transparent"
+                                                             Foreground="{StaticResource TextBrush}"
+                                                             BorderThickness="0"
+                                                             Padding="0"
+                                                             FontSize="12"
+                                                             TextWrapping="Wrap"
+                                                             AcceptsReturn="True"
+                                                             VerticalScrollBarVisibility="Disabled"
+                                                             HorizontalScrollBarVisibility="Disabled"
+                                                             ContextMenu="{x:Null}"
+                                                             ToolTip="Click and drag to select. Ctrl+C to copy."/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+
+                            <!-- Empty-state overlay (only when ChatLog is empty) -->
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        IsHitTestVisible="False"
+                                        Visibility="{Binding ChatLog.Count, Converter={StaticResource ZeroCountToVisibilityConverter}, FallbackValue=Visible}">
+                                <TextBlock Text="◈"
+                                           FontSize="28"
+                                           HorizontalAlignment="Center"
+                                           Foreground="#55FFFFFF"
+                                           Margin="0,0,0,6"/>
+                                <TextBlock Text="No messages yet"
+                                           FontSize="13"
+                                           HorizontalAlignment="Center"
+                                           Foreground="{StaticResource TextDimBrush}"/>
+                                <TextBlock Text="Type below or speak to start a session — HCEP context is injected automatically."
+                                           FontSize="11"
+                                           HorizontalAlignment="Center"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           MaxWidth="260"
+                                           Foreground="#7094A3B8"
+                                           Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Typing indicator (visible while SendCommand is running) -->
+                        <Grid Grid.Row="5"
+                              Margin="4,4,0,0"
+                              Visibility="{Binding SendCommand.IsRunning, Converter={StaticResource BoolToVis}, FallbackValue=Collapsed}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="HCEP is thinking"
+                                           FontSize="11"
+                                           FontStyle="Italic"
+                                           Foreground="{StaticResource TextDimBrush}"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock FontSize="11"
+                                           Foreground="{StaticResource AccentBrush}"
+                                           Margin="4,0,0,0"
+                                           VerticalAlignment="Center">
+                                    <TextBlock.Triggers>
+                                        <EventTrigger RoutedEvent="TextBlock.Loaded">
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever">
+                                                    <StringAnimationUsingKeyFrames Storyboard.TargetProperty="Text"
+                                                                                   Duration="0:0:1.2">
+                                                        <DiscreteStringKeyFrame KeyTime="0:0:0"
+                                                                                Value="."/>
+                                                        <DiscreteStringKeyFrame KeyTime="0:0:0.3"
+                                                                                Value=".."/>
+                                                        <DiscreteStringKeyFrame KeyTime="0:0:0.6"
+                                                                                Value="..."/>
+                                                        <DiscreteStringKeyFrame KeyTime="0:0:0.9"
+                                                                                Value=""/>
+                                                    </StringAnimationUsingKeyFrames>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </TextBlock.Triggers>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Input row -->
+                        <Grid Grid.Row="6"
                               Margin="0,8,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0"
-                                     x:Name="ChatInputTextBox"
-                                     Text="{Binding ChatInput, UpdateSourceTrigger=PropertyChanged}"
-                                     Background="#20FFFFFF"
-                                     Foreground="{StaticResource TextBrush}"
-                                     BorderThickness="0"
-                                     Padding="8,6"
-                                     FontSize="12"
-                                     VerticalContentAlignment="Center"
-                                     AcceptsReturn="True"
-                                     TextWrapping="Wrap"
-                                     MinLines="1"
-                                     MaxLines="4"
-                                     VerticalScrollBarVisibility="Auto"
-                                     PreviewKeyDown="ChatInput_PreviewKeyDown"
-                                     ToolTip="Press Enter to send. Press Shift+Enter to insert a new line."/>
+                            <Border Grid.Column="0"
+                                    Background="#20FFFFFF"
+                                    CornerRadius="6"
+                                    BorderBrush="#33FFFFFF"
+                                    BorderThickness="1">
+                                <TextBox x:Name="ChatInputTextBox"
+                                         Text="{Binding ChatInput, UpdateSourceTrigger=PropertyChanged}"
+                                         Background="Transparent"
+                                         Foreground="{StaticResource TextBrush}"
+                                         BorderThickness="0"
+                                         Padding="8,6"
+                                         FontSize="12"
+                                         VerticalContentAlignment="Center"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap"
+                                         MinLines="1"
+                                         MaxLines="4"
+                                         VerticalScrollBarVisibility="Auto"
+                                         PreviewKeyDown="ChatInput_PreviewKeyDown"
+                                         ToolTip="Press Enter to send. Press Shift+Enter to insert a new line."/>
+                            </Border>
                             <Button Grid.Column="1"
                                     Content="Send"
                                     Margin="6,0,0,0"
@@ -766,7 +1153,9 @@
                                     ToolTip="Send the typed message to the LLM assistant with current HCEP context"
                                     BorderThickness="0"
                                     Padding="12,6"
-                                    FontSize="12"/>
+                                    FontSize="12"
+                                    FontWeight="SemiBold"
+                                    Cursor="Hand"/>
                         </Grid>
                     </Grid>
                 </Border>

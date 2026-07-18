@@ -1,14 +1,18 @@
 ﻿{
   "PreferLocal": true,
   "ActiveLocalEngine": "Ollama",
-  "ActiveCloudProvider": "OpenAI",
+  "ActiveCloudProvider": "OpenRouter",
+  "ContextEnvironment": "Studio",
+  "ContextActivity": "Working",
+  "ContextPrivacy": "Private",
+  "ContextUserDefinedLocation": "Desktop",
   "EmulationBlendWeight": 0.7,
   "ReflectionDelayMs": 200,
   "SyncBlinksToUser": true,
   "Ollama": {
     "Enabled": true,
     "BaseUrl": "http://localhost:11434",
-    "Model": "llama3:8b",
+    "Model": "qwen3-vl:2b-thinking",
     "Temperature": 0.7
   },
   "LlamaCpp": {
@@ -111,7 +115,7 @@
   "OpenRouter": {
     "Enabled": false,
     "BaseUrl": "https://openrouter.ai/api/v1",
-    "Model": "meta-llama/llama-3.3-70b-instruct",
+    "Model": "openrouter/auto",
     "Temperature": 0.7
   },
   "DeepSeek": {

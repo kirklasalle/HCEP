@@ -76,6 +76,16 @@ public partial class SettingsWindow : Window
         _isInitializing = true;
         try
         {
+            // Keep the persisted config copy in sync with the live provider so
+            // the Context tab round-trips through SettingsPersistence.
+            if (_contextProvider is not null)
+            {
+                _configCopy.ContextEnvironment = _contextProvider.Environment;
+                _configCopy.ContextActivity = _contextProvider.Activity;
+                _configCopy.ContextPrivacy = _contextProvider.Privacy;
+                _configCopy.ContextUserDefinedLocation = _contextProvider.UserDefinedLocation;
+            }
+
             // 1. Local Engines Selection
             _currentSelectedLocalEngine = _configCopy.ActiveLocalEngine;
             LocalEngineCombo.SelectedIndex = (int)_configCopy.ActiveLocalEngine;
@@ -97,10 +107,10 @@ public partial class SettingsWindow : Window
             // 4. Context (Phase 14)
             if (_contextProvider is not null)
             {
-                EnvironmentCombo.SelectedIndex = (int)_contextProvider.Environment;
-                ActivityCombo.SelectedIndex = (int)_contextProvider.Activity;
-                PrivacyCombo.SelectedIndex = (int)_contextProvider.Privacy;
-                LocationLabelText.Text = _contextProvider.UserDefinedLocation ?? string.Empty;
+                EnvironmentCombo.SelectedIndex = (int)_configCopy.ContextEnvironment;
+                ActivityCombo.SelectedIndex = (int)_configCopy.ContextActivity;
+                PrivacyCombo.SelectedIndex = (int)_configCopy.ContextPrivacy;
+                LocationLabelText.Text = _configCopy.ContextUserDefinedLocation ?? string.Empty;
             }
         }
         finally
@@ -245,11 +255,16 @@ public partial class SettingsWindow : Window
             // Apply context settings (Phase 14)
             if (_contextProvider is not null)
             {
-                _contextProvider.Environment = (HCEP.Core.Models.EnvironmentType)EnvironmentCombo.SelectedIndex;
-                _contextProvider.Activity = (HCEP.Core.Models.SituationActivity)ActivityCombo.SelectedIndex;
-                _contextProvider.Privacy = (HCEP.Core.Models.SituationPrivacy)PrivacyCombo.SelectedIndex;
-                _contextProvider.UserDefinedLocation = LocationLabelText.Text.Trim().Length > 0
+                _configCopy.ContextEnvironment = (HCEP.Core.Models.EnvironmentType)EnvironmentCombo.SelectedIndex;
+                _configCopy.ContextActivity = (HCEP.Core.Models.SituationActivity)ActivityCombo.SelectedIndex;
+                _configCopy.ContextPrivacy = (HCEP.Core.Models.SituationPrivacy)PrivacyCombo.SelectedIndex;
+                _configCopy.ContextUserDefinedLocation = LocationLabelText.Text.Trim().Length > 0
                     ? LocationLabelText.Text.Trim() : null;
+
+                _contextProvider.Environment = _configCopy.ContextEnvironment;
+                _contextProvider.Activity = _configCopy.ContextActivity;
+                _contextProvider.Privacy = _configCopy.ContextPrivacy;
+                _contextProvider.UserDefinedLocation = _configCopy.ContextUserDefinedLocation;
             }
 
             // Copy everything back to the engine
@@ -267,14 +282,12 @@ public partial class SettingsWindow : Window
             await RefreshRuntimeStatusAsync(includeModelDiscovery: true);
 
             SaveButton.Content = "Saved";
-            SetSaveStatus("Settings saved. See the connectivity summary in the confirmation dialog.", Brushes.LimeGreen);
+            SetSaveStatus("Settings saved. Window stays open — use Close when you're done.", Brushes.LimeGreen);
             MessageBox.Show(
                 BuildSaveSummary(),
                 "HCEP Settings Saved",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
-
-            CloseCompat(true);
         }
         catch (Exception ex)
         {
@@ -299,6 +312,12 @@ public partial class SettingsWindow : Window
     private void Cancel_Click(object sender, RoutedEventArgs e)
     {
         CloseCompat(false);
+    }
+
+    private void Close_Click(object sender, RoutedEventArgs e)
+    {
+        // Neutral close — any changes were already applied by Save_Click.
+        CloseCompat(true);
     }
 
     private async void LocalEngineCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -685,6 +704,14 @@ public partial class SettingsWindow : Window
             PreferLocal = src.PreferLocal,
             ActiveLocalEngine = src.ActiveLocalEngine,
             ActiveCloudProvider = src.ActiveCloudProvider,
+            ContextEnvironment = src.ContextEnvironment,
+            ContextActivity = src.ContextActivity,
+            ContextPrivacy = src.ContextPrivacy,
+            ContextUserDefinedLocation = src.ContextUserDefinedLocation,
+            ChatTelemetryWindowSeconds = src.ChatTelemetryWindowSeconds,
+            ChatTelemetryDensityLevel = src.ChatTelemetryDensityLevel,
+            ChatTelemetryDebugExpanded = src.ChatTelemetryDebugExpanded,
+            ChatSystemPromptDebugExpanded = src.ChatSystemPromptDebugExpanded,
             EmulationBlendWeight = src.EmulationBlendWeight,
             ReflectionDelayMs = src.ReflectionDelayMs,
             SyncBlinksToUser = src.SyncBlinksToUser
@@ -730,6 +757,14 @@ public partial class SettingsWindow : Window
         dest.PreferLocal = src.PreferLocal;
         dest.ActiveLocalEngine = src.ActiveLocalEngine;
         dest.ActiveCloudProvider = src.ActiveCloudProvider;
+        dest.ContextEnvironment = src.ContextEnvironment;
+        dest.ContextActivity = src.ContextActivity;
+        dest.ContextPrivacy = src.ContextPrivacy;
+        dest.ContextUserDefinedLocation = src.ContextUserDefinedLocation;
+        dest.ChatTelemetryWindowSeconds = src.ChatTelemetryWindowSeconds;
+        dest.ChatTelemetryDensityLevel = src.ChatTelemetryDensityLevel;
+        dest.ChatTelemetryDebugExpanded = src.ChatTelemetryDebugExpanded;
+        dest.ChatSystemPromptDebugExpanded = src.ChatSystemPromptDebugExpanded;
         dest.EmulationBlendWeight = src.EmulationBlendWeight;
         dest.ReflectionDelayMs = src.ReflectionDelayMs;
         dest.SyncBlinksToUser = src.SyncBlinksToUser;

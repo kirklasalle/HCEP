@@ -18,6 +18,7 @@
 
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Threading;
 
 namespace HCEP.App;
 
@@ -35,6 +36,21 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         Loaded += async (_, _) => await viewModel.InitializeAsync();
         Closing += async (_, _) => await viewModel.ShutdownAsync();
+
+        // Auto-scroll the LLM chat list to the newest message whenever the
+        // underlying ObservableCollection<string> changes. Additive: does not
+        // alter the existing binding (ItemsSource="{Binding ChatLog}").
+        _viewModel.ChatLog.CollectionChanged += (_, _) =>
+        {
+            Dispatcher.BeginInvoke(new System.Action(() =>
+            {
+                if (ChatListBox is null || ChatListBox.Items.Count == 0)
+                    return;
+
+                var last = ChatListBox.Items[ChatListBox.Items.Count - 1];
+                ChatListBox.ScrollIntoView(last);
+            }), DispatcherPriority.Background);
+        };
     }
 
     private void ChatInput_PreviewKeyDown(object sender, KeyEventArgs e)

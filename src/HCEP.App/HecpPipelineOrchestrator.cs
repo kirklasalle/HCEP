@@ -68,6 +68,9 @@ public sealed partial class HCEPPipelineOrchestrator : IPipelineOrchestrator, IA
     private readonly HCEP.Kinect.TorsoAnalyzer _torsoAnalyzer = new();
     private readonly FpsCounter _hcepFpsCounter = new();
     private long _faceFrameCount;
+    private long _colorFrameCount;
+    private long _depthFrameCount;
+    private long _infraredFrameCount;
     private long _skelFrameCount;
 
     // ── Phase 6: True Gaze Avatar ───────────────────────────
@@ -103,6 +106,13 @@ public sealed partial class HCEPPipelineOrchestrator : IPipelineOrchestrator, IA
     /// Default: 5 seconds. Set to <see cref="double.MaxValue"/> to disable auto-fallback.
     /// </summary>
     public double AutoFallbackSeconds { get; set; } = 5.0;
+
+    /// <summary>
+    /// Maximum time allowed for background loops and sub-pipelines to drain
+    /// during shutdown before the orchestrator logs a timeout and continues
+    /// the teardown sequence.
+    /// </summary>
+    public TimeSpan ShutdownDrainTimeout { get; set; } = TimeSpan.FromSeconds(8);
 
     public HCEPPipelineOrchestrator(
         ISensorSource sensor,
@@ -352,27 +362,21 @@ public sealed partial class HCEPPipelineOrchestrator : IPipelineOrchestrator, IA
         _logger.LogInformation("Stopping HCEP pipeline...");
         _isRunning = false;
 
+        using var shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        shutdownCts.CancelAfter(ShutdownDrainTimeout);
+        CancellationToken shutdownToken = shutdownCts.Token;
+
         _cts?.Cancel();
-        if (_loopTask is not null)
-        {
-            try { await _loopTask; }
-            catch (OperationCanceledException) { }
-        }
-        if (_hcepConsumerTask is not null)
-        {
-            try { await _hcepConsumerTask; }
-            catch (OperationCanceledException) { }
-        }
-        if (_speechTask is not null)
-        {
-            try { await _speechTask; }
-            catch (OperationCanceledException) { }
-        }
+
+        await AwaitStageAsync("snapshot loop", _loopTask, shutdownToken);
+        await AwaitStageAsync("HCEP consumer loop", _hcepConsumerTask, shutdownToken);
+        await AwaitStageAsync("speech loop", _speechTask, shutdownToken);
 
         UnwireSensorEvents(_sensor);
-        await _sensor.StopAsync(ct);
-        await _vision.StopAsync();
-        await _audio.StopAsync();
+
+        await AwaitStageAsync("sensor stop", _sensor.StopAsync(shutdownToken), shutdownToken);
+        await AwaitStageAsync("vision stop", _vision.StopAsync(), shutdownToken);
+        await AwaitStageAsync("audio stop", _audio.StopAsync(), shutdownToken);
 
         _cts?.Dispose();
         _logger.LogInformation("HCEP pipeline stopped");
@@ -385,5 +389,25 @@ public sealed partial class HCEPPipelineOrchestrator : IPipelineOrchestrator, IA
             await StopAsync();
 
         _cts?.Dispose();
+    }
+
+    private async Task AwaitStageAsync(string stageName, Task? stageTask, CancellationToken shutdownToken)
+    {
+        if (stageTask is null)
+            return;
+
+        try
+        {
+            await stageTask.WaitAsync(shutdownToken);
+            _logger.LogInformation("Shutdown stage completed: {Stage}", stageName);
+        }
+        catch (OperationCanceledException) when (shutdownToken.IsCancellationRequested)
+        {
+            _logger.LogWarning("Shutdown stage timed out: {Stage} (timeout={TimeoutMs}ms)", stageName, ShutdownDrainTimeout.TotalMilliseconds);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Shutdown stage failed: {Stage}", stageName);
+        }
     }
 }

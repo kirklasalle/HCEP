@@ -13,6 +13,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using HCEP.Core.Diagnostics;
 using HCEP.Core.Models;
 using Microsoft.Extensions.Logging;
 
@@ -75,8 +76,13 @@ public sealed partial class HCEPPipelineOrchestrator
                 // blocking the audio channel reader
                 _ = Task.Run(async () =>
                 {
+                    string correlationId = CorrelationContext.Create("speech-llm");
+                    using var correlationScope = CorrelationContext.BeginScope(correlationId);
                     try
                     {
+                        _telemetry.Increment("correlation.speech_llm.requests");
+                        _telemetry.RecordGauge("correlation.speech_llm.last_hash", CorrelationContext.ToNumericFingerprint(correlationId));
+
                         var hcep = _latestSnapshot?.PrimaryPerson?.LatestHcep;
                         var exchange = await _llmEngine.PromptAsync(result.Text, hcep, ct: ct);
 
@@ -88,6 +94,9 @@ public sealed partial class HCEPPipelineOrchestrator
 
                         _telemetry.RecordTiming("llm.latency_ms", exchange.Latency.TotalMilliseconds);
                         _telemetry.Increment(exchange.IsLocal ? "llm.local_calls" : "llm.cloud_calls");
+
+                        if (!string.IsNullOrWhiteSpace(exchange.CorrelationId))
+                            _telemetry.RecordGauge("correlation.llm.last_hash", CorrelationContext.ToNumericFingerprint(exchange.CorrelationId));
 
                         // Record exchange in knowledge store
                         try
@@ -103,7 +112,8 @@ public sealed partial class HCEPPipelineOrchestrator
                     }
                     catch (Exception ex) when (ex is not OperationCanceledException)
                     {
-                        _logger.LogWarning(ex, "LLM auto-response failed for speech: {Text}",
+                        _logger.LogWarning(ex, "LLM auto-response failed for speech (corr={CorrelationId}): {Text}",
+                            correlationId,
                             result.Text[..Math.Min(result.Text.Length, 50)]);
                     }
                 }, ct);

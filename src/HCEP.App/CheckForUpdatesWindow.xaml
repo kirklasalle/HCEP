@@ -1,0 +1,140 @@
+<Window x:Class="HCEP.App.CheckForUpdatesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="HCEP — Check for Updates"
+        Width="640"
+        Height="520"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        ResizeMode="CanResize"
+        MinWidth="520"
+        MinHeight="420"
+        ToolTip="Query the HCEP GitHub releases feed for a newer version; download and stage it without touching your settings.">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Text="⬆ HCEP Update Center"
+                   FontSize="20"
+                   FontWeight="Bold"
+                   Foreground="{StaticResource PrimaryBrush}"
+                   Margin="0,0,0,4"/>
+
+        <TextBlock Grid.Row="1"
+                   x:Name="SubtitleText"
+                   Text="Checking GitHub for the latest published release..."
+                   Foreground="{StaticResource TextDimBrush}"
+                   Margin="0,0,0,10"
+                   TextWrapping="Wrap"/>
+
+        <Border Grid.Row="2"
+                Background="{StaticResource SurfaceBrush}"
+                CornerRadius="6"
+                Padding="12,10"
+                Margin="0,0,0,10"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="Installed version:"
+                               FontWeight="SemiBold"
+                               Margin="0,0,10,0"
+                               Foreground="{StaticResource TextDimBrush}"/>
+                    <TextBlock Grid.Column="1"
+                               x:Name="CurrentVersionText"
+                               Text="—"
+                               Foreground="{StaticResource TextBrush}"/>
+                </Grid>
+                <Grid Margin="0,4,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="Latest release:"
+                               FontWeight="SemiBold"
+                               Margin="0,0,10,0"
+                               Foreground="{StaticResource TextDimBrush}"/>
+                    <TextBlock Grid.Column="1"
+                               x:Name="LatestVersionText"
+                               Text="—"
+                               Foreground="{StaticResource AccentBrush}"/>
+                </Grid>
+                <TextBlock x:Name="StatusText"
+                           Text=""
+                           Margin="0,6,0,0"
+                           Foreground="{StaticResource PrimaryBrush}"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="3"
+                Background="#1E1E2E"
+                CornerRadius="6"
+                Padding="12"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <TextBlock x:Name="ReleaseNotesText"
+                           Text="No release notes retrieved yet."
+                           TextWrapping="Wrap"
+                           FontFamily="Consolas, Segoe UI"
+                           Foreground="{StaticResource TextBrush}"/>
+            </ScrollViewer>
+        </Border>
+
+        <Border Grid.Row="4"
+                Margin="0,10,0,10"
+                Padding="10,8"
+                Background="#22FFFFFF"
+                CornerRadius="4"
+                ToolTip="These paths are never overwritten by the updater.">
+            <StackPanel>
+                <TextBlock Text="Non-destructive update guarantee"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource AccentBrush}"/>
+                <TextBlock Foreground="{StaticResource TextDimBrush}"
+                           TextWrapping="Wrap"
+                           FontSize="11"
+                           Margin="0,3,0,0"
+                           Text="Preserved: config\hcep-settings.json, logs\, %LocalAppData%\HCEP\ (settings, alignment, per-user data), and every Windows Credential Manager entry under HCEP\* — API keys are never touched."/>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="5"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+            <Button x:Name="OpenReleasePageButton"
+                    Content="Open Release Page"
+                    Padding="12,4"
+                    Margin="0,0,8,0"
+                    IsEnabled="False"
+                    Click="OpenReleasePageButton_Click"
+                    ToolTip="Open the release page in your default web browser"/>
+            <Button x:Name="DownloadButton"
+                    Content="Download &amp; Stage"
+                    Padding="12,4"
+                    Margin="0,0,8,0"
+                    IsEnabled="False"
+                    Click="DownloadButton_Click"
+                    ToolTip="Download the update ZIP to %LocalAppData%\HCEP\Updates and generate a non-destructive installer script."/>
+            <Button Content="Close"
+                    Padding="12,4"
+                    IsCancel="True"
+                    Click="CloseButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

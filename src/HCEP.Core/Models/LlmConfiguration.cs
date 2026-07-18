@@ -68,10 +68,29 @@ public enum CloudProviderType
 /// </summary>
 public sealed class LlmConfiguration
 {
+    // Configuration schema version. Used by SettingsPersistence to migrate
+    // older settings payloads forward as the model evolves.
+    public int SchemaVersion { get; set; } = 2;
+
     // Global Routing Policy
     public bool PreferLocal { get; set; } = true;
     public LocalEngineType ActiveLocalEngine { get; set; } = LocalEngineType.Ollama;
     public CloudProviderType ActiveCloudProvider { get; set; } = CloudProviderType.OpenAI;
+
+    // Context Settings (Phase 14)
+    // Persisted here so the Settings window can round-trip the Context tab
+    // through the same JSON settings file used by the rest of the runtime
+    // configuration, then rehydrate TimeContextProvider at startup.
+    public EnvironmentType ContextEnvironment { get; set; } = EnvironmentType.Unknown;
+    public SituationActivity ContextActivity { get; set; } = SituationActivity.Unknown;
+    public SituationPrivacy ContextPrivacy { get; set; } = SituationPrivacy.Private;
+    public string? ContextUserDefinedLocation { get; set; }
+
+    // Chat Telemetry Harness
+    public int ChatTelemetryWindowSeconds { get; set; } = 2;
+    public int ChatTelemetryDensityLevel { get; set; } = 2;
+    public bool ChatTelemetryDebugExpanded { get; set; }
+    public bool ChatSystemPromptDebugExpanded { get; set; }
 
     // Somatic Emulation & Mirroring (Fast AI Reflection)
     public float EmulationBlendWeight { get; set; } = 0.5f;

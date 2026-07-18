@@ -61,11 +61,33 @@ public sealed class VideoOverlayControl : FrameworkElement
     private const double ImageH = 480.0;
 
     /// <summary>
-    /// Vertical pixel offset (in Kinect 640×480 pixel space) applied to all overlay
-    /// elements to compensate for the physical offset between the Kinect v1 depth/IR
-    /// sensor and the color camera. Positive = shift down.
+    /// Legacy default for the Kinect depth-to-color vertical offset (px). The
+    /// live value is now sourced from <see cref="OverlayAlignment.VerticalOffsetPx"/>,
+    /// which is user-adjustable via the Face Mesh Alignment calibration window
+    /// and persisted between runs.
     /// </summary>
-    private const double DepthToColorOffsetY = 48.0;  // ~10% of 480
+    private const double DepthToColorOffsetY = 48.0;
+
+    static VideoOverlayControl()
+    {
+        // Ensure overlay renderers refresh whenever alignment settings change
+        // (Face Mesh Alignment calibration window, or startup load).
+        OverlayAlignment.Changed += RaiseAlignmentChanged;
+    }
+
+    private static event Action? _alignmentChangedInstance;
+    private static void RaiseAlignmentChanged() => _alignmentChangedInstance?.Invoke();
+
+    /// <summary>
+    /// Attaches a lightweight redraw hook so this control's overlay is
+    /// invalidated whenever the user tweaks alignment values.
+    /// </summary>
+    public VideoOverlayControl()
+    {
+        void handler() => Dispatcher.BeginInvoke(new Action(InvalidateVisual));
+        _alignmentChangedInstance += handler;
+        Unloaded += (_, _) => _alignmentChangedInstance -= handler;
+    }
 
     // ── Brushes & Pens (frozen) ────────────────────────────────
 
@@ -208,7 +230,21 @@ public sealed class VideoOverlayControl : FrameworkElement
     /// Map Kinect 640×480 pixel coords → control coords (Uniform stretch).
     /// </summary>
     private static Point MapPixel(double px, double py, double scale, double offsetX, double offsetY)
-        => new(px * scale + offsetX, (py + DepthToColorOffsetY) * scale + offsetY);
+        => new(
+            (px + OverlayAlignment.HorizontalOffsetPx) * scale + offsetX,
+            (py + OverlayAlignment.VerticalOffsetPx) * scale + offsetY);
+
+    /// <summary>
+    /// Map skeleton pixel coords with an independent skeleton-only offset and
+    /// scale so body tracking can be tuned separately from face mesh tracking.
+    /// </summary>
+    private static Point MapSkeletonPixel(double px, double py, double scale, double offsetX, double offsetY)
+    {
+        double skeletonScale = OverlayAlignment.SkeletonScale;
+        double adjustedX = Cx + ((px - Cx) * skeletonScale) + OverlayAlignment.SkeletonHorizontalOffsetPx;
+        double adjustedY = Cy + ((py - Cy) * skeletonScale) + OverlayAlignment.SkeletonVerticalOffsetPx;
+        return new Point(adjustedX * scale + offsetX, adjustedY * scale + offsetY);
+    }
 
     /// <summary>
     /// Project a 3D camera-space position (meters) to Kinect 640×480 pixel coords
@@ -315,8 +351,8 @@ public sealed class VideoOverlayControl : FrameworkElement
             if (!TryProject(ja, out double pxA, out double pyA)) continue;
             if (!TryProject(jb, out double pxB, out double pyB)) continue;
 
-            var ptA = MapPixel(pxA, pyA, scale, offsetX, offsetY);
-            var ptB = MapPixel(pxB, pyB, scale, offsetX, offsetY);
+            var ptA = MapSkeletonPixel(pxA, pyA, scale, offsetX, offsetY);
+            var ptB = MapSkeletonPixel(pxB, pyB, scale, offsetX, offsetY);
 
             // Choose pen based on tracking state
             bool aInferred = states is not null &&
@@ -338,7 +374,7 @@ public sealed class VideoOverlayControl : FrameworkElement
                 continue;
 
             if (!TryProject(pos, out double px, out double py)) continue;
-            var pt = MapPixel(px, py, scale, offsetX, offsetY);
+            var pt = MapSkeletonPixel(px, py, scale, offsetX, offsetY);
 
             bool isInferred = states is not null &&
                               states.TryGetValue(idx, out var jState) &&
@@ -373,7 +409,7 @@ public sealed class VideoOverlayControl : FrameworkElement
             // Position label near hip centre
             if (joints.TryGetValue(0, out var hipPos) && TryProject(hipPos, out double hpx, out double hpy))
             {
-                var hipPt = MapPixel(hpx, hpy, scale, offsetX, offsetY);
+                var hipPt = MapSkeletonPixel(hpx, hpy, scale, offsetX, offsetY);
                 dc.DrawText(ft, new Point(hipPt.X + 10, hipPt.Y - 5));
             }
         }

@@ -21,6 +21,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using HCEP.Core.Diagnostics;
 using HCEP.Core.Enums;
 using HCEP.Core.Interfaces;
 using HCEP.Core.Models;
@@ -52,6 +53,16 @@ public sealed class HybridLlmEngine : ILlmEngine
     /// Update via <see cref="TimeContextProvider.BuildSnapshot()"/> approximately once per second.
     /// </summary>
     public ContextSnapshot? CurrentContext { get; set; }
+
+    /// <summary>
+    /// Live sensor telemetry attached to the next <see cref="PromptAsync"/> call.
+    /// Populated by the UI immediately before sending a chat message so the
+    /// LLM can ground every response in real HCEP telemetry rather than
+    /// hallucinating a visual channel. May be null when the pipeline has
+    /// not yet emitted a snapshot; consumers should treat null as
+    /// "telemetry unavailable — respond accordingly".
+    /// </summary>
+    public HcepTelemetryBundle? LatestTelemetry { get; set; }
 
     /// <summary>Unified configuration for local and cloud LLM engines.</summary>
     public LlmConfiguration Configuration { get; set; } = new();
@@ -123,14 +134,19 @@ public sealed class HybridLlmEngine : ILlmEngine
         bool forceLocal = false,
         CancellationToken ct = default)
     {
+        string correlationId = CorrelationContext.Ensure("llm");
         var systemPrompt = BuildSystemPrompt(hcepContext);
         var start = DateTimeOffset.UtcNow;
 
         bool useLocal = forceLocal || Configuration.PreferLocal || string.IsNullOrEmpty(GetActiveCloudApiKey());
 
+        string? localErrorSummary = null;
+        string? cloudErrorSummary = null;
+
         if (useLocal)
         {
-            if (await IsLocalAvailableAsync(ct))
+            bool localReachable = await IsLocalAvailableAsync(ct);
+            if (localReachable)
             {
                 try
                 {
@@ -144,6 +160,7 @@ public sealed class HybridLlmEngine : ILlmEngine
 
                     return new LlmExchange
                     {
+                        CorrelationId = correlationId,
                         SystemPrompt = systemPrompt,
                         UserMessage = userMessage,
                         HcepContext = hcepContext?.ToString(),
@@ -156,8 +173,14 @@ public sealed class HybridLlmEngine : ILlmEngine
                 }
                 catch (Exception ex)
                 {
+                    localErrorSummary = $"Local {Configuration.ActiveLocalEngine} ({GetActiveLocalModel()}): {ex.Message}";
                     _logger.LogWarning(ex, "Local inference engine failed, falling back to cloud");
                 }
+            }
+            else
+            {
+                var localConfig = GetLocalEngineConfig();
+                localErrorSummary = $"Local {Configuration.ActiveLocalEngine} unreachable at {localConfig.BaseUrl}";
             }
         }
 
@@ -171,6 +194,7 @@ public sealed class HybridLlmEngine : ILlmEngine
                 _logger.LogWarning(
                     "Cloud circuit breaker is OPEN after {Failures} consecutive failures — skipping cloud call, retry in {Remaining:F0}s",
                     _cloudConsecutiveFailures, remaining.TotalSeconds);
+                cloudErrorSummary = $"Cloud {Configuration.ActiveCloudProvider} circuit breaker open after {_cloudConsecutiveFailures} consecutive failures (retry in {remaining.TotalSeconds:F0}s)";
             }
             else
             {
@@ -220,6 +244,7 @@ public sealed class HybridLlmEngine : ILlmEngine
 
                     return new LlmExchange
                     {
+                        CorrelationId = correlationId,
                         SystemPrompt = systemPrompt,
                         UserMessage = userMessage,
                         HcepContext = hcepContext?.ToString(),
@@ -232,6 +257,7 @@ public sealed class HybridLlmEngine : ILlmEngine
                 }
                 catch (Exception ex)
                 {
+                    cloudErrorSummary = $"Cloud {Configuration.ActiveCloudProvider} ({GetActiveCloudModel()}): {ex.Message}";
                     _cloudConsecutiveFailures++;
                     if (_cloudConsecutiveFailures >= CircuitBreakerThreshold)
                     {
@@ -249,16 +275,31 @@ public sealed class HybridLlmEngine : ILlmEngine
                 }
             }
         }
+        else
+        {
+            cloudErrorSummary = $"Cloud {Configuration.ActiveCloudProvider}: no API key configured";
+        }
 
         _logger.LogError(
             "All LLM providers exhausted (local available={Local}, cloud key present={Cloud}) — returning no-LLM fallback response",
             await IsLocalAvailableAsync(ct), !string.IsNullOrEmpty(GetActiveCloudApiKey()));
 
+        var fallbackParts = new List<string> { "[No LLM response]" };
+        if (!string.IsNullOrWhiteSpace(localErrorSummary))
+        {
+            fallbackParts.Add(localErrorSummary!);
+        }
+        if (!string.IsNullOrWhiteSpace(cloudErrorSummary))
+        {
+            fallbackParts.Add(cloudErrorSummary!);
+        }
+
         return new LlmExchange
         {
+            CorrelationId = correlationId,
             SystemPrompt = systemPrompt,
             UserMessage = userMessage,
-            Response = "[No LLM available - check local server status or cloud API configurations]",
+            Response = string.Join(" | ", fallbackParts),
             Latency = DateTimeOffset.UtcNow - start,
             Timestamp = start,
         };
@@ -422,6 +463,12 @@ public sealed class HybridLlmEngine : ILlmEngine
         };
     }
 
+    /// <summary>
+    /// Returns the exact system prompt that would be sent for the current
+    /// runtime state and telemetry bundle. Used by the in-app prompt-debug UI.
+    /// </summary>
+    public string PreviewSystemPrompt(HcepReading? hcepContext = null) => BuildSystemPrompt(hcepContext);
+
     // ── Private Inference Helpers ────────────────────────────────
 
     private string BuildSystemPrompt(HcepReading? hcep)
@@ -430,11 +477,58 @@ public sealed class HybridLlmEngine : ILlmEngine
         sb.AppendLine("You are HCEP — Human Communication Eye Protocol assistant.");
         sb.AppendLine("You analyze human communication through eye contact patterns, facial expressions, and speech.");
 
-        // Inject secure, cryptographically verified Permanent Active Directives (AI-Facing Safeguard)
+        // ── Perceptual model + strict grounding policy ─────────────────────
+        // The LLM does not have vision or hearing of its own. Everything it
+        // "perceives" arrives as a structured telemetry section injected into
+        // this prompt. Making that explicit — and forbidding hallucination —
+        // is what turns HCEP telemetry into effective LLM "sight".
         sb.AppendLine();
+        sb.AppendLine("=== PERCEPTION MODEL — HOW YOU 'SEE' ===");
+        sb.AppendLine("You perceive the user through the HCEP telemetry block below. That telemetry is your");
+        sb.AppendLine("sensory feed: it tells you how many people are present, who they are (if enrolled),");
+        sb.AppendLine("where they are looking, their head pose, their eye positions, their inter-ocular");
+        sb.AppendLine("distance, their inferred cognitive-emotional mode, and — when available — the last");
+        sb.AppendLine("thing they said out loud.");
+        sb.AppendLine("Treat the telemetry as authoritative. If a value is present, you may use it in your reply.");
+        sb.AppendLine("If a value is missing or labeled 'unavailable', you MUST NOT invent it.");
+        sb.AppendLine("=== GROUNDING & NON-HALLUCINATION POLICY (IMMUTABLE) ===");
+        sb.AppendLine("1. Only make factual claims that are directly supported by the telemetry block, the");
+        sb.AppendLine("   knowledge store (via the query_knowledge / summarize_person tools), or the user's");
+        sb.AppendLine("   own message in this turn.");
+        sb.AppendLine("2. Never invent identities, gaze directions, emotions, distances, timestamps, or");
+        sb.AppendLine("   any other numeric or categorical sensor value.");
+        sb.AppendLine("3. If the user asks something you cannot verify from the telemetry, knowledge store,");
+        sb.AppendLine("   or conversation, respond EXACTLY with: \"I don't have that information right now.\"");
+        sb.AppendLine("   You may follow that sentence with a short, concrete suggestion for how the user");
+        sb.AppendLine("   could make the information available (for example: enrolling their face, starting");
+        sb.AppendLine("   the sensor pipeline, or granting a permission).");
+        sb.AppendLine("4. When the user asks whether you can 'see' them, describe what the telemetry block");
+        sb.AppendLine("   actually reports — do not claim to have a camera you do not have, and do not");
+        sb.AppendLine("   deny having any perception at all when telemetry is clearly present.");
+        sb.AppendLine("5. Do not fabricate tool results. If you need information a tool could provide,");
+        sb.AppendLine("   call the tool. If the tool returns nothing, say so plainly.");
+        sb.AppendLine();
+
+        sb.AppendLine("=== INTERACTION PROFILE — PERSONALITY HARNESS ===");
+        sb.AppendLine(BuildInteractionProfilePrompt());
+        sb.AppendLine("Let the active interaction profile be shaped by the telemetry trend window, not only");
+        sb.AppendLine("the latest snapshot. Use the configured profile as your baseline tone and pacing, then");
+        sb.AppendLine("modulate it using the recent HCEP trend: sustained THINK should make you quieter and less interruptive; " +
+                      "sustained LOGIC should make you more structured and precise; sustained AFFECT/HEART should increase warmth and empathy; " +
+                      "sustained SPIRIT should allow more authentic, relational language. Never override the grounding policy while doing this.");
+        sb.AppendLine();
+
+        // Inject secure, cryptographically verified Permanent Active Directives (AI-Facing Safeguard)
         sb.AppendLine("=== SYSTEM CORE DIRECTIVES (IMMUTABLE & AUDITED) ===");
         sb.AppendLine(ActiveDirectivesManager.LoadAndVerifyDirectives());
         sb.AppendLine("====================================================");
+
+        // ── Rich, LLM-ready telemetry bundle (preferred grounding source) ──
+        if (LatestTelemetry is not null)
+        {
+            sb.AppendLine();
+            sb.AppendLine(LatestTelemetry.ToPromptString());
+        }
 
         if (hcep is not null && hcep.Mode != HcepMode.Unknown)
         {
@@ -460,7 +554,9 @@ public sealed class HybridLlmEngine : ILlmEngine
 
         // ── Contextual Intelligence Injection (Phase 14) ─────────────────
         // Time × Space × Situation modulates the AI register and silence protocol.
-        if (CurrentContext is not null)
+        // Only emit this fallback block if we did not already emit a richer telemetry
+        // bundle above (which carries the same context inside it).
+        if (LatestTelemetry is null && CurrentContext is not null)
         {
             sb.AppendLine();
             sb.AppendLine("=== Contextual State ===");
@@ -472,6 +568,46 @@ public sealed class HybridLlmEngine : ILlmEngine
         }
 
         return sb.ToString();
+    }
+
+    private string BuildInteractionProfilePrompt()
+    {
+        string profile = DetermineInteractionProfileName();
+        string blinkSync = Configuration.SyncBlinksToUser ? "enabled" : "disabled";
+        string pacing = Configuration.ReflectionDelayMs switch
+        {
+            <= 175 => "fast-reacting",
+            <= 350 => "balanced",
+            <= 550 => "measured",
+            _ => "deliberate"
+        };
+        string embodiment = Configuration.EmulationBlendWeight switch
+        {
+            >= 0.85f => "strongly mirrored / high-empathy",
+            >= 0.60f => "warm and adaptive",
+            >= 0.35f => "moderately neutral",
+            _ => "low-mirroring / reserved"
+        };
+
+        return $"Active profile: {profile}. EmulationBlendWeight={Configuration.EmulationBlendWeight:F2} ({embodiment}); " +
+               $"ReflectionDelayMs={Configuration.ReflectionDelayMs} ({pacing}); SyncBlinksToUser={blinkSync}.";
+    }
+
+    private string DetermineInteractionProfileName()
+    {
+        float emu = Configuration.EmulationBlendWeight;
+        int delay = Configuration.ReflectionDelayMs;
+        bool blinks = Configuration.SyncBlinksToUser;
+
+        if (Math.Abs(emu - 0.70f) < 0.01f && delay == 200 && blinks)
+            return "Attentive Listener";
+        if (Math.Abs(emu - 0.90f) < 0.01f && delay == 350 && blinks)
+            return "Warm Companion";
+        if (Math.Abs(emu - 0.15f) < 0.01f && delay == 700 && !blinks)
+            return "Silent Observer";
+        if (Math.Abs(emu - 0.40f) < 0.01f && delay == 150 && blinks)
+            return "Professional Assistant";
+        return "Custom";
     }
 
     private (string BaseUrl, string Model, float Temperature) GetLocalEngineConfig()
@@ -633,10 +769,29 @@ public sealed class HybridLlmEngine : ILlmEngine
         };
 
         var response = await _httpClient.PostAsJsonAsync($"{Configuration.Ollama.BaseUrl}/api/generate", request, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrowDetailedAsync(response, $"Ollama /api/generate model={Configuration.Ollama.Model}", ct);
 
         var result = await response.Content.ReadFromJsonAsync<OllamaResponse>(ct);
         return result?.Response ?? string.Empty;
+    }
+
+    private static async Task EnsureSuccessOrThrowDetailedAsync(HttpResponseMessage response, string context, CancellationToken ct)
+    {
+        if (response.IsSuccessStatusCode) return;
+
+        string body;
+        try
+        {
+            body = await response.Content.ReadAsStringAsync(ct);
+        }
+        catch
+        {
+            body = string.Empty;
+        }
+
+        if (body.Length > 500) body = body.Substring(0, 500) + "...";
+        var detail = string.IsNullOrWhiteSpace(body) ? response.ReasonPhrase : body.Trim();
+        throw new HttpRequestException($"{context} returned {(int)response.StatusCode} {response.StatusCode}: {detail}");
     }
 
     private async Task<string> CallLlamaCppAsync(string system, string prompt, CancellationToken ct)
@@ -680,7 +835,7 @@ public sealed class HybridLlmEngine : ILlmEngine
 
         requestMessage.Content = JsonContent.Create(payload);
         var response = await _httpClient.SendAsync(requestMessage, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrowDetailedAsync(response, $"Anthropic /v1/messages model={Configuration.Anthropic.Model}", ct);
 
         var result = await response.Content.ReadFromJsonAsync<AnthropicResponse>(ct);
         return result?.Content?.FirstOrDefault()?.Text ?? string.Empty;
@@ -707,7 +862,7 @@ public sealed class HybridLlmEngine : ILlmEngine
         };
 
         var response = await _httpClient.PostAsJsonAsync(url, payload, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessOrThrowDetailedAsync(response, $"Gemini generateContent model={Configuration.Gemini.Model}", ct);
 
         var result = await response.Content.ReadFromJsonAsync<GeminiResponse>(ct);
         return result?.Candidates?.FirstOrDefault()?.Content?.Parts?.FirstOrDefault()?.Text ?? string.Empty;
@@ -775,7 +930,7 @@ public sealed class HybridLlmEngine : ILlmEngine
             httpRequest.Content = JsonContent.Create(request);
 
             var response = await _httpClient.SendAsync(httpRequest, ct);
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessOrThrowDetailedAsync(response, $"{Configuration.ActiveCloudProvider} /chat/completions model={model}", ct);
 
             var result = await response.Content.ReadFromJsonAsync<OpenAiResponse>(ct);
             var choice = result?.Choices?.FirstOrDefault();
