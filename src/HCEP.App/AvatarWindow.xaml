@@ -30,6 +30,12 @@
                                    HorizontalAlignment="Stretch"
                                    VerticalAlignment="Stretch"
                                    Margin="8"/>
+            <!-- Procedural high-poly head-and-shoulders wireframe avatar -->
+            <local:AvatarHighPolyWireframeControl x:Name="AvatarHighPoly"
+                                                  Visibility="Collapsed"
+                                                  HorizontalAlignment="Stretch"
+                                                  VerticalAlignment="Stretch"
+                                                  Margin="8"/>
         </Grid>
 
         <!-- ── Telemetry HUD ──────────────────────────────────── -->

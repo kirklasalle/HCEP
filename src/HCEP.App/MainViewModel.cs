@@ -57,6 +57,7 @@ public partial class MainViewModel : ObservableObject
     private SkeletalAlignmentWindow? _skeletalAlignmentWindow;
     private PnPHeadPoseCalibrationWindow? _pnpCalibrationWindow;
     private CheckForUpdatesWindow? _checkForUpdatesWindow;
+    private EyePositionCalibrationWindow? _eyePositionCalibrationWindow;
 
     public MainViewModel(
         IPipelineOrchestrator pipeline,
@@ -433,6 +434,21 @@ public partial class MainViewModel : ObservableObject
         _checkForUpdatesWindow.Owner = System.Windows.Application.Current.MainWindow;
         _checkForUpdatesWindow.Show();
         _logger.LogInformation("Check for Updates window opened");
+    }
+
+    [RelayCommand]
+    private void OpenEyePositionCalibration()
+    {
+        if (_eyePositionCalibrationWindow is { IsLoaded: true })
+        {
+            _eyePositionCalibrationWindow.Activate();
+            return;
+        }
+        _eyePositionCalibrationWindow = _services.GetRequiredService<EyePositionCalibrationWindow>();
+        _eyePositionCalibrationWindow.Closed += (_, _) => _eyePositionCalibrationWindow = null;
+        _eyePositionCalibrationWindow.Owner = System.Windows.Application.Current.MainWindow;
+        _eyePositionCalibrationWindow.Show();
+        _logger.LogInformation("Eye Position Calibration window opened");
     }
 
     [RelayCommand]

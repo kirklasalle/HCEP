@@ -1,9 +1,9 @@
 # HCEP — Developer Guide
 
 **Product:** HCEP — Human Communication Eye Protocol  
-**Version:** 1.4.0
+**Version:** 1.5.0
 **Author:** Kirk LaSalle  
-**Last Updated:** July 17, 2026
+**Last Updated:** July 18, 2026
 
 ---
 
@@ -104,8 +104,9 @@ D:\Projects\HCEP\
 │   └── HCEP.App/                   # WPF application, DI host, orchestrator, avatars
 │       ├── AvatarCoreControl.xaml(.cs) # 2D avatar: gaze+blinks+brows+viseme
 │       ├── Avatar3DControl.cs       # 3D wireframe avatar: mesh+eyes+brows+viseme
+│       ├── AvatarHighPolyWireframeControl.cs # Procedural high-poly head+shoulders avatar
 │       ├── BackchannelController.cs # ★ v1.3.0: cadence-aware nods + Gaussian jitter
-│       └── IAvatarComponent.cs      # Interface: SetGaze+SetBrows+SetViseme+ResetGaze
+│       └── IAvatarComponent.cs      # Interface: gaze, brows, visemes, gestures, smile, proxemics
 └── tests/
     └── HCEP.Tests/                  # xUnit test project (211 tests)
         ├── Spatial/                 # RayPlane, CoordinateMapper, PnP, ConfidenceCone
@@ -144,6 +145,9 @@ dotnet build HCEP.sln
 # Build Release
 dotnet build HCEP.sln -c Release
 
+# Create the self-contained Windows release package
+.\scripts\package_release.ps1
+
 # Run the application
 dotnet run --project src/HCEP.App
 ```
@@ -160,13 +164,18 @@ All projects inherit shared settings from the root `Directory.Build.props`:
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Version>1.4.0</Version>
+    <Version>1.5.0</Version>
+    <AssemblyVersion>1.5.0.0</AssemblyVersion>
+    <FileVersion>1.5.0.0</FileVersion>
+    <InformationalVersion>1.5.0</InformationalVersion>
     <Copyright>Copyright © 2026 Kirk LaSalle</Copyright>
   </PropertyGroup>
 </Project>
 ```
 
 **Important:** The `x64` platform lock is required because Kinect v1 native DLLs are 64-bit only.
+
+The release package script reads this shared version metadata, publishes `HCEP.App` as a self-contained `win-x64` app, emits an Appx manifest with the matching package version, and creates `publish/HCEP-win-x64-v<version>.zip` using the .NET `ZipFile` API.
 
 ---
 

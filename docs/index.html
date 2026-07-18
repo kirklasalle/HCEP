@@ -1203,7 +1203,8 @@
 
         <!-- STATS -->
         <div class="stats">
-            <div class="si"><span class="sn sg">0.8084</span><span class="sl">Cohen's κ<br>Verification Score</span></div>
+            <div class="si"><span class="sn sg">0.8084</span><span class="sl">Cohen's κ<br>Verification Score</span>
+            </div>
             <div class="si"><span class="sn sg">84.55%</span><span class="sl">Classification<br>Accuracy</span></div>
             <div class="si"><span class="sn sc">&lt;50ms</span><span class="sl">Pipeline<br>Latency</span></div>
             <div class="si"><span class="sn si2">211</span><span class="sl">Tests<br>All Passing</span></div>
@@ -1555,7 +1556,8 @@
                     </div>
                     <div class="vm">
                         <h4>5-Mode HCEP Theory — LOGIC, AFFECT, SPIRIT, HEART, THINK</h4>
-                        <p>The science behind the five cognitive-emotional modes and why κ=0.8084 matters for classification.</p>
+                        <p>The science behind the five cognitive-emotional modes and why κ=0.8084 matters for
+                            classification.</p>
                     </div>
                 </div>
                 <div class="vc">
@@ -1865,7 +1867,8 @@ curl -X POST http://localhost:5000/api/knowledge \
                         mutual gaze, synchronized blink, minimal aversion.<br><strong>HEART</strong> — empathic
                         resonance; soft-focus gaze, lower-face attention, slow saccades.<br><strong>THINK</strong> —
                         internal processing; gaze aversion, defocused, reduced blink rate.<br><br>The classifier uses a
-                        5-frame hysteresis buffer and confidence cone threshold, achieving κ=0.8084 against simulated rater agents
+                        5-frame hysteresis buffer and confidence cone threshold, achieving κ=0.8084 against simulated
+                        rater agents
                         across 6,000+ synthetic frames.</div>
                 </div>
 
@@ -1976,7 +1979,8 @@ curl -X POST http://localhost:5000/api/knowledge \
                 <div class="fqi">
                     <button class="fqq" onclick="tF(this)">How accurate is face-tracking with a webcam vs. Kinect? <span
                             class="ar">▾</span></button>
-                    <div class="fqa"><strong>Kinect v1:</strong> κ=0.8084 and 84.55% mode classification accuracy verified via simulation using
+                    <div class="fqa"><strong>Kinect v1:</strong> κ=0.8084 and 84.55% mode classification accuracy
+                        verified via simulation using
                         depth-assisted PnP and FaceTrackLib's 87-point 3D Candide-3 mesh.<br><br><strong>Webcam (OpenCV
                             fallback):</strong> The True Gaze™ parallax correction still applies, but without depth data
                         the PnP solver relies on 2D landmark distances against anthropometric priors, reducing accuracy
@@ -2005,7 +2009,7 @@ curl -X POST http://localhost:5000/api/knowledge \
             </div>
             <div class="fc2">
                 <h5>Docs</h5><a href="DEVELOPER_GUIDE.md">Developer Guide</a><a href="USER_GUIDE.md">User Guide</a><a
-                    href="ROADMAP.md">Roadmap</a><a href="release_notes_v1.0.0.md">Release Notes</a>
+                    href="ROADMAP.md">Roadmap</a><a href="release_notes_v1.5.0.md">Release Notes</a>
             </div>
             <div class="fc2">
                 <h5>Science</h5><a href="HCEP_SCIENCE_FOUNDATION.md">Science Foundation</a><a
@@ -2160,4 +2164,3 @@ curl -X POST http://localhost:5000/api/knowledge \
 </body>
 
 </html>
-

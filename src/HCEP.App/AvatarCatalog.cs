@@ -34,6 +34,8 @@ public sealed class AvatarCatalog : IAvatarCatalog
             Summary: "Shipping vector-based 2D avatar with gaze, blinks, brows, smile, proxemics, viseme lip sync, and reciprocal gestures."),
         new("3d-wireframe", "3D Wireframe", true, true,
             Summary: "Shipping 3D wireframe avatar with neutralized mesh rendering, eye-socket gaze tracking, visemes, brows, and reciprocal gestures."),
+        new("3d-highpoly-wireframe", "3D High-Poly Wireframe", true, true,
+            Summary: "Procedural high-density head-and-shoulders wireframe avatar with HCEP eye spheres, brows, visemes, proxemics, and reciprocal gestures."),
         new("3d-textured", "3D Textured (future)", true, false,
             Summary: "Planned higher-fidelity textured avatar tier for richer facial presence and commercial presentation."),
         new("personalized-avatar", "Personalized Avatar (future)", false, false,

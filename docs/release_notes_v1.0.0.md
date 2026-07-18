@@ -2,7 +2,7 @@
 
 ---
 
-For the latest release, see [release_notes_v1.3.0.md](release_notes_v1.3.0.md).
+For the latest release, see [release_notes_v1.5.0.md](release_notes_v1.5.0.md).
 
 ---
 

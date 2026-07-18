@@ -138,6 +138,12 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     public int MeshVertexCount { get; private set; }
     public int MeshTriangleCount { get; private set; }
 
+    /// <summary>
+    /// When true, avatar mirrors user's expressions/brows/gaze. When false,
+    /// avatar operates autonomously, using proportional eye socket positions.
+    /// </summary>
+    public bool IsMirroringEnabled { get; set; }
+
     // ── Cached eye socket screen positions (for GazeVectorEngine eye provider) ──
     private Point _leftEyeLocalPt;    // updated each OnRender frame
     private Point _rightEyeLocalPt;
@@ -211,6 +217,9 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         // Re-resolve screen coords whenever layout changes — same pattern as AvatarCoreControl.
         LayoutUpdated += (_, _) => UpdateEyeScreenCoordinates();
 
+        // Listen for eye position calibration adjustments to redraw the avatar in real time
+        EyePositionCalibration.Changed += () => Dispatcher.BeginInvoke(InvalidateVisual);
+
         // Low-frequency timer keeps micro-saccade animation fluid even during
         // brief sensor data gaps. WPF coalesces repeated InvalidateVisual calls.
         var saccadeTimer = new System.Windows.Threading.DispatcherTimer(
@@ -266,23 +275,47 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     }
 
     /// <summary>
-    /// Feature-point fallback: renders a dot cloud using the 87 FaceTrackLib landmark
-    /// points when the full <c>GetProjectedShape</c> mesh is not yet available.
-    /// Called from <c>AvatarWindow.OnSnapshotReady</c> when <c>FaceMeshVertices2D</c> is null.
+    /// Feature-point-only frame update. Called when the SDK's <c>GetProjectedShape</c>
+    /// mesh call fails but the 87 FaceTrackLib landmark points are still valid.
+    ///
+    /// Behavior (persistent-mesh contract):
+    ///   • If a Candide-3 mesh has EVER been acquired (<c>_triangles</c> non-null),
+    ///     the persistent mesh geometry is left completely untouched. Only
+    ///     <c>_featurePoints</c> is refreshed so eye-socket anchoring stays live.
+    ///   • If no mesh has ever been acquired (cold start), the FP array drives
+    ///     the wireframe as a fallback surface: <c>_vertices</c>, baked rotation,
+    ///     and mesh bounds are refreshed every frame so the wireframe moves
+    ///     with the user until a real mesh arrives.
     /// </summary>
     public void SetFeaturePoints(Vector2[] points, Vector3 bakedRotationDeg)
     {
-        const float Deg2Rad = MathF.PI / 180f;
-        _bakedHeadYawRad = bakedRotationDeg.Y * Deg2Rad;
-        _bakedHeadPitchRad = bakedRotationDeg.X * Deg2Rad;
-        _bakedHeadRollRad = bakedRotationDeg.Z * Deg2Rad;
+        // Keep the FP array live for eye-socket anchoring — happens in both modes.
+        _featurePoints = points;
 
-        _vertices = points;
-        _triangles = null;   // null = edge-chain fallback mode
-        MeshVertexCount = 0;
-        MeshTriangleCount = 0;
-        _eyeSocketSmoothingReady = false;
-        ComputeBounds();
+        if (_triangles is null)
+        {
+            // Cold-start / mesh-never-acquired: FP is the current source of truth
+            // for the wireframe. Refresh vertices + baked rotation every frame so
+            // the drawn face tracks live head movement.
+            const float Deg2Rad = MathF.PI / 180f;
+            _bakedHeadYawRad = bakedRotationDeg.Y * Deg2Rad;
+            _bakedHeadPitchRad = bakedRotationDeg.X * Deg2Rad;
+            _bakedHeadRollRad = bakedRotationDeg.Z * Deg2Rad;
+
+            bool topologyChanged = _vertices is null || _vertices.Length != points.Length;
+            _vertices = points;
+            if (topologyChanged)
+            {
+                _eyeSocketSmoothingReady = false;
+                _leftEyeSocketSmoothed = default;
+                _rightEyeSocketSmoothed = default;
+            }
+            ComputeBounds();
+        }
+        // else: persistent-mesh contract in force — do not touch _vertices,
+        // _triangles, or baked rotation. Live head pose flows via SetHeadPose;
+        // eye anchoring flows via the _featurePoints update above.
+
         InvalidateVisual();
     }
 
@@ -369,8 +402,6 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     void IAvatarComponent.ResetGaze()
     {
         _gazeHeadFollower.Reset();
-        _vertices = null;
-        _triangles = null;
         _eyeSocketSmoothingReady = false;
         _gazePitch = 0;
         _gazeYaw = 0;
@@ -495,8 +526,8 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         bool hasMesh = triangles is not null;
 
         // ── Transform parameters (full-mesh vs feature-point fallback) ───
-        // Full-mesh mode: apply a corrective transform from tracked pose toward
-        // smoothed display pose so eyes visibly lead before head catches up.
+        // Full-mesh mode: render the projected Candide mesh directly; its head
+        // pose is already baked into the vertices by GetProjectedShape.
         // Fallback mode : use the smoothed display head rotation directly.
         //   yaw  → X-compress (cos) + slight X-shift (sin)
         //   pitch → Y-shift
@@ -555,9 +586,15 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                 _tiltStartMs3D = -1;
         }
 
-        double correctionYaw = Math.Clamp(headYaw - _bakedHeadYawRad, -Math.PI / 3, Math.PI / 3);
-        double correctionPitch = Math.Clamp(headPitch - _bakedHeadPitchRad, -Math.PI / 4, Math.PI / 4);
-        double correctionRoll = Math.Clamp(headRoll - _bakedHeadRollRad, -Math.PI / 4, Math.PI / 4);
+        // Full-mesh vertices from GetProjectedShape already include the Kinect
+        // head pose. In that mode, the eyes are the coordinate authority: live
+        // FP eye anchors and mesh vertices are both mapped through the same
+        // fit transform with no extra corrective head transform. The fallback
+        // FP wireframe still needs the synthetic head transform because it has
+        // no projected Candide mesh pose baked into its vertices.
+        double correctionYaw = hasMesh ? 0.0 : Math.Clamp(headYaw - _bakedHeadYawRad, -Math.PI / 3, Math.PI / 3);
+        double correctionPitch = hasMesh ? 0.0 : Math.Clamp(headPitch - _bakedHeadPitchRad, -Math.PI / 4, Math.PI / 4);
+        double correctionRoll = hasMesh ? 0.0 : Math.Clamp(headRoll - _bakedHeadRollRad, -Math.PI / 4, Math.PI / 4);
 
         bool applyHeadTransform = !hasMesh
             || Math.Abs(correctionYaw) > 0.0005
@@ -627,37 +664,92 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
             }
         }
 
-        // ── Eye socket positioning — proportional placement ────────────
-        // Uses the same eye/face proportions as the 2D Happy Face avatar:
-        //   Happy Face canvas = 280×280
-        //   Right eye = (95, 112) → (0.339, 0.400)
-        //   Left eye  = (185, 112) → (0.661, 0.400)
-        //   Eye radius = 22 → 0.0786 of face width
-        // These proportions are applied to the mesh bounding box, then
-        // transformed through the same wireframe pipeline (fitScale, offsets,
-        // yaw-compress, pitch-shift, roll). No feature-point dependency —
-        // eliminates the FP↔mesh projection mismatch that caused crashes.
+        // ── Eye socket positioning — mesh feature-point anchoring ────────────
+        // Uses the Candide-3 feature point eye contour indices to derive
+        // anatomically correct eye socket centres that move perfectly with
+        // the mesh. Feature points 9–14 define the right eye contour,
+        // 30–35 define the left eye contour. These are transformed through
+        // the same wireframe pipeline (fitScale, offsets, yaw-compress,
+        // pitch-shift, roll) so eyes are always correctly anchored.
+        // Falls back to proportional bounding-box placement if feature points
+        // are unavailable.
         bool eyesDrawn = false;
 
         if (hasMesh)
         {
-            // Happy-face baseline + small wireframe calibration.
-            const double BaseREyeXFrac = 95.0 / 280.0;    // 0.339
-            const double BaseLEyeXFrac = 185.0 / 280.0;   // 0.661
-            const double BaseEyeYFrac = 112.0 / 280.0;    // 0.400
-            const double EyeRFrac = 20.5 / 280.0;         // 0.073
-            const double HorizontalSpreadFrac = 0.016;    // push eyes slightly outward
-            const double VerticalDropFrac = 0.018;        // lower eye plane slightly
+            // ── Compute eye socket centres from feature points ───────────
+            // Feature points live in the same 640×480 projected space as the
+            // mesh vertices, so we use the same Map() pipeline for transformation.
+            var fps = _featurePoints;
+            bool haveFPEyes = fps is { Length: > 35 };
 
-            double rEyeXFrac = BaseREyeXFrac - HorizontalSpreadFrac;
-            double lEyeXFrac = BaseLEyeXFrac + HorizontalSpreadFrac;
-            double eyeYFrac = BaseEyeYFrac + VerticalDropFrac;
+            double rCxMesh, rCyMesh, lCxMesh, lCyMesh;
+            const double EyeRFrac = 20.5 / 280.0;  // 0.073 — eye radius as fraction of face width
 
-            // Map proportions into mesh-vertex coordinate space
-            double rCxMesh = _meshLeft + rEyeXFrac * _meshWidth;
-            double rCyMesh = _meshTop + eyeYFrac * _meshHeight;
-            double lCxMesh = _meshLeft + lEyeXFrac * _meshWidth;
-            double lCyMesh = _meshTop + eyeYFrac * _meshHeight;
+            // Eye-first alignment: whenever live feature points are available,
+            // they own eye socket placement. Mirroring controls expression
+            // display behavior, not whether the eyes may anchor the mesh.
+            bool useLiveAnchoring = haveFPEyes;
+
+            if (useLiveAnchoring)
+            {
+                // Right eye contour: FP indices 9, 10, 11, 12, 13, 14
+                double rSumX = 0, rSumY = 0;
+                int rCount = 0;
+                int[] rIdx = [9, 10, 11, 12, 13, 14];
+                foreach (int idx in rIdx)
+                {
+                    if (idx < fps!.Length && fps[idx] != System.Numerics.Vector2.Zero)
+                    {
+                        rSumX += fps[idx].X;
+                        rSumY += fps[idx].Y;
+                        rCount++;
+                    }
+                }
+
+                // Left eye contour: FP indices 30, 31, 32, 33, 34, 35
+                double lSumX = 0, lSumY = 0;
+                int lCount = 0;
+                int[] lIdx = [30, 31, 32, 33, 34, 35];
+                foreach (int idx in lIdx)
+                {
+                    if (idx < fps!.Length && fps[idx] != System.Numerics.Vector2.Zero)
+                    {
+                        lSumX += fps[idx].X;
+                        lSumY += fps[idx].Y;
+                        lCount++;
+                    }
+                }
+
+                if (rCount >= 3 && lCount >= 3)
+                {
+                    // Feature-point-derived eye socket centres (mesh-space coordinates)
+                    rCxMesh = rSumX / rCount;
+                    rCyMesh = rSumY / rCount;
+                    lCxMesh = lSumX / lCount;
+                    lCyMesh = lSumY / lCount;
+
+                    // Apply user calibration offsets (fractions of mesh bounding box).
+                    // At default slider positions these deltas are zero and eyes remain
+                    // anchored to the anatomical feature-point centroid. When the user
+                    // adjusts the sliders, the eye positions shift correspondingly so
+                    // the calibration is always effective — even in feature-point mode.
+                    rCxMesh += EyePositionCalibration.RightEyeOffsetX * _meshWidth;
+                    rCyMesh += EyePositionCalibration.RightEyeOffsetY * _meshHeight;
+                    lCxMesh += EyePositionCalibration.LeftEyeOffsetX * _meshWidth;
+                    lCyMesh += EyePositionCalibration.LeftEyeOffsetY * _meshHeight;
+                }
+                else
+                {
+                    // Not enough valid feature points — fall back to proportional
+                    (rCxMesh, rCyMesh, lCxMesh, lCyMesh) = ComputeProportionalEyePositions();
+                }
+            }
+            else
+            {
+                // Mirroring is disabled or feature points unavailable — use proportional placement
+                (rCxMesh, rCyMesh, lCxMesh, lCyMesh) = ComputeProportionalEyePositions();
+            }
 
             // Transform to screen space — same pipeline as wireframe vertices
             Point MapCoord(double vx, double vy)
@@ -683,10 +775,10 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
             Point rightAnchorRaw = MapCoord(rCxMesh, rCyMesh);
             Point leftAnchorRaw = MapCoord(lCxMesh, lCyMesh);
 
-            // Keep eye centres locked to head motion with minimal lag.
-            // Using near-instant smoothing preserves stability but follows
-            // pan/tilt/roll immediately.
-            const double Alpha = 0.98;
+            // Eye-first contract: in full-mesh mode the live feature-point
+            // eye anchors are authoritative. Do not smooth these centres;
+            // even a tiny EMA lag lets the projected mesh move before the eyes.
+            const double Alpha = 1.0;
             if (!_eyeSocketSmoothingReady)
             {
                 _leftEyeSocketSmoothed = leftAnchorRaw;
@@ -833,6 +925,46 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 
             if (!double.IsNaN(rcx) && !double.IsNaN(lcx) && rHW > 1 && lHW > 1)
             {
+                // Apply user calibration offsets in screen space.
+                // The calibration values live in mesh-space fractions, so we must
+                // multiply by fitScale to convert them to on-screen pixel deltas.
+                // At default slider positions these offsets are zero.
+                double calRxPx = EyePositionCalibration.RightEyeOffsetX * _meshWidth * fitScale;
+                double calRyPx = EyePositionCalibration.RightEyeOffsetY * _meshHeight * fitScale;
+                double calLxPx = EyePositionCalibration.LeftEyeOffsetX * _meshWidth * fitScale;
+                double calLyPx = EyePositionCalibration.LeftEyeOffsetY * _meshHeight * fitScale;
+                rcx += calRxPx;
+                rcy += calRyPx;
+                lcx += calLxPx;
+                lcy += calLyPx;
+
+                // ── Eye-socket EMA smoothing (fallback mode) ─────────────
+                // The FP path was previously drawn from raw feature-point centroids
+                // with no smoothing, which produced visible per-frame jitter and
+                // decoupled the eyes from the (smoother) wireframe. Apply the same
+                // near-instant EMA used by the mesh path so eyes track the head
+                // stably without lagging perceptibly.
+                const double FpAlpha = 0.55;
+                if (!_eyeSocketSmoothingReady)
+                {
+                    _rightEyeSocketSmoothed = new Point(rcx, rcy);
+                    _leftEyeSocketSmoothed = new Point(lcx, lcy);
+                    _eyeSocketSmoothingReady = true;
+                }
+                else
+                {
+                    _rightEyeSocketSmoothed = new Point(
+                        _rightEyeSocketSmoothed.X + (rcx - _rightEyeSocketSmoothed.X) * FpAlpha,
+                        _rightEyeSocketSmoothed.Y + (rcy - _rightEyeSocketSmoothed.Y) * FpAlpha);
+                    _leftEyeSocketSmoothed = new Point(
+                        _leftEyeSocketSmoothed.X + (lcx - _leftEyeSocketSmoothed.X) * FpAlpha,
+                        _leftEyeSocketSmoothed.Y + (lcy - _leftEyeSocketSmoothed.Y) * FpAlpha);
+                }
+                rcx = _rightEyeSocketSmoothed.X;
+                rcy = _rightEyeSocketSmoothed.Y;
+                lcx = _leftEyeSocketSmoothed.X;
+                lcy = _leftEyeSocketSmoothed.Y;
+
                 // ── Normalised gaze angles ────────────────────────────────
                 // MaxGazeAngle = 20° — practical Kinect tracking limit.
                 // No head-pose subtraction: gaze and head-pose live in
@@ -1199,6 +1331,20 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         float beyond = abs - deadzone;
         float step = beyond * Math.Clamp(alpha, 0f, 1f);
         return current + MathF.CopySign(step, delta);
+    }
+
+    /// <summary>
+    /// Fallback eye position computation using Happy Face proportional placement.
+    /// Used only when Candide-3 feature points are unavailable.
+    /// Returns (rightCx, rightCy, leftCx, leftCy) in mesh-vertex coordinate space.
+    /// </summary>
+    private (double rCx, double rCy, double lCx, double lCy) ComputeProportionalEyePositions()
+    {
+        return (
+            _meshLeft + EyePositionCalibration.RightEyeX * _meshWidth,
+            _meshTop + EyePositionCalibration.RightEyeY * _meshHeight,
+            _meshLeft + EyePositionCalibration.LeftEyeX * _meshWidth,
+            _meshTop + EyePositionCalibration.LeftEyeY * _meshHeight);
     }
 
 }

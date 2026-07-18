@@ -9,8 +9,16 @@ $ErrorActionPreference = "Stop"
 $ProjectRoot = Resolve-Path "$PSScriptRoot\.."
 $AppCsproj = Join-Path $ProjectRoot "src\HCEP.App\HCEP.App.csproj"
 $PublishDir = Join-Path $ProjectRoot "publish"
+$BuildPropsPath = Join-Path $ProjectRoot "Directory.Build.props"
+$BuildProps = [xml](Get-Content -Path $BuildPropsPath -Raw)
+$Version = [string]$BuildProps.Project.PropertyGroup.Version
+if ([string]::IsNullOrWhiteSpace($Version)) {
+  throw "Unable to read Version from $BuildPropsPath"
+}
+$PackageVersion = if ($Version.Split('.').Length -eq 3) { "$Version.0" } else { $Version }
 
 Write-Host "Starting HCEP release packaging process..." -ForegroundColor Cyan
+Write-Host "Packaging version: $Version" -ForegroundColor Cyan
 
 # Clean previous publish folder
 if (Test-Path $PublishDir) {
@@ -43,7 +51,7 @@ $ManifestContent = @"
          xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities">
   <Identity Name="KirkLaSalle.HCEP"
             Publisher="CN=KirkLaSalle, O=KirkLaSalle, C=US"
-            Version="0.1.0.0"
+            Version="$PackageVersion"
             ProcessorArchitecture="x64" />
   <Properties>
     <DisplayName>Human Communication Eye Protocol (HCEP)</DisplayName>
@@ -86,8 +94,20 @@ Set-Content -Path (Join-Path $AssetsDir "WideLogo.png") -Value "placeholder"
 
 # Step 4: Zip release package
 Write-Host "Creating distribution zip archive..." -ForegroundColor Cyan
-$ZipPath = Join-Path $PublishDir "HCEP-win-x64-v0.1.0.zip"
-Compress-Archive -Path (Join-Path $PublishDir "app\*") -DestinationPath $ZipPath -Force
+$ZipPath = Join-Path $PublishDir "HCEP-win-x64-v$Version.zip"
+if (Test-Path $ZipPath) {
+  Remove-Item -Path $ZipPath -Force | Out-Null
+}
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::CreateFromDirectory(
+  (Join-Path $PublishDir "app"),
+  $ZipPath,
+  [System.IO.Compression.CompressionLevel]::Optimal,
+  $false)
+
+$ZipItem = Get-Item -Path $ZipPath -ErrorAction Stop
+Write-Host ("Archive size: {0:N2} MB" -f ($ZipItem.Length / 1MB)) -ForegroundColor Cyan
 
 Write-Host "--------------------------------------------------" -ForegroundColor Green
 Write-Host "HCEP packaging completed successfully!" -ForegroundColor Green

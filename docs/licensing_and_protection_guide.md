@@ -96,5 +96,5 @@ For automated commercial licensing, integrate a developer service like:
 ### Recommended Action Plan
 
 1. **Create a Public SDK Repo:** Move the `sdk` folder and `docs` site into a new public GitHub repository (`github.com/kirklasalle/hcep-sdk`). Keep the C# source code repo private.
-2. **Host the Zip:** Upload the built [HCEP-win-x64-v0.1.0.zip](file:///d:/Projects/HCEP/publish/HCEP-win-x64-v0.1.0.zip) to the release section of the public repo.
+2. **Host the Zip:** Upload the built `publish/HCEP-win-x64-v1.5.0.zip` to the release section of the public repo.
 3. **Include the LICENSE file:** Ensure the proprietary [LICENSE](file:///d:/Projects/HCEP/LICENSE) is bundled inside the zip.

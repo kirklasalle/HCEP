@@ -6,6 +6,59 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.5.0] — 2026-07-18
+
+### Added — High-Poly Procedural Avatar (Phase 15 Avatar Platform)
+
+- **`AvatarHighPolyWireframeControl`** (`AvatarHighPolyWireframeControl.cs`) — Added a selectable procedural high-density head-and-shoulders wireframe avatar. The mesh is deterministic and Kinect-mesh-independent, with 6,374 model vertices and 12,038 wire edges across an anatomically biased head, neck, shoulder surface, facial contour lines, ears, jawline, brow ridge, nose, lips, clavicles, and neck tendon guides.
+
+- **HCEP eyes on the high-poly avatar** — The new avatar implements the same HCEP eye sphere rendering stack as the existing avatar family: sclera sphere, foreshortened iris/pupil, specular highlight, binocular convergence, micro-saccades, blink cadence, proxemic pupil dilation, social gaze offsets, and screen-space eye-provider positions for `GazeVectorEngine`.
+
+- **First-class avatar catalog entry** (`AvatarCatalog.cs`, `AvatarWindow.xaml`, `AvatarWindow.xaml.cs`) — Added `3d-highpoly-wireframe` / `3D High-Poly Wireframe` to the selectable Avatar App dropdown. The window now routes gaze, brows, visemes, smiles, nods, tilts, proxemics, social gaze, and head-pose input to the new avatar and registers its eye positions when selected.
+
+- **High-poly anatomy audit and contour refinement** (`AvatarHighPolyWireframeControl.cs`) — Audited the first procedural mesh and replaced overly uniform ellipsoid/cylinder/shoulder surfaces with a more human silhouette: cranium/temple/cheekbone/jaw/chin shaping, non-cylindrical neck profile, trapezius-to-shoulder transition, deltoid shoulder falloff, brow ridges, eye contours, nose bridge/tip/nostrils, upper/lower lips, cheek planes, ears, clavicles, and sternocleidomastoid guide lines.
+
+### Changed — 3D Wireframe Mesh Quality Parity (Phase 15 Avatar Platform)
+
+- **Live mesh always preferred for 3D wireframe** (`AvatarWindow.xaml.cs`) — The 3D wireframe avatar now always uses the live Candide-3 projected mesh (`face.FaceMeshVertices2D`) regardless of mirroring state. Previously, non-mirrored mode used the neutral mesh (`face.NeutralFaceMeshVertices2D`), which produced a visually sparse wireframe because the front-on projection collapsed depth and made many triangles appear as near-zero-area slivers. The live mesh carries the user's head rotation baked into the vertices, "opening up" the triangle topology to produce the rich, detailed wireframe previously only visible in mirrored mode. Neutral mesh is now used only as a fallback when the live mesh is unavailable.
+
+- **Eye-first feature-point anchoring** (`Avatar3DControl.cs`) — Replaced the proportional Happy Face-based eye placement system (which used hardcoded 280×280 canvas ratios from the 2D avatar) with Candide-3 feature-point-derived eye socket centres. The right eye contour (FP indices 9–14) and left eye contour (FP indices 30–35) centroid positions are computed each frame and now own socket placement regardless of mirroring state. In full-mesh mode the projected Candide-3 mesh and live eye anchors are mapped directly through the same fit transform with no extra head-pose correction, making the eyes the parent coordinate for avatar facial alignment.
+
+- **Unconditional 3D avatar head-pose data flow** (`AvatarWindow.xaml.cs`) — `Avatar3D.SetHeadPose()` is now called regardless of mirroring state. Head pose remains available for gaze-relative pupil computation and FP fallback rendering, while full-mesh mode trusts the already-projected Candide-3 vertices rather than applying a second corrective transform on top of them.
+
+### Fixed
+
+- **Eye position mismatch** — Eyes in the 3D wireframe now track correctly with head rotation, matching the mesh geometry rather than floating at incorrect positions derived from the 2D Happy Face's 280×280 proportional system.
+
+- **Visual quality discrepancy** — The 3D wireframe now renders at identical quality in both mirrored and non-mirrored modes, eliminating the dramatic visual gap where the default (non-mirrored) mode appeared sparse and minimal compared to the richly-detailed mirrored mode.
+
+- **Mesh/eye drift in the Avatar app** — Removed the extra full-mesh head correction that fought the Kinect-projected Candide-3 vertices and removed full-mesh eye-anchor smoothing lag. In Candide-3 mode, live eye landmarks now have priority and the face mesh renders in the same coordinate frame as the eyes.
+
+- **Release ZIP generation** (`scripts/package_release.ps1`) — Replaced the fragile `Compress-Archive` packaging step with the .NET `ZipFile` API and explicit archive-size verification. The script now reliably emits a readable `HCEP-win-x64-v1.5.0.zip` archive after Release publish.
+
+### Changed — Versioning & Release Packaging
+
+- **Version metadata aligned to v1.5.0** (`Directory.Build.props`, `scripts/package_release.ps1`) — Assembly, file, informational, Appx manifest, and generated ZIP names now derive from the shared project version so release artifacts match the changelog and roadmap.
+
+### Documentation
+
+- **`docs/release_notes_v1.5.0.md`** — New operator-facing notes for the eye-first Candide-3 wireframe, high-poly procedural avatar, 3D eye-position calibration, validation status, and packaging changes.
+- **Graphics, roadmap, and developer documentation refreshed** — Updated avatar architecture, current project state, implemented avatar catalog count, high-poly mesh details, interface contract, and release packaging guidance.
+
+### Tests
+
+- **`PipelineIntegrationTests.Pipeline_WithSpeechInjection_ChangesCognitiveState`** — Increased the full-suite cancellation budget from 8s to 15s after the test passed in isolation but starved readings under full-suite load.
+
+### Compatibility
+
+- All changes verified compatible with PnP head pose calibration (operates on raw 3D `FaceFrame.FeaturePoints3D`, independent of avatar rendering).
+- `GazeVectorEngine` eye-position tracking unaffected — `LeftEyeScreenPos`/`RightEyeScreenPos` continue to be correctly set.
+- Build: green, 0 errors, 0 warnings, `TreatWarningsAsErrors` active.
+- Test suite: 211/211 passing.
+- Release package: `publish/HCEP-win-x64-v1.5.0.zip` generated and verified readable.
+
+---
+
 ## [1.4.0] — 2026-07-17
 
 ### Added — LLM Telemetry Grounding (world-class "seeing via telemetry")

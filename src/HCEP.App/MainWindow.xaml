@@ -81,6 +81,9 @@
                     <MenuItem Header="_PnP Head Pose…"
                               Command="{Binding OpenPnPCalibrationCommand}"
                               ToolTip="Visualise the Perspective-n-Point head-pose solve — reprojection residuals, pose axes, and live pitch/yaw/roll"/>
+                    <MenuItem Header="_3D Eye Position…"
+                              Command="{Binding OpenEyePositionCalibrationCommand}"
+                              ToolTip="Live-adjust proportional eye socket positions on the 3D Wireframe avatar"/>
                 </MenuItem>
                 <MenuItem Header="_Show Avatar"
                           Command="{Binding OpenAvatarWindowCommand}"

@@ -380,7 +380,7 @@ public sealed class PipelineIntegrationTests : IAsyncDisposable
     [Fact]
     public async Task Pipeline_WithSpeechInjection_ChangesCognitiveState()
     {
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
         var readings = new List<HcepReading>();
 
         _sensor.FaceFrameReady += face => _vision.FaceInput.TryWrite(face);

@@ -1,28 +1,30 @@
 # HCEP — Development Roadmap
 
 **Product:** HCEP — Human Communication Eye Protocol  
-**Version:** v1.4.0
+**Version:** v1.5.0
 **Author:** Kirk LaSalle  
-**Last Updated:** July 17, 2026
+**Last Updated:** July 18, 2026
 
 ---
 
 ## Overview
 
-This roadmap documents the phased path from the initial alpha codebase (v0.1.0) to the final production-ready v1.0.0 stable commercial release. Every phase has been completed and verified.
+This roadmap documents the phased path from the initial alpha codebase (v0.1.0) through the completed v1.0.0 commercial release and the active post-v1 avatar, intelligence, and production-hardening tracks. Completed phases are marked explicitly; later roadmap phases remain active until their open milestones are closed.
 
 ---
 
-## Current Project State (v1.4.0)
+## Current Project State (v1.5.0)
 
 | Metric | Value |
 |---|---------|
 | Source projects | 12 |
 | Source files | ~165 |
-| Lines of code | ~14,000 |
+| Lines of code | ~28,000 |
 | Test project | 1 (HCEP.Tests) |
 | Unit & Integration tests | 211 (all passing) |
 | Build status | Green (0 warnings, 0 errors, TreatWarningsAsErrors active) |
+| Release package | `publish/HCEP-win-x64-v1.5.0.zip` generated and verified readable |
+| Selectable Avatar App avatars | 3 (2D Happy, 3D Wireframe, 3D High-Poly Wireframe) |
 | SDK Platforms | Python (LangChain/LlamaIndex), C# (Semantic Kernel), Unity, Unreal Engine C++ |
 | API Layer | REST (signed), WebSockets (signed), MCP, gRPC |
 
@@ -163,8 +165,10 @@ This addendum supersedes the older assumption that the roadmap is purely a post-
 **Milestones:**
 
 * [x] Introduce avatar factory/registry architecture on top of `IAvatarComponent` (first-stage catalog scaffolding)
+* [x] **3D Wireframe Mesh Quality Parity + Eye-First Alignment** — Unified Avatar App wireframe rendering between mirrored and non-mirrored modes by always using the live Candide-3 projected mesh (previously gated behind `IsMirroringEnabled`). Replaced proportional Happy Face-based eye placement with feature-point-anchored eye sockets derived from Candide-3 contour points (FP indices 9–14 right, 30–35 left). Established the eye-first alignment contract: in full-mesh mode, live eye anchors have priority, no secondary head-pose correction is applied over the already-projected mesh, and full-mesh eye anchors are unsmoothed so the face cannot drift away from the eyes. Dashboard diagnostic FP fallback behavior remains unchanged.
+* [x] **High-Poly Procedural Wireframe Avatar** — Added `3D High-Poly Wireframe` as a selectable Avatar App entry. It renders a deterministic high-density head-and-shoulders mesh (6,374 vertices / 12,038 wire edges) independent of Kinect mesh availability, while implementing the HCEP eye sphere stack, gaze-provider eye coordinates, brows, visemes, smile, proxemic dilation, social gaze, nods, tilts, and smoothed head-pose responsiveness. Post-audit anatomy refinement added cranium/temple/cheekbone/jaw/chin shaping, ears, brow ridges, nose/nostrils, lips, cheek planes, clavicles, and neck tendon/trapezius contours for a more human head-neck-shoulder silhouette.
 * [ ] Add at least one new stylized 2D avatar family
-* [ ] Add at least one higher-fidelity 3D avatar family
+* [x] Add at least one higher-fidelity 3D avatar family
 * [ ] Add avatar personality/style profiles that modulate gaze dwell, blink cadence, gesture amplitude, smile timing, and backchannel pacing
 * [ ] Add explicit avatar capability descriptors (gaze, viseme, brows, smile, nod, tilt, social gaze, proxemics)
 * [ ] Add runtime avatar fallback and quality-tier selection
@@ -488,5 +492,5 @@ Begin with a **personalized avatar** rather than a full real-time photoreal clon
 
 ---
 
-*HCEP Roadmap — Document last updated: July 2026*  
+*HCEP Roadmap — Document last updated: July 18, 2026*
 *© 2026 Kirk LaSalle. All rights reserved.*

@@ -151,6 +151,7 @@ public partial class App : Application
                 services.AddTransient<SkeletalAlignmentWindow>();
                 services.AddTransient<PnPHeadPoseCalibrationWindow>();
                 services.AddTransient<CheckForUpdatesWindow>();
+                services.AddTransient<EyePositionCalibrationWindow>();
 
                 // -- Updater --------------------------------------
                 services.AddSingleton<HCEP.App.Updates.UpdateService>(sp =>
@@ -166,6 +167,7 @@ public partial class App : Application
         // Values live in %LocalAppData%\HCEP\overlay-alignment.json and are
         // safe to migrate across upgrades. Missing/corrupt files are ignored.
         HCEP.App.OverlayAlignment.Load();
+        HCEP.App.EyePositionCalibration.Load();
 
         // ── Load persisted settings (non-secret fields from JSON file) ──────
         // API keys are NOT in the JSON file; they are loaded from Windows

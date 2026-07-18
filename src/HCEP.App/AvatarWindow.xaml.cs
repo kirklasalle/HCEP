@@ -48,6 +48,7 @@ public partial class AvatarWindow : Window
     private readonly HCEPPipelineOrchestrator _orchestrator;
     private readonly IAvatarCatalog _avatarCatalog;
     private bool _is3DMode;
+    private string _activeAvatarKey = "2d-happy";
     private IAvatarComponent _activeAvatar = null!;
     private float _screenWidthPx;
     private float _screenHeightPx;
@@ -137,12 +138,15 @@ public partial class AvatarWindow : Window
                 {
                     Avatar.SetViseme(HCEP.Speech.VisemeData.Silence);
                     Avatar3D.SetViseme(HCEP.Speech.VisemeData.Silence);
+                    AvatarHighPoly.SetViseme(HCEP.Speech.VisemeData.Silence);
                 });
         }
 
         TrackingModeText.Text = "waiting";
         _activeAvatar = Avatar;
         InitializeAvatarCatalog();
+        Avatar3D.IsMirroringEnabled = IsMirroringEnabled;
+        AvatarHighPoly.IsMirroringEnabled = IsMirroringEnabled;
     }
 
     private void InitializeAvatarCatalog()
@@ -168,6 +172,7 @@ public partial class AvatarWindow : Window
         {
             Avatar.SetViseme(viseme);
             Avatar3D.SetViseme(viseme);
+            AvatarHighPoly.SetViseme(viseme);
         });
     }
 
@@ -192,21 +197,25 @@ public partial class AvatarWindow : Window
                     // Phase 10: curiosity/interest posture — mirror the tilt
                     Avatar.TriggerTilt(-5f);
                     Avatar3D.TriggerTilt(-5f);
+                    AvatarHighPoly.TriggerTilt(-5f);
                     break;
                 case HeadGestureType.TiltRight:
                     Avatar.TriggerTilt(5f);
                     Avatar3D.TriggerTilt(5f);
+                    AvatarHighPoly.TriggerTilt(5f);
                     break;
                 case HeadGestureType.Shake:
                     // Phase 10: brief look-away (gaze aversion) in response to head-shake
                     Avatar.SetSocialGazeOffset(-0.12f, 0.005f);
                     Avatar3D.SetSocialGazeOffset(-0.12f, 0.005f);
+                    AvatarHighPoly.SetSocialGazeOffset(-0.12f, 0.005f);
                     // Clear the aversion after 700ms
                     Dispatcher.BeginInvoke(async () =>
                     {
                         await System.Threading.Tasks.Task.Delay(700);
                         Avatar.SetSocialGazeOffset(0f, 0f);
                         Avatar3D.SetSocialGazeOffset(0f, 0f);
+                        AvatarHighPoly.SetSocialGazeOffset(0f, 0f);
                     });
                     break;
                 case HeadGestureType.ForwardLean:
@@ -229,6 +238,7 @@ public partial class AvatarWindow : Window
     {
         Avatar.TriggerNod();
         Avatar3D.TriggerNod();
+        AvatarHighPoly.TriggerNod();
     }
 
     // ── Phase 10: expression mirror handler (display-layer gate) ───────────
@@ -244,6 +254,7 @@ public partial class AvatarWindow : Window
         {
             Avatar.SetSmile(intensity);
             Avatar3D.SetSmile(intensity);
+            AvatarHighPoly.SetSmile(intensity);
         });
     }
 
@@ -256,6 +267,7 @@ public partial class AvatarWindow : Window
         {
             Avatar.SetSocialGazeOffset(yawRad, pitchRad);
             Avatar3D.SetSocialGazeOffset(yawRad, pitchRad);
+            AvatarHighPoly.SetSocialGazeOffset(yawRad, pitchRad);
         });
     }
 
@@ -265,7 +277,8 @@ public partial class AvatarWindow : Window
     {
         if (AvatarModeCombo.SelectedIndex < 0) return;
         var descriptor = GetSelectedAvatarDescriptor();
-        ApplyMode(descriptor?.Use3DMode == true);
+        if (descriptor is not null)
+            ApplyAvatarDescriptor(descriptor);
     }
 
     /// <summary>Externally switch the avatar mode (called from MainViewModel).</summary>
@@ -285,12 +298,41 @@ public partial class AvatarWindow : Window
 
     private void ApplyMode(bool use3D)
     {
-        _is3DMode = use3D;
-        Avatar.Visibility = use3D ? Visibility.Collapsed : Visibility.Visible;
-        Avatar3D.Visibility = use3D ? Visibility.Visible : Visibility.Collapsed;
-        _activeAvatar = use3D ? (IAvatarComponent)Avatar3D : Avatar;
-        Title = use3D ? "HCEP — True Gaze Avatar (3D Wireframe)"
-                       : "HCEP — True Gaze Avatar";
+        var descriptor = _selectableAvatars.FirstOrDefault(a => a.Use3DMode == use3D)
+            ?? _selectableAvatars.FirstOrDefault()
+            ?? new AvatarDescriptor("2d-happy", "2D Happy", false, true, string.Empty);
+        ApplyAvatarDescriptor(descriptor);
+    }
+
+    private void ApplyAvatarDescriptor(AvatarDescriptor descriptor)
+    {
+        _activeAvatarKey = descriptor.Key;
+        _is3DMode = descriptor.Use3DMode;
+
+        Avatar.Visibility = descriptor.Key == "2d-happy" ? Visibility.Visible : Visibility.Collapsed;
+        Avatar3D.Visibility = descriptor.Key == "3d-wireframe" ? Visibility.Visible : Visibility.Collapsed;
+        AvatarHighPoly.Visibility = descriptor.Key == "3d-highpoly-wireframe" ? Visibility.Visible : Visibility.Collapsed;
+
+        _activeAvatar = descriptor.Key switch
+        {
+            "3d-wireframe" => Avatar3D,
+            "3d-highpoly-wireframe" => AvatarHighPoly,
+            _ => Avatar,
+        };
+
+        Title = descriptor.Key switch
+        {
+            "3d-wireframe" => "HCEP — True Gaze Avatar (3D Wireframe)",
+            "3d-highpoly-wireframe" => "HCEP — True Gaze Avatar (3D High-Poly Wireframe)",
+            _ => "HCEP — True Gaze Avatar",
+        };
+
+        if (descriptor.Key == "3d-highpoly-wireframe")
+        {
+            MeshStatusText.Text = $"HP {AvatarHighPoly.MeshVertexCount}V";
+            MeshStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
+        }
+
         // Re-register provider so GazeVectorEngine reads the active control's eye positions.
         if (_screenWidthPx > 0) RegisterEyeProvider();
     }
@@ -311,11 +353,18 @@ public partial class AvatarWindow : Window
     private void RegisterEyeProvider()
     {
         _orchestrator.SetAvatarEyeProvider(
-            provider: () => _is3DMode
-                ? (new Vector2((float)Avatar3D.LeftEyeScreenPos.X, (float)Avatar3D.LeftEyeScreenPos.Y),
-                   new Vector2((float)Avatar3D.RightEyeScreenPos.X, (float)Avatar3D.RightEyeScreenPos.Y))
-                : (new Vector2((float)Avatar.LeftEyeScreenPos.X, (float)Avatar.LeftEyeScreenPos.Y),
-                   new Vector2((float)Avatar.RightEyeScreenPos.X, (float)Avatar.RightEyeScreenPos.Y)),
+            provider: () => _activeAvatarKey switch
+            {
+                "3d-wireframe" => (
+                    new Vector2((float)Avatar3D.LeftEyeScreenPos.X, (float)Avatar3D.LeftEyeScreenPos.Y),
+                    new Vector2((float)Avatar3D.RightEyeScreenPos.X, (float)Avatar3D.RightEyeScreenPos.Y)),
+                "3d-highpoly-wireframe" => (
+                    new Vector2((float)AvatarHighPoly.LeftEyeScreenPos.X, (float)AvatarHighPoly.LeftEyeScreenPos.Y),
+                    new Vector2((float)AvatarHighPoly.RightEyeScreenPos.X, (float)AvatarHighPoly.RightEyeScreenPos.Y)),
+                _ => (
+                    new Vector2((float)Avatar.LeftEyeScreenPos.X, (float)Avatar.LeftEyeScreenPos.Y),
+                    new Vector2((float)Avatar.RightEyeScreenPos.X, (float)Avatar.RightEyeScreenPos.Y)),
+            },
             screenWidthPhysicalPx: _screenWidthPx,
             screenHeightPhysicalPx: _screenHeightPx);
     }
@@ -350,18 +399,19 @@ public partial class AvatarWindow : Window
 
         // Always push feature points — Avatar3D needs them for eye socket gaze tracking
         // regardless of whether the full mesh or edge-chain fallback is active.
-        // Also set head pose on both avatars for gaze-driven head turning.
+        // Also set head pose on both avatars for gaze-driven head turning and
+        // for Avatar3D's correction math against the projected Candide mesh.
         if (face is { IsTracked: true, FeaturePoints2D.Length: > 0 })
         {
             Avatar3D.UpdateEyeData(face.FeaturePoints2D);
-            // Pass user's actual head rotation so the avatars can compute eye-relative gaze
-            // and cancel out the user's rotation for the mesh rendering.
-            // Display-layer gate: only mirror head pose to avatar when mirroring is enabled.
+            // Head pose is data, not mirroring. Avatar3D needs it every tracked
+            // frame so the live projected mesh and the display-pose correction
+            // stay in the same reference frame.
+            Avatar3D.SetHeadPose(face.HeadRotation);
+            AvatarHighPoly.SetHeadPose(face.HeadRotation);
+
             if (IsMirroringEnabled)
-            {
-                Avatar3D.SetHeadPose(face.HeadRotation);
                 Avatar.SetHeadPose(face.HeadRotation);
-            }
 
             // ── Phase 9: feed head pose to gesture classifier ────────────────
             _gestureClassifier.Update(
@@ -401,6 +451,7 @@ public partial class AvatarWindow : Window
             float blendedRaise = Math.Max(auRaise, modeRaise);
 
             Avatar3D.SetBrows(blendedRaise, auLower, modeFurrow);
+            AvatarHighPoly.SetBrows(blendedRaise, auLower, modeFurrow);
             Avatar.SetBrows(blendedRaise, auLower, modeFurrow);
         }
         else if (face is not null && !face.IsTracked)
@@ -426,30 +477,37 @@ public partial class AvatarWindow : Window
         {
             Avatar.SetProxemicDistance(distM);
             Avatar3D.SetProxemicDistance(distM);
+            AvatarHighPoly.SetProxemicDistance(distM);
         });
 
-        // 3D wireframe: push live neutral mesh or feature-point fallback
-        if (!_is3DMode) return;
+        // 3D wireframe avatar: always prefer the same live Candide-3 projected
+        // mesh the dashboard renders. Mirroring controls expression/gaze display
+        // behavior, not whether the avatar is allowed to receive the real mesh.
+        if (_activeAvatarKey == "3d-highpoly-wireframe")
+        {
+            Dispatcher.BeginInvoke(() =>
+            {
+                MeshStatusText.Text = $"HP {AvatarHighPoly.MeshVertexCount}V";
+                MeshStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
+            });
+            return;
+        }
+
+        if (_activeAvatarKey != "3d-wireframe") return;
         if (face is null) return;
 
-        // When mirroring is OFF, ALWAYS use the neutral (de-rotated) mesh so the
-        // wireframe stays stable and front-facing. The live mesh has the user's
-        // head rotation baked into its vertices — using it causes erratic warping.
-        // When mirroring is ON, prefer neutral mesh but fall back to live mesh.
         Vector2[]? meshToUse;
         Vector3 bakedRotation;
 
-        if (face.NeutralFaceMeshVertices2D is { Length: > 0 })
+        if (face.FaceMeshVertices2D is { Length: > 0 })
         {
-            // Neutral mesh available — always preferred
-            meshToUse = face.NeutralFaceMeshVertices2D;
-            bakedRotation = System.Numerics.Vector3.Zero;
-        }
-        else if (IsMirroringEnabled && face.FaceMeshVertices2D is { Length: > 0 })
-        {
-            // Mirroring ON and neutral unavailable — fall back to live mesh
             meshToUse = face.FaceMeshVertices2D;
             bakedRotation = face.HeadRotation;
+        }
+        else if (face.NeutralFaceMeshVertices2D is { Length: > 0 })
+        {
+            meshToUse = face.NeutralFaceMeshVertices2D;
+            bakedRotation = System.Numerics.Vector3.Zero;
         }
         else
         {
@@ -466,7 +524,7 @@ public partial class AvatarWindow : Window
             Dispatcher.BeginInvoke(() =>
             {
                 Avatar3D.SetMesh(meshToUse, tris, bakedRotation);
-                MeshStatusText.Text = $"{Avatar3D.MeshVertexCount}V";
+                MeshStatusText.Text = $"MESH {Avatar3D.MeshVertexCount}V";
                 MeshStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
             });
         }
@@ -480,24 +538,36 @@ public partial class AvatarWindow : Window
             Dispatcher.BeginInvoke(() =>
             {
                 Avatar3D.SetMesh(verts, tris, cachedRot);
-                MeshStatusText.Text = $"{Avatar3D.MeshVertexCount}V";
+                MeshStatusText.Text = $"MESH {Avatar3D.MeshVertexCount}V";
                 MeshStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
             });
         }
         else if (face.FeaturePoints2D is { Length: > 0 })
         {
-            // Full mesh not yet available — show 87-point landmark fallback
+            // Full mesh call failed AND no cached mesh exists yet.
+            // Feed FP data into Avatar3D — SetFeaturePoints honours the
+            // persistent-mesh contract: if a mesh has ever been acquired,
+            // it stays drawn and only eye anchoring is refreshed here.
+            // Only in the cold-start case (no mesh ever received) does the
+            // FP data seed a first-frame visual.
             var pts = face.FeaturePoints2D;
             var bakedRot = face.HeadRotation;
-            // Include HRESULT in HUD so the failure reason is immediately visible.
-            string hrLabel = face.MeshHr != 0 ? $"0x{face.MeshHr:X8}" : "FP";
+            // Distinguish states in the HUD:
+            //   • Mesh persisted, live FP driving pose/eyes → "MESH+FP" (green)
+            //   • Cold start, no mesh ever received         → HRESULT or "FP" (red/orange)
+            bool haveMesh = _lastMeshVerts is { Length: > 0 } && _lastMeshTris is { Length: > 0 };
+            string hrLabel = haveMesh
+                ? "MESH+FP"
+                : (face.MeshHr != 0 ? $"0x{face.MeshHr:X8}" : "FP");
             Dispatcher.BeginInvoke(() =>
             {
                 Avatar3D.SetFeaturePoints(pts, bakedRot);
                 MeshStatusText.Text = hrLabel;
-                MeshStatusText.Foreground = face.MeshHr != 0
-                    ? System.Windows.Media.Brushes.Red
-                    : System.Windows.Media.Brushes.Orange;
+                MeshStatusText.Foreground = haveMesh
+                    ? System.Windows.Media.Brushes.LightGreen
+                    : (face.MeshHr != 0
+                        ? System.Windows.Media.Brushes.Red
+                        : System.Windows.Media.Brushes.Orange);
             });
         }
     }
@@ -547,6 +617,8 @@ public partial class AvatarWindow : Window
     private void MirrorToggle_Changed(object sender, RoutedEventArgs e)
     {
         IsMirroringEnabled = MirrorToggle.IsChecked == true;
+        Avatar3D.IsMirroringEnabled = IsMirroringEnabled;
+        AvatarHighPoly.IsMirroringEnabled = IsMirroringEnabled;
 
         // Update visual state indicator
         MirrorStateText.Text = IsMirroringEnabled ? "ON" : "OFF";
@@ -564,6 +636,7 @@ public partial class AvatarWindow : Window
             _activeAvatar.SetBrows(0f, 0f, 0f);
             Avatar.SetHeadPose(Vector3.Zero);
             Avatar3D.SetHeadPose(Vector3.Zero);
+            AvatarHighPoly.SetHeadPose(Vector3.Zero);
         }
     }
 }

@@ -1,0 +1,227 @@
+<Window x:Class="HCEP.App.EyePositionCalibrationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="HCEP — 3D Avatar Eye Position Calibration"
+        Width="540"
+        Height="520"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
+        ResizeMode="NoResize"
+        ToolTip="Live-adjust the proportional eye socket positions in the 3D Wireframe avatar. Sliders update the avatar in real time.">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title -->
+        <TextBlock Grid.Row="0"
+                   Text="◎ 3D Avatar Eye Position Calibration"
+                   FontSize="19"
+                   FontWeight="Bold"
+                   Foreground="{StaticResource PrimaryBrush}"
+                   Margin="0,0,0,4"/>
+
+        <TextBlock Grid.Row="1"
+                   TextWrapping="Wrap"
+                   Foreground="{StaticResource TextDimBrush}"
+                   FontSize="11"
+                   Margin="0,0,0,14"
+                   Text="Adjust eye socket positions in the 3D Wireframe avatar. All sliders update the avatar in real time. The values are expressed as fractions of the face mesh bounding box (0.0 = left/top edge, 1.0 = right/bottom edge). Use Save to persist across restarts."/>
+
+        <!-- Separator -->
+        <Border Grid.Row="2"
+                BorderBrush="#3A3A5A"
+                BorderThickness="0,0,0,1"
+                Margin="0,0,0,12"/>
+
+        <!-- ── RIGHT eye (avatar-left = viewer's right in non-mirror mode) ── -->
+        <TextBlock Grid.Row="3"
+                   Text="RIGHT Eye Socket (avatar's right side)"
+                   FontWeight="SemiBold"
+                   Foreground="{StaticResource AccentBrush}"
+                   Margin="0,0,0,6"/>
+
+        <!-- Right Eye X -->
+        <Grid Grid.Row="4"
+              Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="180"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="60"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0"
+                       Text="Horizontal position (X)"
+                       VerticalAlignment="Center"
+                       ToolTip="Fraction across the face bounding box. 0 = left edge, 1 = right edge. Default ≈ 0.323"/>
+            <Slider x:Name="RightEyeXSlider"
+                    Grid.Column="1"
+                    Minimum="0.10"
+                    Maximum="0.90"
+                    TickFrequency="0.005"
+                    IsSnapToTickEnabled="False"
+                    Value="0.323"
+                    ValueChanged="OnSliderChanged"
+                    ToolTip="Right eye socket horizontal centre as a fraction of mesh width."/>
+            <TextBlock x:Name="RightEyeXReadout"
+                       Grid.Column="2"
+                       Text="0.323"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Right"
+                       Foreground="{StaticResource AccentBrush}"
+                       FontFamily="Consolas"
+                       FontSize="11"/>
+        </Grid>
+
+        <!-- Right Eye Y -->
+        <Grid Grid.Row="5"
+              Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="180"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="60"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0"
+                       Text="Vertical position (Y)"
+                       VerticalAlignment="Center"
+                       ToolTip="Fraction down the face bounding box. 0 = top edge, 1 = bottom edge. Default ≈ 0.418"/>
+            <Slider x:Name="RightEyeYSlider"
+                    Grid.Column="1"
+                    Minimum="0.10"
+                    Maximum="0.70"
+                    TickFrequency="0.005"
+                    IsSnapToTickEnabled="False"
+                    Value="0.418"
+                    ValueChanged="OnSliderChanged"
+                    ToolTip="Right eye socket vertical centre as a fraction of mesh height."/>
+            <TextBlock x:Name="RightEyeYReadout"
+                       Grid.Column="2"
+                       Text="0.418"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Right"
+                       Foreground="{StaticResource AccentBrush}"
+                       FontFamily="Consolas"
+                       FontSize="11"/>
+        </Grid>
+
+        <!-- ── LEFT eye ── -->
+        <TextBlock Grid.Row="6"
+                   Text="LEFT Eye Socket (avatar's left side)"
+                   FontWeight="SemiBold"
+                   Foreground="{StaticResource AccentBrush}"
+                   Margin="0,0,0,6"/>
+
+        <!-- Left Eye X -->
+        <Grid Grid.Row="7"
+              Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="180"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="60"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0"
+                       Text="Horizontal position (X)"
+                       VerticalAlignment="Center"
+                       ToolTip="Fraction across the face bounding box. 0 = left edge, 1 = right edge. Default ≈ 0.677"/>
+            <Slider x:Name="LeftEyeXSlider"
+                    Grid.Column="1"
+                    Minimum="0.10"
+                    Maximum="0.90"
+                    TickFrequency="0.005"
+                    IsSnapToTickEnabled="False"
+                    Value="0.677"
+                    ValueChanged="OnSliderChanged"
+                    ToolTip="Left eye socket horizontal centre as a fraction of mesh width."/>
+            <TextBlock x:Name="LeftEyeXReadout"
+                       Grid.Column="2"
+                       Text="0.677"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Right"
+                       Foreground="{StaticResource AccentBrush}"
+                       FontFamily="Consolas"
+                       FontSize="11"/>
+        </Grid>
+
+        <!-- Left Eye Y -->
+        <Grid Grid.Row="8"
+              Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="180"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="60"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0"
+                       Text="Vertical position (Y)"
+                       VerticalAlignment="Center"
+                       ToolTip="Fraction down the face bounding box. 0 = top edge, 1 = bottom edge. Default ≈ 0.418"/>
+            <Slider x:Name="LeftEyeYSlider"
+                    Grid.Column="1"
+                    Minimum="0.10"
+                    Maximum="0.70"
+                    TickFrequency="0.005"
+                    IsSnapToTickEnabled="False"
+                    Value="0.418"
+                    ValueChanged="OnSliderChanged"
+                    ToolTip="Left eye socket vertical centre as a fraction of mesh height."/>
+            <TextBlock x:Name="LeftEyeYReadout"
+                       Grid.Column="2"
+                       Text="0.418"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Right"
+                       Foreground="{StaticResource AccentBrush}"
+                       FontFamily="Consolas"
+                       FontSize="11"/>
+        </Grid>
+
+        <!-- Info hint -->
+        <Border Grid.Row="9"
+                Background="#18FFFFFF"
+                CornerRadius="4"
+                Padding="10,8"
+                Margin="0,0,0,12"
+                VerticalAlignment="Top">
+            <StackPanel>
+                <TextBlock Text="Calibration hint"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource AccentBrush}"
+                           Margin="0,0,0,4"/>
+                <TextBlock TextWrapping="Wrap"
+                           Foreground="{StaticResource TextDimBrush}"
+                           FontSize="11"
+                           Text="1) Open the 3D Wireframe avatar window (Avatar → Show Avatar → 3D Wireframe).  2) Observe where the eyeball spheres appear relative to the wireframe eye sockets.  3) Adjust the sliders until each eye sphere sits centred in its socket.  4) Click Save to persist the values across restarts.  Values are stored in %LocalAppData%\HCEP\eye-position-calibration.json."/>
+            </StackPanel>
+        </Border>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="10"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right">
+            <Button x:Name="ResetButton"
+                    Content="Reset Defaults"
+                    Padding="12,4"
+                    Margin="0,0,8,0"
+                    Click="ResetButton_Click"
+                    ToolTip="Restore the compiled proportional defaults."/>
+            <Button x:Name="SaveButton"
+                    Content="Save"
+                    Padding="14,4"
+                    Margin="0,0,8,0"
+                    Click="SaveButton_Click"
+                    ToolTip="Persist the current values to %LocalAppData%\HCEP\eye-position-calibration.json"/>
+            <Button Content="Close"
+                    Padding="12,4"
+                    IsCancel="True"
+                    Click="CloseButton_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

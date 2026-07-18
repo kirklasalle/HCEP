@@ -1,6 +1,6 @@
 ﻿# HCEP Project Documentation: Graphics Architecture
 
-**Date:** 2026-07-03 (Updated)  
+**Date:** 2026-07-18 (Updated)
 **Subject:** Vector-Based UI for HCEP Avatars — Complete Facial Expression System
 
 ## Architecture Decision: WPF Vector Rendering
@@ -43,6 +43,7 @@ The HCEP Avatar system utilizes native WPF (Windows Presentation Foundation) vec
 
 - Kinect FaceTrackLib Candide-3 mesh (~121 vertices, ~218 triangles) projected via `GetProjectedShape`
 - `OnRender(DrawingContext)` draws all geometry each frame
+- Full-mesh Avatar rendering is eye-first: live FP eye contours (indices 9–14 right, 30–35 left) own socket placement regardless of mirroring state, and the projected Candide-3 mesh is not given a second head-pose correction after `GetProjectedShape`
 - `_wirePen`: teal (RGBA 220,0,220,190), 1.2px stroke
 - `_browPen`: teal 1.8px (slightly thicker for eyebrow visibility)
 
@@ -61,15 +62,53 @@ The HCEP Avatar system utilizes native WPF (Windows Presentation Foundation) vec
 3. Pupil: dark centre
 4. Specular highlight: upper-left offset white dot
 
-### 3. IAvatarComponent Interface — `src/HCEP.App/IAvatarComponent.cs`
+### 3. AvatarHighPolyWireframeControl (3D High-Poly Wireframe) — `src/HCEP.App/AvatarHighPolyWireframeControl.cs`
 
-Both avatars implement this shared contract:
+**Rendering pipeline:**
+
+- Deterministic procedural head-and-shoulders wireframe independent of Kinect `GetProjectedShape` availability
+- 6,374 model vertices and 12,038 wire edges across a human-biased cranium, temple, cheekbone, jaw/chin surface, non-cylindrical neck, trapezius/shoulder surface, facial contours, ears, brow ridges, nose/nostrils, lips, clavicles, and neck tendon guide lines
+- `OnRender(DrawingContext)` projects all model vertices through the same yaw/pitch/roll/perspective transform, then draws depth-weighted front/back wire pens
+- Eye-first design: HCEP eye anchors are model-space points projected through the same transform as the mesh, then exposed through `LeftEyeScreenPos` / `RightEyeScreenPos` for `GazeVectorEngine`
+
+**Anatomy audit refinements:**
+
+| Region | Production contour improvement |
+|---|---|
+| Head | Cranium vault, temple inset, cheekbone expansion, jaw taper, chin narrowing, front facial plane bias |
+| Eyes/brows | Closed anatomical eye contours plus separate brow-ridge arcs |
+| Nose | Bridge, lower bridge, protruding tip, nostril wings, nostril arcs, philtrum guide |
+| Mouth | Upper/lower lip curves plus neutral mouth seam |
+| Ears | Outer and inner ear loops on both sides with antihelix guide strokes |
+| Neck | Wider lower neck, front tendon bias, sternocleidomastoid guide lines |
+| Shoulders | Trapezius rise near the neck, deltoid falloff toward the shoulders, clavicle arcs |
+
+**Supported HCEP avatar signals:**
+
+| Signal | Behavior |
+|---|---|
+| Gaze | HCEP eye spheres with convergence, micro-saccades, social gaze offsets |
+| Head pose | Smoothed low-influence yaw/pitch/roll for responsive presence |
+| Brows | AU/HCEP-mode-driven quadratic brow arcs |
+| Visemes | Jaw/rounding mouth geometry from `VisemeData` |
+| Smile | Smile-depth blend with viseme co-articulation |
+| Proxemics | Close-distance pupil dilation |
+| Gestures | Nod and tilt animation hooks via `IAvatarComponent` |
+
+### 4. IAvatarComponent Interface — `src/HCEP.App/IAvatarComponent.cs`
+
+All shipped avatars implement this shared contract:
 
 ```csharp
 void SetGaze(float pitchRad, float yawRad, float userDistanceM = 1.5f);
 void SetViseme(VisemeData viseme);   // lip sync
 void SetBrows(float outerBrowRaise, float browLower, float hcepModeFurrow = 0f);
 void ResetGaze();
+void TriggerNod();
+void TriggerTilt(float rollDeg = 6f);
+void SetSmile(float intensity);
+void SetSocialGazeOffset(float yawRad, float pitchRad);
+void SetProxemicDistance(float distanceM);
 ```
 
 ## Eyebrow Animation System
@@ -117,17 +156,3 @@ The `CalibrationWindow` computes the physical 3D offset between Kinect and scree
 6. Applied to `CalibrationMatrixCalculator` which computes `DeltaYawRad`/`DeltaPitchRad` correction
 
 *Copyright © 2026 Kirk LaSalle. All rights reserved.*
-
-## Architecture Decision: WPF Vector Rendering
-
-The HCEP Avatar system (Phase 2 and beyond) utilizes native WPF (Windows Presentation Foundation) vector-based rendering instead of static raster images (.jpg, .png).
-
-### Key Rationales
-
-1. **Infinite Scalability:** As the HCEP Avatar window is moved, resized, or maximized, the graphics are recalculated by the GPU in real-time. This ensures that the Avatar remains perfectly crisp and smooth on any display resolution (4K, 8K, etc.) without pixelation or " image destruction.\
-2. **Mathematical Precision for True Gaze:** Vector objects (Ellipses, Paths) allow the Gaze Engine to resolve the exact center of the eye sockets down to fractional pixel coordinates. This precision is required to maintain the 3D-to-2D spatial alignment needed for perfect eye contact.
-3. **Dynamic Manipulation:** Unlike static images, vector-based pupils and eyelids can be transformed (translated, rotated, skewed) programmatically via code-behind without any loss in visual fidelity.
-
-## Technical Implementation
-
-The Avatar is implemented as a UserControl. Shapes are defined in XAML using Ellipse and Path objects, which are then manipulated via TranslateTransform and ScaleTransform based on real-time Kinect telemetry.
