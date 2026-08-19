@@ -1,7 +1,7 @@
 # HCEP — Human Communication Eye Protocol
 
 [![Build](https://img.shields.io/badge/build-passing-brightgreen)]()
-[![Tests](https://img.shields.io/badge/tests-211%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-222%20passing-brightgreen)]()
 [![.NET](https://img.shields.io/badge/.NET-9.0-512BD4)]()
 [![Platform](https://img.shields.io/badge/platform-Windows%20x64-0078D6)]()
 [![License](https://img.shields.io/badge/license-Proprietary-red)]()
@@ -42,7 +42,7 @@ All panel boundaries are drag-resizable via visible GridSplitters.
 
 To eliminate gaze skewing caused by off-axis sensor placement (such as mounting a webcam on top of a monitor bezel), HCEP implements a dynamic 3D coordinate co-registration. This shifts tracking perspective from the sensor's lens center back to the active user-avatar focal line of sight:
 
-![True Gaze Parallax Calibration](docs/images/parallax_calibration.svg?v=2)
+![True Gaze Parallax Calibration](docs/images/parallax_calibration.svg?v=3)
 
 ---
 
@@ -66,9 +66,9 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - Saccade detection using Main Sequence equation
 - **Simulation-Based Accuracy:** Verified using synthetic datasets at 84.55% classification accuracy and Cohen's Kappa of 0.8084
 
-![Telemetry Cones of Vision & 13 Regions](docs/images/cones_of_vision.svg?v=2)
+![Telemetry Cones of Vision & 13 Regions](docs/images/cones_of_vision.svg?v=3)
 
-![Three-Stage Gaze Triangulation Geometry](docs/images/gaze_geometry.svg?v=2)
+![Three-Stage Gaze Triangulation Geometry](docs/images/gaze_geometry.svg?v=3)
 
 ### Plugin API & LLM Integrations
 
@@ -127,7 +127,7 @@ To eliminate gaze skewing caused by off-axis sensor placement (such as mounting 
 - 5-step agentic reasoning loop with tools: `query_knowledge`, `get_hcep_state`, `store_knowledge`, `summarize_person`, `analyze_gaze_pattern`
 - **Cloud Circuit Breaker**: Opens after 3 consecutive cloud failures; all calls are short-circuited for a 30-second cool-down before retry
 - **Windows Credential Manager**: API keys are read from the WCM vault (`HCEP/OpenAI`, `HCEP/Anthropic`, etc.) first, falling back to environment variables — keys are never exposed in process listings
-- **Model Discovery in Settings**: The settings window can query the active local engine and supported cloud providers for available model IDs before saving
+- **Model Discovery & HTTP Decompression**: The settings window queries active local and cloud providers for model IDs using `SocketsHttpHandler` with `AutomaticDecompression = DecompressionMethods.All` and a bounded 15-second timeout with curated frontier fallbacks for aggregators like OpenRouter
 - **Contextual Intelligence** ✅ *Implemented (Phase 14)*:
   - `ContextSnapshot` model captures Time × Space × Situation; injected as `[TimeOfDay | DayType | Season | Environment | Activity | Register | SilenceProtocol | TZ]` into every LLM prompt
   - `TimeContextProvider` classifies time-of-day band, day type, season; derives `CommunicationRegister` and `TemporalUrgency`
@@ -210,7 +210,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the full list of changes.
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**12 projects** | **211 unit tests** | **.NET 9.0** | **x64 only**
+**12 projects** | **222 unit tests** | **.NET 9.0** | **x64 only**
 
 ---
 
@@ -238,7 +238,7 @@ HCEP/
 │   ├── HCEP.Intelligence/          # Hybrid LLM engine, agentic tools, prompt bridge
 │   └── HCEP.App/                    # WPF application, DI host, orchestrator, UI controls
 └── tests/
-    └── HCEP.Tests/                   # xUnit tests (211 passing)
+    └── HCEP.Tests/                   # xUnit tests (222 passing)
         ├── Spatial/                  # Ray-plane, coordinate mapper, PnP, confidence cone
         ├── Knowledge/               # In-memory store, UKS adapter, person knowledge
         ├── Intelligence/            # Agentic tools, prompt bridge, tool definitions, circuit-breaker tests
@@ -336,7 +336,7 @@ The system classifies modes in real-time using:
 - **Head kinematics** — nods, shakes, tilts, and thrusts *(Phase 9)*
 - **Body posture** — torso lean, shoulder orientation, proxemic distance *(Phase 9)*
 
-![Telemetry Cones of Vision & 13 Regions](docs/images/cones_of_vision.svg?v=2)
+![Telemetry Cones of Vision & 13 Regions](docs/images/cones_of_vision.svg?v=3)
 
 This enables AI systems to respond not just to *what* people say, but to *how* they're communicating — adapting tone, depth, and style to match the human's current cognitive-emotional state.
 
@@ -428,4 +428,4 @@ HCEP utilizes a dual-licensing hybrid model designed to protect core intellectua
 
 ---
 
-*HCEP — Human Communication Eye Protocol v1.4.0*
+*HCEP — Human Communication Eye Protocol v1.6.0*

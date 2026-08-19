@@ -19,7 +19,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- ── Avatar area: 2D Happy Face or 3D Wireframe ────── -->
+        <!-- ── Avatar area: 2D Happy Face, 3D Wireframe, or Custom Studio Avatar ────── -->
         <Grid Grid.Row="0">
             <local:AvatarCoreControl x:Name="Avatar"
                                      HorizontalAlignment="Center"
@@ -36,6 +36,12 @@
                                                   HorizontalAlignment="Stretch"
                                                   VerticalAlignment="Stretch"
                                                   Margin="8"/>
+            <!-- Dynamic Custom Studio Avatar (2D SVG / 3D Fusion) -->
+            <ContentControl x:Name="CustomAvatarHost"
+                            Visibility="Collapsed"
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            Margin="8"/>
         </Grid>
 
         <!-- ── Telemetry HUD ──────────────────────────────────── -->

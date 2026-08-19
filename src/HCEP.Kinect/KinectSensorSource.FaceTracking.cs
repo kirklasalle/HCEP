@@ -687,6 +687,27 @@ public sealed partial class KinectSensorSource
             // Head rotation in degrees (FaceTrackLib returns pitch=X, yaw=Y, roll=Z)
             Vector3 headRotation = new Vector3(rotation[0], rotation[1], rotation[2]);
 
+            // Calculate normalized UV coordinates and 3D mesh vertices if mesh is available
+            Vector2[]? meshUVs = null;
+            Vector3[]? meshVertices3D = null;
+            if (meshVertices is { Length: > 0 })
+            {
+                meshUVs = new Vector2[meshVertices.Length];
+                meshVertices3D = new Vector3[meshVertices.Length];
+                for (int i = 0; i < meshVertices.Length; i++)
+                {
+                    meshUVs[i] = new Vector2(
+                        Math.Clamp(meshVertices[i].X / 640f, 0f, 1f),
+                        Math.Clamp(meshVertices[i].Y / 480f, 0f, 1f));
+
+                    // Back-project 2D mesh point to 3D head space in mm
+                    float zMm = headTranslation.Z > 100f ? headTranslation.Z : 1000f;
+                    float xMm = (meshVertices[i].X - 320f) * zMm / 531.15f;
+                    float yMm = -(meshVertices[i].Y - 240f) * zMm / 531.15f;
+                    meshVertices3D[i] = new Vector3(xMm, yMm, zMm);
+                }
+            }
+
             FaceFrameReady?.Invoke(new FaceFrame
             {
                 Timestamp = timestamp,
@@ -699,6 +720,8 @@ public sealed partial class KinectSensorSource
                 ActionUnits = actionUnits,
                 FaceRect = (faceX, faceY, faceW, faceH),
                 FaceMeshVertices2D = meshVertices,
+                FaceMeshVertices3D = meshVertices3D,
+                FaceMeshUVs = meshUVs,
                 NeutralFaceMeshVertices2D = neutralMeshVertices,
                 FaceMeshTriangles = meshTriangles,
                 MeshHr = _lastMeshHr,

@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -25,11 +26,20 @@
     <ProjectReference Include="..\..\src\HCEP.Telemetry\HCEP.Telemetry.csproj" />
     <ProjectReference Include="..\..\src\HCEP.Kinect\HCEP.Kinect.csproj" />
     <ProjectReference Include="..\..\src\HCEP.Audio\HCEP.Audio.csproj" />
+    <ProjectReference Include="..\..\src\HCEP.Speech\HCEP.Speech.csproj" />
     <ProjectReference Include="..\..\src\HCEP.Plugin.Api\HCEP.Plugin.Api.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\src\HCEP.App\AvatarCatalog.cs" Link="App\AvatarCatalog.cs" />
+    <Compile Include="..\..\src\HCEP.App\IAvatarComponent.cs" Link="App\IAvatarComponent.cs" />
+    <Compile Include="..\..\src\HCEP.App\SvgAvatarControl.cs" Link="App\SvgAvatarControl.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="System.IO.Path" Alias="Path" />
+    <Using Include="System.IO.File" Alias="File" />
   </ItemGroup>
 
 </Project>

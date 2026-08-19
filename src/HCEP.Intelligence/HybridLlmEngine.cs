@@ -452,15 +452,26 @@ public sealed class HybridLlmEngine : ILlmEngine
             return Array.Empty<string>();
         }
 
-        return provider switch
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        cts.CancelAfter(TimeSpan.FromSeconds(15));
+
+        try
         {
-            CloudProviderType.Gemini => await GetGeminiModelsAsync(settings.BaseUrl, apiKey, ct),
-            CloudProviderType.Anthropic or CloudProviderType.AzureOpenAI or CloudProviderType.AmazonBedrock =>
-                string.IsNullOrWhiteSpace(settings.Model)
-                    ? Array.Empty<string>()
-                    : new[] { settings.Model },
-            _ => await GetOpenAiCompatibleModelsAsync(settings.BaseUrl, apiKey, ct)
-        };
+            return provider switch
+            {
+                CloudProviderType.Gemini => await GetGeminiModelsAsync(settings.BaseUrl, apiKey, cts.Token),
+                CloudProviderType.Anthropic or CloudProviderType.AzureOpenAI or CloudProviderType.AmazonBedrock =>
+                    string.IsNullOrWhiteSpace(settings.Model)
+                        ? Array.Empty<string>()
+                        : new[] { settings.Model },
+                _ => await GetOpenAiCompatibleModelsAsync(settings.BaseUrl, apiKey, cts.Token)
+            };
+        }
+        catch (Exception ex) when (provider == CloudProviderType.OpenRouter)
+        {
+            _logger.LogWarning(ex, "OpenRouter model discovery failed or timed out; returning curated frontier models fallback");
+            return GetFallbackOpenRouterModels(settings.Model);
+        }
     }
 
     /// <summary>
@@ -927,6 +938,11 @@ public sealed class HybridLlmEngine : ILlmEngine
             {
                 httpRequest.Headers.Authorization = new("Bearer", apiKey);
             }
+            if (baseUrl.Contains("openrouter.ai", StringComparison.OrdinalIgnoreCase))
+            {
+                httpRequest.Headers.TryAddWithoutValidation("HTTP-Referer", "https://hcep.app");
+                httpRequest.Headers.TryAddWithoutValidation("X-Title", "HCEP");
+            }
             httpRequest.Content = JsonContent.Create(request);
 
             var response = await _httpClient.SendAsync(httpRequest, ct);
@@ -1004,6 +1020,11 @@ public sealed class HybridLlmEngine : ILlmEngine
         {
             request.Headers.Authorization = new("Bearer", apiKey);
         }
+        if (baseUrl.Contains("openrouter.ai", StringComparison.OrdinalIgnoreCase))
+        {
+            request.Headers.TryAddWithoutValidation("HTTP-Referer", "https://hcep.app");
+            request.Headers.TryAddWithoutValidation("X-Title", "HCEP");
+        }
 
         using var response = await _httpClient.SendAsync(request, ct);
         response.EnsureSuccessStatusCode();
@@ -1017,6 +1038,31 @@ public sealed class HybridLlmEngine : ILlmEngine
             .OrderBy(id => id, StringComparer.OrdinalIgnoreCase)
             .ToArray()
             ?? Array.Empty<string>();
+    }
+
+    private static readonly string[] s_curatedOpenRouterModels = new[]
+    {
+        "meta-llama/llama-3.3-70b-instruct",
+        "google/gemini-2.5-flash",
+        "google/gemini-2.5-pro",
+        "anthropic/claude-3.7-sonnet",
+        "openai/gpt-4o",
+        "openai/gpt-4o-mini",
+        "deepseek/deepseek-chat",
+        "deepseek/deepseek-r1",
+        "mistralai/mistral-large-2411",
+        "qwen/qwen-2.5-72b-instruct",
+        "openrouter/auto"
+    };
+
+    private static IReadOnlyList<string> GetFallbackOpenRouterModels(string? configuredModel)
+    {
+        var list = new List<string>(s_curatedOpenRouterModels);
+        if (!string.IsNullOrWhiteSpace(configuredModel) && !list.Contains(configuredModel, StringComparer.OrdinalIgnoreCase))
+        {
+            list.Insert(0, configuredModel);
+        }
+        return list;
     }
 
     private async Task<IReadOnlyList<string>> GetGeminiModelsAsync(string baseUrl, string apiKey, CancellationToken ct)

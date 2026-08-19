@@ -1,0 +1,471 @@
+<Window x:Class="HCEP.App.AvatarStudioWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:HCEP.App"
+        mc:Ignorable="d"
+        Title="HCEP — Avatar Studio &amp; 3D Fusion Laboratory"
+        Height="820"
+        Width="1260"
+        MinHeight="700"
+        MinWidth="1000"
+        Background="#080C14"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <!-- Cybernetic Colors -->
+        <SolidColorBrush x:Key="CyanGlowBrush" Color="#00E5FF"/>
+        <SolidColorBrush x:Key="TealAccentBrush" Color="#00FFC2"/>
+        <SolidColorBrush x:Key="PanelBgBrush" Color="#0F172A"/>
+        <SolidColorBrush x:Key="BorderDarkBrush" Color="#1E293B"/>
+        <SolidColorBrush x:Key="TextLightBrush" Color="#F8FAFC"/>
+        <SolidColorBrush x:Key="TextMutedBrush" Color="#94A3B8"/>
+
+        <!-- Slider Style -->
+        <Style TargetType="Slider">
+            <Setter Property="Margin" Value="0,4,0,8"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Cyber Button Style -->
+        <Style x:Key="CyberButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#1E293B"/>
+            <Setter Property="Foreground" Value="#00E5FF"/>
+            <Setter Property="BorderBrush" Value="#00E5FF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#00E5FF"/>
+                    <Setter Property="Foreground" Value="#080C14"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Primary Glowing Button -->
+        <Style x:Key="PrimaryGlowButtonStyle" TargetType="Button" BasedOn="{StaticResource CyberButtonStyle}">
+            <Setter Property="Background" Value="#00E5FF"/>
+            <Setter Property="Foreground" Value="#080C14"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#00FFC2"/>
+                    <Setter Property="BorderBrush" Value="#00FFC2"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <!-- Header -->
+            <RowDefinition Height="Auto"/>
+            <!-- Main Content Area (Preview + Controls) -->
+            <RowDefinition Height="*"/>
+            <!-- Action Bar -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top Header -->
+        <Border Grid.Row="0"
+                Background="{StaticResource PanelBgBrush}"
+                BorderBrush="{StaticResource BorderDarkBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="16,12"
+                Margin="0,0,0,14">
+            <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="#132035" BorderBrush="#00E5FF" BorderThickness="1" CornerRadius="4" Padding="10,4" Margin="0,0,8,0">
+                        <TextBlock Text="KINECT FUSION / SVG" Foreground="{StaticResource CyanGlowBrush}" FontSize="11" FontWeight="Bold"/>
+                    </Border>
+                    <Border Background="#132035" BorderBrush="#00FFC2" BorderThickness="1" CornerRadius="4" Padding="10,4">
+                        <TextBlock Text="HCEP STUDIO v1.0" Foreground="{StaticResource TealAccentBrush}" FontSize="11" FontWeight="Bold"/>
+                    </Border>
+                </StackPanel>
+                <StackPanel Orientation="Vertical">
+                    <TextBlock Text="HCEP AVATAR STUDIO &amp; 3D FUSION LABORATORY"
+                               Foreground="{StaticResource TextLightBrush}"
+                               FontSize="16"
+                               FontWeight="Bold"/>
+                    <TextBlock Text="Author, reconstruct, test, and deploy responsive 2D SVG and 3D volumetric avatars with real-time HCEP gaze kinetics."
+                               Foreground="{StaticResource TextMutedBrush}"
+                               FontSize="12"
+                               Margin="0,2,0,0"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Main Content (2 Columns: Preview vs Tabbed Controls) -->
+        <Grid Grid.Row="1" Margin="0,0,0,14">
+            <Grid.ColumnDefinitions>
+                <!-- Studio Preview Viewport -->
+                <ColumnDefinition Width="480"/>
+                <!-- Controls & Tabs -->
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Preview Viewport -->
+            <Border Grid.Column="0"
+                    Background="{StaticResource PanelBgBrush}"
+                    BorderBrush="{StaticResource CyanGlowBrush}"
+                    BorderThickness="1.5"
+                    CornerRadius="8"
+                    Margin="0,0,14,0"
+                    ClipToBounds="True">
+                <Grid>
+                    <!-- Background Grid Pattern -->
+                    <Border Background="#0B0F19" Margin="0">
+                        <Grid>
+                            <!-- Live Preview Host -->
+                            <ContentControl x:Name="AvatarPreviewHost"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch"/>
+
+                            <!-- Viewport HUD Overlay -->
+                            <Border VerticalAlignment="Top"
+                                    HorizontalAlignment="Left"
+                                    Background="#CC0B0F19"
+                                    BorderBrush="{StaticResource BorderDarkBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="8,4"
+                                    Margin="12">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="8" Height="8" Fill="{StaticResource TealAccentBrush}" Margin="0,0,6,0"/>
+                                    <TextBlock Text="STUDIO LIVE PREVIEW" Foreground="{StaticResource TealAccentBrush}" FontSize="10" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Live Mirror Badge if Active -->
+                            <Border VerticalAlignment="Top"
+                                    HorizontalAlignment="Right"
+                                    Background="#EE0F172A"
+                                    BorderBrush="{StaticResource CyanGlowBrush}"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="8,4"
+                                    Margin="12"
+                                    Visibility="{Binding IsLiveMirrorEnabled, Converter={StaticResource BoolToVis}}">
+                                <TextBlock Text="LIVE SENSOR MIRRORING" Foreground="{StaticResource CyanGlowBrush}" FontSize="10" FontWeight="Bold"/>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Editor Tab Control -->
+            <Border Grid.Column="1"
+                    Background="{StaticResource PanelBgBrush}"
+                    BorderBrush="{StaticResource BorderDarkBrush}"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="14">
+                <TabControl Background="Transparent"
+                            BorderThickness="0"
+                            SelectedIndex="{Binding SelectedTabIndex}">
+
+                    <!-- Tab 1: 2D SVG Parametric Studio -->
+                    <TabItem Header="🎨 2D SVG Studio" FontSize="13" FontWeight="SemiBold">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                            <StackPanel Margin="4">
+                                <TextBlock Text="PARAMETRIC ANATOMY &amp; PALETTE" Foreground="{StaticResource CyanGlowBrush}" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
+
+                                <!-- Skin & Palette -->
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                        <TextBlock Text="Skin Tint (R/G/B)" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
+                                        <Slider Minimum="0" Maximum="255" Value="{Binding SkinR}"/>
+                                        <Slider Minimum="0" Maximum="255" Value="{Binding SkinG}"/>
+                                        <Slider Minimum="0" Maximum="255" Value="{Binding SkinB}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="6,0">
+                                        <TextBlock Text="Cyber Glow (R/G/B)" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
+                                        <Slider Minimum="0" Maximum="255" Value="{Binding GlowR}"/>
+                                        <Slider Minimum="0" Maximum="255" Value="{Binding GlowG}"/>
+                                        <Slider Minimum="0" Maximum="255" Value="{Binding GlowB}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Margin="6,0,0,0">
+                                        <TextBlock Text="Iris Color (R/G/B)" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
+                                        <Slider Minimum="0" Maximum="255" Value="{Binding IrisR}"/>
+                                        <Slider Minimum="0" Maximum="255" Value="{Binding IrisG}"/>
+                                        <Slider Minimum="0" Maximum="255" Value="{Binding IrisB}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <Separator Background="{StaticResource BorderDarkBrush}" Margin="0,10"/>
+
+                                <!-- Eye Geometry -->
+                                <TextBlock Text="EYE &amp; BROW GEOMETRY" Foreground="{StaticResource CyanGlowBrush}" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                                        <DockPanel>
+                                            <TextBlock Text="Eye Width (Radius X):" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
+                                            <TextBlock Text="{Binding EyeRadiusX, StringFormat='{}{0:F0}px'}" HorizontalAlignment="Right" Foreground="{StaticResource TextLightBrush}" FontSize="11"/>
+                                        </DockPanel>
+                                        <Slider Minimum="16" Maximum="45" Value="{Binding EyeRadiusX}"/>
+
+                                        <DockPanel Margin="0,4,0,0">
+                                            <TextBlock Text="Eye Height (Radius Y):" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
+                                            <TextBlock Text="{Binding EyeRadiusY, StringFormat='{}{0:F0}px'}" HorizontalAlignment="Right" Foreground="{StaticResource TextLightBrush}" FontSize="11"/>
+                                        </DockPanel>
+                                        <Slider Minimum="20" Maximum="55" Value="{Binding EyeRadiusY}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                        <DockPanel>
+                                            <TextBlock Text="Pupil Aperture:" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
+                                            <TextBlock Text="{Binding PupilRadius, StringFormat='{}{0:F0}px'}" HorizontalAlignment="Right" Foreground="{StaticResource TextLightBrush}" FontSize="11"/>
+                                        </DockPanel>
+                                        <Slider Minimum="6" Maximum="22" Value="{Binding PupilRadius}"/>
+
+                                        <DockPanel Margin="0,4,0,0">
+                                            <TextBlock Text="Inter-Ocular Spacing:" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
+                                            <TextBlock Text="{Binding EyeSpacing, StringFormat='{}{0:F0}px'}" HorizontalAlignment="Right" Foreground="{StaticResource TextLightBrush}" FontSize="11"/>
+                                        </DockPanel>
+                                        <Slider Minimum="45" Maximum="105" Value="{Binding EyeSpacing}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <DockPanel Margin="0,6,0,0">
+                                    <TextBlock Text="Eyebrow Thickness:" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
+                                    <TextBlock Text="{Binding BrowThickness, StringFormat='{}{0:F1}px'}" HorizontalAlignment="Right" Foreground="{StaticResource TextLightBrush}" FontSize="11"/>
+                                </DockPanel>
+                                <Slider Minimum="1.0" Maximum="7.0" Value="{Binding BrowThickness}"/>
+
+                                <CheckBox Content="Enable Cybernetic Tech Lines &amp; Halo"
+                                          IsChecked="{Binding ShowCyberneticAccents}"
+                                          Foreground="{StaticResource TextLightBrush}"
+                                          Margin="0,8,0,0"/>
+
+                                <Separator Background="{StaticResource BorderDarkBrush}" Margin="0,10"/>
+
+                                <!-- Generated SVG Code Preview Box -->
+                                <TextBlock Text="SVG SOURCE PREVIEW" Foreground="{StaticResource CyanGlowBrush}" FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
+                                <TextBox Text="{Binding GeneratedSvgMarkup, Mode=OneWay}"
+                                         Background="#080C14"
+                                         Foreground="#A5F3FC"
+                                         BorderBrush="{StaticResource BorderDarkBrush}"
+                                         FontFamily="Consolas"
+                                         FontSize="10"
+                                         Height="100"
+                                         IsReadOnly="True"
+                                         VerticalScrollBarVisibility="Auto"
+                                         TextWrapping="NoWrap"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <!-- Tab 2: 3D Kinect Fusion Studio -->
+                    <TabItem Header="🌐 3D Fusion Studio" FontSize="13" FontWeight="SemiBold">
+                        <StackPanel Margin="6,12,6,6">
+                            <TextBlock Text="KINECT FUSION VOLUMETRIC SCANNER" Foreground="{StaticResource CyanGlowBrush}" FontSize="12" FontWeight="Bold" Margin="0,0,0,8"/>
+                            <Border Background="#080C14" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding FusionStatusText}" Foreground="{StaticResource TealAccentBrush}" FontSize="12" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Captures multi-frame depth sensor frames into a continuous 3D voxel TSDF volume to construct high-detail head meshes."
+                                               Foreground="{StaticResource TextMutedBrush}" FontSize="11" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Grid Margin="0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0"
+                                        Content="▶ Start Scan"
+                                        Command="{Binding StartFusionScanCommand}"
+                                        Style="{StaticResource CyberButtonStyle}"
+                                        Margin="0,0,6,0"/>
+                                <Button Grid.Column="1"
+                                        Content="⏹ Complete &amp; Reconstruct"
+                                        Command="{Binding CompleteFusionScanCommand}"
+                                        Style="{StaticResource PrimaryGlowButtonStyle}"
+                                        Margin="6,0"/>
+                                <Button Grid.Column="2"
+                                        Content="🔄 Reset Volume"
+                                        Command="{Binding ResetFusionScanCommand}"
+                                        Style="{StaticResource CyberButtonStyle}"
+                                        Margin="6,0,0,0"/>
+                            </Grid>
+
+                            <Separator Background="{StaticResource BorderDarkBrush}" Margin="0,14"/>
+
+                            <TextBlock Text="RECONSTRUCTION METRICS" Foreground="{StaticResource CyanGlowBrush}" FontSize="11" FontWeight="Bold" Margin="0,0,0,6"/>
+                            <Grid Margin="0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Background="#080C14" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,6,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Reconstructed Vertices" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/>
+                                        <TextBlock Text="{Binding ScannedVerticesCount}" Foreground="{StaticResource TextLightBrush}" FontSize="18" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Grid.Column="1" Background="#080C14" BorderBrush="{StaticResource BorderDarkBrush}" BorderThickness="1" CornerRadius="4" Padding="10" Margin="6,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Triangle Polygons" Foreground="{StaticResource TextMutedBrush}" FontSize="10"/>
+                                        <TextBlock Text="{Binding ScannedTrianglesCount}" Foreground="{StaticResource TextLightBrush}" FontSize="18" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                        </StackPanel>
+                    </TabItem>
+
+                    <!-- Tab 3: Testing Sandbox -->
+                    <TabItem Header="🧪 Testing Sandbox" FontSize="13" FontWeight="SemiBold">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,10,0,0">
+                            <StackPanel Margin="4">
+                                <DockPanel LastChildFill="False" Margin="0,0,0,8">
+                                    <TextBlock Text="INTERACTIVE KINEMATICS SIMULATOR" Foreground="{StaticResource CyanGlowBrush}" FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
+                                    <CheckBox DockPanel.Dock="Right"
+                                              Content="Live Sensor Mirror Mode"
+                                              IsChecked="{Binding IsLiveMirrorEnabled}"
+                                              Foreground="{StaticResource TealAccentBrush}"
+                                              FontWeight="Bold"/>
+                                </DockPanel>
+
+                                <!-- Manual Gaze Sliders -->
+                                <DockPanel>
+                                    <TextBlock Text="Horizontal Gaze (Yaw):" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
+                                    <TextBlock Text="{Binding TestGazeYaw, StringFormat='{}{0:F1}°'}" HorizontalAlignment="Right" Foreground="{StaticResource TextLightBrush}" FontSize="11"/>
+                                </DockPanel>
+                                <Slider Minimum="-45" Maximum="45" Value="{Binding TestGazeYaw}"/>
+
+                                <DockPanel Margin="0,4,0,0">
+                                    <TextBlock Text="Vertical Gaze (Pitch):" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
+                                    <TextBlock Text="{Binding TestGazePitch, StringFormat='{}{0:F1}°'}" HorizontalAlignment="Right" Foreground="{StaticResource TextLightBrush}" FontSize="11"/>
+                                </DockPanel>
+                                <Slider Minimum="-35" Maximum="35" Value="{Binding TestGazePitch}"/>
+
+                                <Separator Background="{StaticResource BorderDarkBrush}" Margin="0,8"/>
+
+                                <!-- Expression Sliders -->
+                                <DockPanel>
+                                    <TextBlock Text="Smile Intensity:" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
+                                    <TextBlock Text="{Binding TestSmileIntensity, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" Foreground="{StaticResource TextLightBrush}" FontSize="11"/>
+                                </DockPanel>
+                                <Slider Minimum="0" Maximum="1" Value="{Binding TestSmileIntensity}"/>
+
+                                <Grid Margin="0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,6,0">
+                                        <DockPanel>
+                                            <TextBlock Text="Brow Raise:" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
+                                            <TextBlock Text="{Binding TestBrowRaise, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" Foreground="{StaticResource TextLightBrush}" FontSize="11"/>
+                                        </DockPanel>
+                                        <Slider Minimum="0" Maximum="1" Value="{Binding TestBrowRaise}"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                        <DockPanel>
+                                            <TextBlock Text="Brow Furrow:" Foreground="{StaticResource TextMutedBrush}" FontSize="11"/>
+                                            <TextBlock Text="{Binding TestBrowFurrow, StringFormat='{}{0:P0}'}" HorizontalAlignment="Right" Foreground="{StaticResource TextLightBrush}" FontSize="11"/>
+                                        </DockPanel>
+                                        <Slider Minimum="0" Maximum="1" Value="{Binding TestBrowFurrow}"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Speech Viseme Selector -->
+                                <DockPanel Margin="0,6,0,0">
+                                    <TextBlock Text="Speech Viseme Mouth Shape:" Foreground="{StaticResource TextMutedBrush}" FontSize="11" VerticalAlignment="Center"/>
+                                    <ComboBox Width="130"
+                                              HorizontalAlignment="Right"
+                                              ItemsSource="{Binding AvailableVisemes}"
+                                              SelectedItem="{Binding SelectedViseme}"
+                                              Background="#080C14"
+                                              Foreground="{StaticResource TextLightBrush}"/>
+                                </DockPanel>
+
+                                <!-- Trigger Buttons -->
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Button Grid.Column="0" Content="👁 Blink" Command="{Binding TriggerTestBlinkCommand}" Style="{StaticResource CyberButtonStyle}" Margin="0,0,4,0"/>
+                                    <Button Grid.Column="1" Content="点头 Nod" Command="{Binding TriggerTestNodCommand}" Style="{StaticResource CyberButtonStyle}" Margin="4,0"/>
+                                    <Button Grid.Column="2" Content="Tilt" Command="{Binding TriggerTestTiltCommand}" Style="{StaticResource CyberButtonStyle}" Margin="4,0"/>
+                                    <Button Grid.Column="3" Content="🔄 Reset" Command="{Binding ResetTestSlidersCommand}" Style="{StaticResource CyberButtonStyle}" Margin="4,0,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+                </TabControl>
+            </Border>
+        </Grid>
+
+        <!-- Bottom Action Bar -->
+        <Border Grid.Row="2"
+                Background="{StaticResource PanelBgBrush}"
+                BorderBrush="{StaticResource BorderDarkBrush}"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="16,12">
+            <DockPanel LastChildFill="True">
+                <!-- Action Buttons on Right -->
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="💾 Export SVG"
+                            Command="{Binding ExportSvgCommand}"
+                            Style="{StaticResource CyberButtonStyle}"
+                            Margin="0,0,10,0"/>
+                    <Button Content="🚀 Push to Official Avatar App"
+                            Command="{Binding PushToCatalogCommand}"
+                            Style="{StaticResource PrimaryGlowButtonStyle}"/>
+                </StackPanel>
+
+                <!-- Avatar Name Input & Status Message on Left -->
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Avatar Name:" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Center" FontSize="12" Margin="0,0,8,0"/>
+                    <TextBox Text="{Binding AvatarName, UpdateSourceTrigger=PropertyChanged}"
+                             Width="220"
+                             Background="#080C14"
+                             Foreground="{StaticResource TextLightBrush}"
+                             BorderBrush="{StaticResource CyanGlowBrush}"
+                             Padding="6,4"
+                             FontSize="12"
+                             Margin="0,0,16,0"/>
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="{StaticResource TealAccentBrush}"
+                               FontSize="11"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

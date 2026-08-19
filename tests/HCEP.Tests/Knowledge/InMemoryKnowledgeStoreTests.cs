@@ -188,8 +188,8 @@ public sealed class InMemoryKnowledgeStoreTests
     {
         _store.Assert("Alice", "isA", "Person"); // asserted now (current time)
 
-        // Wait a tiny bit to make sure we can distinguish
-        await Task.Delay(10);
+        // Wait sufficiently for timer tick across all Windows scheduler quanta
+        await Task.Delay(30);
 
         _store.PurgeExpired(TimeSpan.FromMilliseconds(5));
 

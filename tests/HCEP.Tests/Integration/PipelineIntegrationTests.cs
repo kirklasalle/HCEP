@@ -35,6 +35,14 @@ public sealed class PipelineIntegrationTests : IAsyncDisposable
         public float[] GenerateEmbedding(ReadOnlySpan<byte> faceImage, int width, int height)
             => Array.Empty<float>();
 
+        public float[] GenerateAlignedEmbedding(
+            ReadOnlySpan<byte> colorPixels,
+            int width,
+            int height,
+            ReadOnlySpan<System.Numerics.Vector2> fivePointLandmarks,
+            int bytesPerPixel = 4)
+            => Array.Empty<float>();
+
         public (string Name, float Similarity)? Match(ReadOnlySpan<float> embedding)
             => null;
 

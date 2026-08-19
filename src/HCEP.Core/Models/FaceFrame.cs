@@ -68,6 +68,20 @@ public sealed record FaceFrame
     public Vector2[]? FaceMeshVertices2D { get; init; }
 
     /// <summary>
+    /// Full face mesh vertices in 3D camera/head space (mm).
+    /// Typically ~121 vertices from the FaceTrackLib 3D face model (Candide-3).
+    /// Null when using skeleton-approximate face tracking.
+    /// </summary>
+    public Vector3[]? FaceMeshVertices3D { get; init; }
+
+    /// <summary>
+    /// Normalized texture mapping coordinates [0..1] for face mesh vertices.
+    /// Derived from projected shape points relative to color image dimensions.
+    /// Null when using skeleton-approximate face tracking.
+    /// </summary>
+    public Vector2[]? FaceMeshUVs { get; init; }
+
+    /// <summary>
     /// Full face mesh vertices projected to 2D pixel coordinates in a neutral, front-facing pose.
     /// Used by the autonomous 3D avatar to prevent mimicking the user.
     /// Null when using skeleton-approximate face tracking.
@@ -118,6 +132,38 @@ public sealed record FaceFrame
     /// This represents the physical LOCATION of the eye, not pupil gaze direction.
     /// </summary>
     public Vector2 RightEyeCenter2D => ComputeEyeCenter2D(_rightEyeIndices);
+
+    /// <summary>
+    /// 5-point facial landmarks: [0] Left Eye Center, [1] Right Eye Center,
+    /// [2] Nose Tip, [3] Left Mouth Corner, [4] Right Mouth Corner.
+    /// Used for high-precision affine alignment in ArcFace face recognition.
+    /// Returns empty span/array if landmarks cannot be resolved.
+    /// </summary>
+    public Vector2[] FivePointLandmarks2D
+    {
+        get
+        {
+            var leftEye = LeftEyeCenter2D;
+            var rightEye = RightEyeCenter2D;
+            if (leftEye == Vector2.Zero || rightEye == Vector2.Zero || FeaturePoints2D.Length < 25)
+                return Array.Empty<Vector2>();
+
+            // Feature point 40/41 is nose tip, 16 is right mouth corner, 24 is left mouth corner
+            var noseTip = FeaturePoints2D.Length > 40 && FeaturePoints2D[40] != Vector2.Zero
+                ? FeaturePoints2D[40]
+                : (leftEye + rightEye) * 0.5f + new Vector2(0, (rightEye.X - leftEye.X) * 0.35f);
+
+            var mouthRight = FeaturePoints2D.Length > 16 && FeaturePoints2D[16] != Vector2.Zero
+                ? FeaturePoints2D[16]
+                : rightEye + new Vector2(0, (rightEye.X - leftEye.X) * 0.7f);
+
+            var mouthLeft = FeaturePoints2D.Length > 24 && FeaturePoints2D[24] != Vector2.Zero
+                ? FeaturePoints2D[24]
+                : leftEye + new Vector2(0, (rightEye.X - leftEye.X) * 0.7f);
+
+            return [leftEye, rightEye, noseTip, mouthLeft, mouthRight];
+        }
+    }
 
     /// <summary>
     /// Inter-ocular distance in pixels (distance between eye centers).

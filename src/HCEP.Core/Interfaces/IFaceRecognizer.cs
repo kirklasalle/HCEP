@@ -26,6 +26,23 @@ public interface IFaceRecognizer
     float[] GenerateEmbedding(ReadOnlySpan<byte> faceImage, int width, int height);
 
     /// <summary>
+    /// Generates a 512-dimensional ArcFace embedding from a full color frame using
+    /// 5-point landmark similarity transformation for optimal recognition precision.
+    /// </summary>
+    /// <param name="colorFrame">Full BGRA/BGR color frame bytes.</param>
+    /// <param name="frameWidth">Color frame width.</param>
+    /// <param name="frameHeight">Color frame height.</param>
+    /// <param name="landmarks5Pt">5 detected landmarks (left eye, right eye, nose, left mouth, right mouth).</param>
+    /// <param name="bytesPerPixel">Bytes per pixel (typically 4 for BGRA32, 3 for BGR24).</param>
+    /// <returns>Normalized 512-d embedding vector.</returns>
+    float[] GenerateAlignedEmbedding(
+        ReadOnlySpan<byte> colorFrame,
+        int frameWidth,
+        int frameHeight,
+        ReadOnlySpan<System.Numerics.Vector2> landmarks5Pt,
+        int bytesPerPixel = 4);
+
+    /// <summary>
     /// Finds the best-matching enrolled identity for an embedding.
     /// </summary>
     /// <param name="embedding">Query embedding.</param>

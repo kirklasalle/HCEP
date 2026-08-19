@@ -68,6 +68,11 @@
                           ToolTip="Enable or disable the depth + IR streams from the Kinect sensor"/>
             </MenuItem>
             <MenuItem Header="_Avatar">
+                <MenuItem Header="HCEP Avatar _Studio…"
+                          Command="{Binding OpenAvatarStudioCommand}"
+                          ToolTip="Open HCEP Avatar Studio — 2D SVG designer, 3D Kinect Fusion scanner, and live testing laboratory"
+                          FontWeight="SemiBold"/>
+                <Separator Style="{StaticResource MenuSeparatorStyle}"/>
                 <MenuItem Header="_Calibration">
                     <MenuItem Header="_Gaze Calibration"
                               Command="{Binding OpenCalibrationCommand}"

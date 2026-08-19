@@ -53,6 +53,7 @@ public partial class MainViewModel : ObservableObject
     private KinectVideoWindow? _kinectVideoWindow;
     private CalibrationWindow? _calibrationWindow;
     private AvatarWindow? _avatarWindow;
+    private AvatarStudioWindow? _avatarStudioWindow;
     private FaceMeshAlignmentWindow? _faceMeshAlignmentWindow;
     private SkeletalAlignmentWindow? _skeletalAlignmentWindow;
     private PnPHeadPoseCalibrationWindow? _pnpCalibrationWindow;
@@ -374,6 +375,20 @@ public partial class MainViewModel : ObservableObject
         _avatarWindow.Closed += (_, _) => _avatarWindow = null;
         _avatarWindow.Show();
         _logger.LogInformation("Avatar window opened");
+    }
+
+    [RelayCommand]
+    private void OpenAvatarStudio()
+    {
+        if (_avatarStudioWindow is { IsLoaded: true })
+        {
+            _avatarStudioWindow.Activate();
+            return;
+        }
+        _avatarStudioWindow = _services.GetRequiredService<AvatarStudioWindow>();
+        _avatarStudioWindow.Closed += (_, _) => _avatarStudioWindow = null;
+        _avatarStudioWindow.Show();
+        _logger.LogInformation("Avatar Studio window opened");
     }
 
     [RelayCommand]

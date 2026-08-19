@@ -17,6 +17,8 @@
 // --------------------------------------------------------------
 
 using System.IO;
+using System.Net;
+using System.Net.Http;
 using System.Windows;
 using System.Windows.Threading;
 using HCEP.Audio;
@@ -119,7 +121,13 @@ public partial class App : Application
 
                 // -- Intelligence (Agentic LLM) ----------------
                 services.AddSingleton<AgenticToolExecutor>();
-                services.AddHttpClient<HybridLlmEngine>();
+                services.AddHttpClient<HybridLlmEngine>()
+                    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+                    {
+                        AutomaticDecompression = DecompressionMethods.All,
+                        PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+                        ConnectTimeout = TimeSpan.FromSeconds(15)
+                    });
                 services.AddSingleton<ILlmEngine, HybridLlmEngine>();
                 services.AddSingleton<HCEP.Intelligence.TimeContextProvider>();
                 // Workstream A: contextual prior inference
@@ -146,6 +154,8 @@ public partial class App : Application
                 services.AddTransient<KinectVideoWindow>();
                 services.AddTransient<CalibrationWindow>();
                 services.AddTransient<AvatarWindow>();
+                services.AddTransient<AvatarStudioViewModel>();
+                services.AddTransient<AvatarStudioWindow>();
                 services.AddTransient<SettingsWindow>();
                 services.AddTransient<FaceMeshAlignmentWindow>();
                 services.AddTransient<SkeletalAlignmentWindow>();

@@ -61,6 +61,7 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
 {
     // ── Stable wire pen (frozen — shareable across render cycles) ─
     private static readonly Pen _wirePen;
+    private static readonly Pen _backWirePen;
     private static readonly Brush _pupilBrush;
     private static readonly Pen _browPen;  // slightly thicker than wirePen for legibility
 
@@ -75,6 +76,8 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
     {
         _wirePen = new Pen(new SolidColorBrush(Color.FromArgb(220, 0, 220, 190)), 1.2);
         _wirePen.Freeze();
+        _backWirePen = new Pen(new SolidColorBrush(Color.FromArgb(45, 0, 160, 140)), 0.65);
+        _backWirePen.Freeze();
         _pupilBrush = new SolidColorBrush(Color.FromArgb(255, 0, 220, 190));
         _pupilBrush.Freeze();
         _browPen = new Pen(new SolidColorBrush(Color.FromArgb(240, 0, 220, 190)), 1.8);
@@ -636,6 +639,8 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
         if (hasMesh)
         {
             // Full wireframe mesh — GetProjectedShape succeeded.
+            // Uses 2D winding order cross product to separate front-facing facial wires
+            // from rear-skull wireframes, eliminating "see-through head" overlap clutter.
             foreach (var (a, b, c) in triangles!)
             {
                 if ((uint)a >= (uint)vertices.Length ||
@@ -643,9 +648,17 @@ public sealed class Avatar3DControl : FrameworkElement, IAvatarComponent
                     (uint)c >= (uint)vertices.Length)
                     continue;
 
-                dc.DrawLine(_wirePen, Map(a), Map(b));
-                dc.DrawLine(_wirePen, Map(b), Map(c));
-                dc.DrawLine(_wirePen, Map(c), Map(a));
+                var pa = Map(a);
+                var pb = Map(b);
+                var pc = Map(c);
+
+                // 2D screen-space cross product for front vs backface attenuation
+                double cross = (pb.X - pa.X) * (pc.Y - pa.Y) - (pb.Y - pa.Y) * (pc.X - pa.X);
+                var pen = cross > 0 ? _wirePen : _backWirePen;
+
+                dc.DrawLine(pen, pa, pb);
+                dc.DrawLine(pen, pb, pc);
+                dc.DrawLine(pen, pc, pa);
             }
         }
         else

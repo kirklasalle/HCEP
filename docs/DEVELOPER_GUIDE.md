@@ -364,7 +364,8 @@ Hybrid LLM engine with agentic capabilities. References `HCEP.Core`, `HCEP.Knowl
   - **Cloud:** Active cloud provider selected in `LlmConfiguration` (`OpenAI`, `Anthropic`, `Gemini`, `Mistral`, `xAI`, `Cohere`, `OpenRouter`, `DeepSeek`, `Groq`, `TogetherAI`, `FireworksAI`, `Perplexity`, `AI21Labs`, `Replicate`, `HuggingFace`, `Azure OpenAI`, `Amazon Bedrock`, `NVIDIA NIM`, `Cerebras`, `Moonshot AI`)
   - Routing: `Configuration.PreferLocal` and runtime availability determine whether the shared chat/system path uses local-first or cloud-first execution
   - Agentic loop: Up to `MaxAgenticSteps = 5` tool-use iterations per query
-  - Model discovery: `GetAvailableLocalModelsAsync()` and `GetAvailableCloudModelsAsync()` are used by `SettingsWindow` to populate selectable model IDs
+  - Model discovery: `GetAvailableLocalModelsAsync()` and `GetAvailableCloudModelsAsync()` populate selectable model IDs with a 15-second bounded cancellation timeout and resilient fallback to curated top frontier models for aggregators like OpenRouter
+  - HTTP Transport: `SocketsHttpHandler` configured with `AutomaticDecompression = DecompressionMethods.All` and 15-minute connection pooling for high-throughput compressed payload transfer
   - Credentials: cloud requests resolve API keys from Windows Credential Manager at call time before falling back to environment variables or in-memory config
   - OpenAI DTOs: `OpenAiRequest`, `OpenAiResponse`, `OpenAiToolCallDto`, `OpenAiToolCallFunction`
 

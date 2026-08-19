@@ -1,34 +1,54 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="100%" height="100%">
     <defs>
         <!-- Background Gradients -->
-        <radialGradient id="bg-grad" cx="50%" cy="50%" r="70%">
-            <stop offset="0%" stop-color="#111827" />
-            <stop offset="100%" stop-color="#070a13" />
+        <radialGradient id="bg-grad" cx="50%" cy="50%" r="75%">
+            <stop offset="0%" stop-color="#0f172a" />
+            <stop offset="60%" stop-color="#090d16" />
+            <stop offset="100%" stop-color="#030712" />
         </radialGradient>
 
-        <!-- Eye Cone Gradients -->
-        <linearGradient id="cone-left-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.3" />
-            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.0" />
+        <linearGradient id="card-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#1e293b" stop-opacity="0.85" />
+            <stop offset="100%" stop-color="#0f172a" stop-opacity="0.95" />
+        </linearGradient>
+
+        <!-- Eye Cone Volumetric Beam Gradients -->
+        <linearGradient id="beam-left-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45" />
+            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.02" />
         </linearGradient>
 
         <!-- Glow Filters -->
-        <filter id="glow-cyan" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="6" result="blur" />
+        <filter id="glow-cyan" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
             <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
             </feMerge>
         </filter>
-        <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
+        <filter id="glow-emerald" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
             <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
             </feMerge>
         </filter>
-        <filter id="glow-magenta" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
+        <filter id="glow-rose" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+        <filter id="glow-purple" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
+            <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+            </feMerge>
+        </filter>
+        <filter id="glow-amber" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="5" result="blur" />
             <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
@@ -37,328 +57,285 @@
     </defs>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Outfit:wght@500;700&amp;display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Outfit:wght@500;600;700;800&amp;family=JetBrains+Mono:wght@400;600;700&amp;display=swap');
 
         .title {
             font-family: 'Outfit', 'Inter', sans-serif;
-            font-size: 20px;
+            font-size: 19px;
             font-weight: 700;
-            fill: #f3f4f6;
-            letter-spacing: -0.02em;
+            fill: #f8fafc;
+            letter-spacing: -0.01em;
         }
 
         .subtitle {
             font-family: 'Inter', sans-serif;
-            font-size: 12px;
-            fill: #9ca3af;
-            font-weight: 500;
+            font-size: 11px;
+            fill: #94a3b8;
+            font-weight: 600;
+            letter-spacing: 0.05em;
         }
 
         .label {
             font-family: 'Inter', sans-serif;
             font-size: 11px;
-            fill: #9ca3af;
+            fill: #94a3b8;
+            font-weight: 500;
+        }
+
+        .hud-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            fill: #cbd5e1;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .hud-mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
             font-weight: 600;
         }
 
-        .hud-header {
-            font-family: 'Outfit', sans-serif;
-            font-size: 12px;
-            fill: #f3f4f6;
-            font-weight: bold;
-        }
-
-        .hud-val {
-            font-family: monospace;
-            font-size: 11px;
-            fill: #38bdf8;
-            font-weight: bold;
-        }
-
-        /* Grid lines and Layout */
         .grid-line {
             stroke: #1e293b;
-            stroke-width: 1;
-            stroke-dasharray: 4 4;
+            stroke-width: 0.8;
+            stroke-dasharray: 4 6;
+            opacity: 0.6;
         }
 
-        /* Avatar face representation */
-        .face-oval {
-            stroke: #334155;
-            stroke-width: 1.5;
-            fill: #0f172a;
-            fill-opacity: 0.6;
-        }
-
-        .eye-socket {
-            stroke: #475569;
-            stroke-width: 1.5;
-            fill: #1e293b;
-        }
-
-        /* Animation Keyframes */
+        /* 5-Phase Mode Cycle Animation: 15s Total (3s per mode) */
+        /* 0-20%: LOGIC, 20-40%: SPIRIT, 40-60%: AFFECT, 60-80%: HEART, 80-100%: THINK */
         @keyframes reticleMove {
-            0%, 100% { transform: translate(520px, 130px); } /* LOGIC (Forehead) */
-            20%      { transform: translate(520px, 130px); }
-            25%      { transform: translate(520px, 190px); } /* SPIRIT (Mutual Eyes) */
-            45%      { transform: translate(520px, 190px); }
-            50%      { transform: translate(520px, 250px); } /* AFFECT (Social Triangle) */
-            70%      { transform: translate(520px, 250px); }
-            75%      { transform: translate(660px, 100px); } /* THINK (Averted gaze) */
-            95%      { transform: translate(660px, 100px); }
+            0%, 18%   { transform: translate(520px, 115px); } /* 1. LOGIC: Forehead */
+            20%, 38%  { transform: translate(520px, 165px); } /* 2. SPIRIT: Eyes */
+            40%, 58%  { transform: translate(520px, 215px); } /* 3. AFFECT: Social Triangle */
+            60%, 78%  { transform: translate(520px, 265px); } /* 4. HEART: Lower Face */
+            80%, 98%  { transform: translate(665px, 95px); }  /* 5. THINK: Averted */
+            100%      { transform: translate(520px, 115px); }
         }
 
         @keyframes leftPupil {
-            0%, 20%, 100% { transform: translate(143px, 172px); } /* Logic: Up-center */
-            25%, 45%      { transform: translate(146px, 178px); } /* Spirit: Direct center */
-            50%, 70%      { transform: translate(146px, 183px); } /* Affect: Down-center */
-            75%, 95%      { transform: translate(152px, 170px); } /* Think: Up-Right */
+            0%, 18%   { transform: translate(146px, 172px); } /* Logic: Up-center */
+            20%, 38%  { transform: translate(148px, 178px); } /* Spirit: Direct center */
+            40%, 58%  { transform: translate(148px, 183px); } /* Affect: Down-center */
+            60%, 78%  { transform: translate(148px, 188px); } /* Heart: Down-lower */
+            80%, 98%  { transform: translate(155px, 168px); } /* Think: Up-Right */
+            100%      { transform: translate(146px, 172px); }
         }
 
         @keyframes rightPupil {
-            0%, 20%, 100% { transform: translate(243px, 172px); }
-            25%, 45%      { transform: translate(246px, 178px); }
-            50%, 70%      { transform: translate(246px, 183px); }
-            75%, 95%      { transform: translate(252px, 170px); }
+            0%, 18%   { transform: translate(242px, 172px); }
+            20%, 38%  { transform: translate(244px, 178px); }
+            40%, 58%  { transform: translate(244px, 183px); }
+            60%, 78%  { transform: translate(244px, 188px); }
+            80%, 98%  { transform: translate(251px, 168px); }
+            100%      { transform: translate(242px, 172px); }
         }
 
-        /* Highlighting target grid cells based on gaze position */
-        @keyframes highlightLogic {
-            0%, 20%, 100% { fill: #3b82f6; fill-opacity: 0.35; stroke: #3b82f6; }
-            25%, 95%      { fill: #1e293b; fill-opacity: 0.2; stroke: #334155; }
+        /* Mode Highlighting */
+        @keyframes hlLogic {
+            0%, 18%, 100% { fill: #3b82f6; fill-opacity: 0.35; stroke: #60a5fa; stroke-width: 1.5; }
+            20%, 98%      { fill: #0f172a; fill-opacity: 0.2; stroke: #334155; stroke-width: 1; }
+        }
+        @keyframes hlSpirit {
+            20%, 38%      { fill: #10b981; fill-opacity: 0.35; stroke: #34d399; stroke-width: 1.5; }
+            0%, 18%, 40%, 100% { fill: #0f172a; fill-opacity: 0.2; stroke: #334155; stroke-width: 1; }
+        }
+        @keyframes hlAffect {
+            40%, 58%      { fill: #ec4899; fill-opacity: 0.35; stroke: #f472b6; stroke-width: 1.5; }
+            0%, 38%, 60%, 100% { fill: #0f172a; fill-opacity: 0.2; stroke: #334155; stroke-width: 1; }
+        }
+        @keyframes hlHeart {
+            60%, 78%      { fill: #a855f7; fill-opacity: 0.35; stroke: #c084fc; stroke-width: 1.5; }
+            0%, 58%, 80%, 100% { fill: #0f172a; fill-opacity: 0.2; stroke: #334155; stroke-width: 1; }
+        }
+        @keyframes hlThink {
+            80%, 98%      { fill: #f59e0b; fill-opacity: 0.35; stroke: #fbbf24; stroke-width: 1.5; }
+            0%, 78%, 100% { fill: #0f172a; fill-opacity: 0.2; stroke: #334155; stroke-width: 1; }
         }
 
-        @keyframes highlightSpirit {
-            25%, 45%      { fill: #10b981; fill-opacity: 0.35; stroke: #10b981; }
-            0%, 20%, 50%, 100% { fill: #1e293b; fill-opacity: 0.2; stroke: #334155; }
-        }
+        /* Footer Telemetry Switchers */
+        @keyframes showLogic  { 0%, 18%, 100% { opacity: 1; } 20%, 98% { opacity: 0; } }
+        @keyframes showSpirit { 20%, 38% { opacity: 1; } 0%, 18%, 40%, 100% { opacity: 0; } }
+        @keyframes showAffect { 40%, 58% { opacity: 1; } 0%, 38%, 60%, 100% { opacity: 0; } }
+        @keyframes showHeart  { 60%, 78% { opacity: 1; } 0%, 58%, 80%, 100% { opacity: 0; } }
+        @keyframes showThink  { 80%, 98% { opacity: 1; } 0%, 78%, 100% { opacity: 0; } }
 
-        @keyframes highlightAffect {
-            50%, 70%      { fill: #ec4899; fill-opacity: 0.35; stroke: #ec4899; }
-            0%, 45%, 75%, 100% { fill: #1e293b; fill-opacity: 0.2; stroke: #334155; }
-        }
+        .reticle-group { animation: reticleMove 15s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+        .pupil-l { animation: leftPupil 15s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+        .pupil-r { animation: rightPupil 15s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
 
-        @keyframes highlightThink {
-            75%, 95%      { fill: #eab308; fill-opacity: 0.35; stroke: #eab308; }
-            0%, 70%, 100% { fill: #1e293b; fill-opacity: 0.2; stroke: #334155; }
-        }
+        .cell-1-logic  { animation: hlLogic 15s infinite; }
+        .cell-2-spirit { animation: hlSpirit 15s infinite; }
+        .cell-3-affect { animation: hlAffect 15s infinite; }
+        .cell-4-heart  { animation: hlHeart 15s infinite; }
+        .cell-5-think  { animation: hlThink 15s infinite; }
 
-        /* Show/Hide Telemetry and labels matching active state */
-        @keyframes showLogic {
-            0%, 20%, 100% { opacity: 1; }
-            25%, 95%      { opacity: 0; }
-        }
-        @keyframes showSpirit {
-            25%, 45%      { opacity: 1; }
-            0%, 20%, 50%, 100% { opacity: 0; }
-        }
-        @keyframes showAffect {
-            50%, 70%      { opacity: 1; }
-            0%, 45%, 75%, 100% { opacity: 0; }
-        }
-        @keyframes showThink {
-            75%, 95%      { opacity: 1; }
-            0%, 70%, 100% { opacity: 0; }
-        }
-
-        @keyframes sweepBeamLeft {
-            0%, 20%, 100% { points: "146,178 520,130 520,150"; }
-            25%, 45%      { points: "146,178 520,190 520,210"; }
-            50%, 70%      { points: "146,178 520,250 520,270"; }
-            75%, 95%      { points: "146,178 660,100 660,120"; }
-        }
-        @keyframes sweepBeamRight {
-            0%, 20%, 100% { points: "246,178 520,130 520,150"; }
-            25%, 45%      { points: "246,178 520,190 520,210"; }
-            50%, 70%      { points: "246,178 520,250 520,270"; }
-            75%, 95%      { points: "246,178 660,100 660,120"; }
-        }
-
-        /* Classes linked to keyframes */
-        .gaze-target-reticle {
-            animation: reticleMove 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        }
-
-        .pupil-left {
-            animation: leftPupil 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        }
-
-        .pupil-right {
-            animation: rightPupil 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        }
-
-        .cell-logic {
-            animation: highlightLogic 12s infinite;
-        }
-
-        .cell-spirit {
-            animation: highlightSpirit 12s infinite;
-        }
-
-        .cell-affect {
-            animation: highlightAffect 12s infinite;
-        }
-
-        .cell-think {
-            animation: highlightThink 12s infinite;
-        }
-
-        .info-logic {
-            animation: showLogic 12s infinite;
-        }
-
-        .info-spirit {
-            animation: showSpirit 12s infinite;
-        }
-
-        .info-affect {
-            animation: showAffect 12s infinite;
-        }
-
-        .info-think {
-            animation: showThink 12s infinite;
-        }
-
-        .beam-left {
-            animation: sweepBeamLeft 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-            fill: url(#cone-left-grad);
-        }
-
-        .beam-right {
-            animation: sweepBeamRight 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-            fill: url(#cone-left-grad);
-        }
+        .info-1-logic  { animation: showLogic 15s infinite; }
+        .info-2-spirit { animation: showSpirit 15s infinite; }
+        .info-3-affect { animation: showAffect 15s infinite; }
+        .info-4-heart  { animation: showHeart 15s infinite; }
+        .info-5-think  { animation: showThink 15s infinite; }
     </style>
 
-    <!-- Background -->
-    <rect width="100%" height="100%" fill="url(#bg-grad)" rx="12" stroke="#1f2937" stroke-width="2" />
+    <!-- Outer Frame & Background -->
+    <rect width="100%" height="100%" fill="url(#bg-grad)" rx="14" stroke="#334155" stroke-width="1.5" />
 
-    <!-- Layout Grid Lines -->
+    <!-- Cyber Background Grid -->
     <g class="grid-layout">
-        <line x1="50" y1="50" x2="750" y2="50" class="grid-line" />
-        <line x1="50" y1="400" x2="750" y2="400" class="grid-line" />
-        <line x1="360" y1="50" x2="360" y2="400" class="grid-line" />
+        <line x1="40" y1="55" x2="760" y2="55" class="grid-line" />
+        <line x1="40" y1="345" x2="760" y2="345" class="grid-line" />
+        <line x1="375" y1="55" x2="375" y2="345" class="grid-line" />
     </g>
 
-    <!-- 1. Header -->
-    <text x="30" y="35" class="title">Cones of Vision &amp; 13 Gaze Regions</text>
-    <text x="365" y="35" class="subtitle">TELEMETRY PIPELINE LAYER 4 (COGNITIVE MODE INTERPRETATION)</text>
-    <rect x="700" y="20" width="70" height="20" rx="4" fill="#1e293b" stroke="#334155" />
-    <text x="735" y="33" font-family="monospace" font-size="10" fill="#10b981" font-weight="bold" text-anchor="middle">v1.0.0</text>
+    <!-- Header Section -->
+    <g transform="translate(30, 36)">
+        <circle cx="10" cy="-6" r="5" fill="#38bdf8" filter="url(#glow-cyan)" />
+        <text x="24" y="-1" class="title">Cones of Vision &amp; 13 Gaze Regions</text>
+        <text x="360" y="-2" class="subtitle">5-MODE COGNITIVE-EMOTIONAL HCEP CLASSIFIER &amp; TELEMETRY MATRIX</text>
+        <!-- Version Badge -->
+        <rect x="690" y="-16" width="55" height="20" rx="5" fill="#0f172a" stroke="#38bdf8" stroke-width="1" />
+        <text x="717" y="-2" class="hud-mono" font-size="10" fill="#38bdf8" text-anchor="middle">v1.6.0</text>
+    </g>
 
-    <!-- 2. Avatar/User Eye Rig (Left Column) -->
-    <g transform="translate(45, 40)">
-        <!-- Face Outline (Stylized) -->
-        <path d="M 80 160 C 80 90, 220 90, 220 160 C 220 220, 210 260, 150 290 C 90 260, 80 220, 80 160 Z" class="face-oval" />
-        
-        <!-- Left Eye Socket -->
-        <ellipse cx="135" cy="160" rx="22" ry="12" class="eye-socket" />
-        <!-- Right Eye Socket -->
-        <ellipse cx="165" cy="160" rx="22" ry="12" class="eye-socket" />
-        
-        <!-- Pupils (Animated translation) -->
-        <!-- Left Pupil Group -->
-        <g class="pupil-left">
-            <circle cx="0" cy="0" r="7" fill="#0284c7" />
-            <circle cx="1.5" cy="-1.5" r="2" fill="#ffffff" />
+    <!-- Left: Ocular Telemetry Sensor Rig & Pupil Tracking -->
+    <g transform="translate(35, 70)">
+        <rect width="320" height="260" rx="8" fill="url(#card-grad)" stroke="#1e293b" stroke-width="1" />
+        <text x="16" y="24" class="hud-title">Binocular Eye-Tracking Rig</text>
+        <circle cx="300" cy="18" r="4" fill="#38bdf8" filter="url(#glow-cyan)" />
+
+        <!-- Stylized Head Silhouette -->
+        <path d="M 65 140 C 65 80, 255 80, 255 140 C 255 200, 235 235, 160 250 C 85 235, 65 200, 65 140 Z" 
+              fill="#090d16" stroke="#334155" stroke-width="1.5" />
+
+        <!-- Left Sclera & Iris -->
+        <ellipse cx="120" cy="138" rx="30" ry="17" fill="#0f172a" stroke="#475569" stroke-width="1.5" />
+        <ellipse cx="120" cy="138" rx="28" ry="15" fill="none" stroke="#1e293b" stroke-dasharray="2 2" />
+
+        <!-- Right Sclera & Iris -->
+        <ellipse cx="200" cy="138" rx="30" ry="17" fill="#0f172a" stroke="#475569" stroke-width="1.5" />
+        <ellipse cx="200" cy="138" rx="28" ry="15" fill="none" stroke="#1e293b" stroke-dasharray="2 2" />
+
+        <!-- Animated Left Pupil -->
+        <g class="pupil-l">
+            <circle cx="0" cy="-40" r="9" fill="#0284c7" filter="url(#glow-cyan)" />
+            <circle cx="0" cy="-40" r="4.5" fill="#020617" />
+            <circle cx="2.5" cy="-42.5" r="2" fill="#ffffff" />
         </g>
-        <!-- Right Pupil Group -->
-        <g class="pupil-right">
-            <circle cx="0" cy="0" r="7" fill="#0284c7" />
-            <circle cx="1.5" cy="-1.5" r="2" fill="#ffffff" />
+
+        <!-- Animated Right Pupil -->
+        <g class="pupil-r">
+            <circle cx="-42" cy="-40" r="9" fill="#0284c7" filter="url(#glow-cyan)" />
+            <circle cx="-42" cy="-40" r="4.5" fill="#020617" />
+            <circle cx="-39.5" cy="-42.5" r="2" fill="#ffffff" />
         </g>
 
-        <!-- Eye Contours (Lids) -->
-        <path d="M 110 160 Q 135 140 160 160" fill="none" stroke="#475569" stroke-width="1.5" />
-        <path d="M 110 160 Q 135 180 160 160" fill="none" stroke="#475569" stroke-width="1.5" />
-        <path d="M 140 160 Q 165 140 190 160" fill="none" stroke="#475569" stroke-width="1.5" />
-        <path d="M 140 160 Q 165 180 190 160" fill="none" stroke="#475569" stroke-width="1.5" />
-        
-        <text x="150" y="315" class="label" text-anchor="middle" fill="#38bdf8">Internal Gaze Telemetry Rig</text>
+        <!-- Eyelid Contours -->
+        <path d="M 90 138 Q 120 118 150 138" fill="none" stroke="#64748b" stroke-width="1.5" />
+        <path d="M 90 138 Q 120 158 150 138" fill="none" stroke="#64748b" stroke-width="1.5" />
+        <path d="M 170 138 Q 200 118 230 138" fill="none" stroke="#64748b" stroke-width="1.5" />
+        <path d="M 170 138 Q 200 158 230 138" fill="none" stroke="#64748b" stroke-width="1.5" />
+
+        <!-- Inter-Ocular Distance (IOD) Indicator -->
+        <line x1="120" y1="175" x2="200" y2="175" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="3 3" />
+        <circle cx="120" cy="175" r="2" fill="#38bdf8" />
+        <circle cx="200" cy="175" r="2" fill="#38bdf8" />
+        <text x="160" y="190" class="hud-mono" font-size="9" fill="#38bdf8" text-anchor="middle">IOD = 64.0 mm</text>
     </g>
 
-    <!-- Cones of Vision Beams (Behind Reticle, emanating from eyes) -->
-    <!-- Left Eye Pupil Center is at ~180, 200. Right Eye is at ~210, 200. -->
-    <polygon class="beam-left" />
-    <polygon class="beam-right" />
+    <!-- Right: 13-Region Gaze Target Matrix & 5-Mode Zones -->
+    <g transform="translate(390, 70)">
+        <rect width="375" height="260" rx="8" fill="url(#card-grad)" stroke="#1e293b" stroke-width="1" />
+        <text x="16" y="24" class="hud-title">13-Region Spatial Target Plane</text>
 
-    <!-- 3. Gaze Target Grid (Right Column) -->
-    <!-- Mapped as 13-Region matrix over the user's face region -->
-    <g transform="translate(420, 80)">
-        <!-- Grid Outer Border -->
-        <rect width="280" height="240" rx="6" fill="#0b0f19" fill-opacity="0.5" stroke="#1e293b" stroke-width="1.5" />
-        
-        <!-- Grid Cells -->
-        <!-- Row 1: Forehead / Logic (Y: 20-80) -->
-        <rect x="20" y="20" width="240" height="60" rx="4" class="cell-logic" />
-        <text x="140" y="55" font-family="'Inter', sans-serif" font-size="10" fill="#9ca3af" font-weight="bold" text-anchor="middle" opacity="0.6">FOREHEAD (LOGIC / COGNITIVE)</text>
+        <!-- 1. Forehead Zone (LOGIC) -->
+        <rect x="20" y="36" width="250" height="42" rx="5" class="cell-1-logic" />
+        <text x="145" y="61" class="hud-title" font-size="10" fill="#93c5fd" text-anchor="middle">1. FOREHEAD (LOGIC / ANALYTICAL)</text>
 
-        <!-- Row 2: Eyes / Spirit (Y: 90-150) -->
-        <rect x="20" y="90" width="240" height="60" rx="4" class="cell-spirit" />
-        <text x="140" y="125" font-family="'Inter', sans-serif" font-size="10" fill="#9ca3af" font-weight="bold" text-anchor="middle" opacity="0.6">EYE-CONTACT ZONE (SPIRIT / MUTUAL)</text>
+        <!-- 2. Eye Contact Zone (SPIRIT) -->
+        <rect x="20" y="84" width="250" height="42" rx="5" class="cell-2-spirit" />
+        <text x="145" y="109" class="hud-title" font-size="10" fill="#a7f3d0" text-anchor="middle">2. MUTUAL EYES (SPIRIT / AUTHENTIC)</text>
 
-        <!-- Row 3: Mouth / Affect (Y: 160-220) -->
-        <rect x="20" y="160" width="240" height="60" rx="4" class="cell-affect" />
-        <text x="140" y="195" font-family="'Inter', sans-serif" font-size="10" fill="#9ca3af" font-weight="bold" text-anchor="middle" opacity="0.6">TRIANGLE ZONE (AFFECT / HEART)</text>
+        <!-- 3. Social Triangle Zone (AFFECT) -->
+        <rect x="20" y="132" width="250" height="42" rx="5" class="cell-3-affect" />
+        <text x="145" y="157" class="hud-title" font-size="10" fill="#fbcfe8" text-anchor="middle">3. SOCIAL TRIANGLE (AFFECT / ENGAGED)</text>
 
-        <!-- Screen Borders / Think (Out of grid bounds, top-right) -->
-        <rect x="245" y="-15" width="45" height="45" rx="4" class="cell-think" />
-        <text x="267" y="12" font-family="monospace" font-size="8" fill="#9ca3af" font-weight="bold" text-anchor="middle" opacity="0.8">THINK</text>
+        <!-- 4. Lower Face Zone (HEART) -->
+        <rect x="20" y="180" width="250" height="42" rx="5" class="cell-4-heart" />
+        <text x="145" y="205" class="hud-title" font-size="10" fill="#e9d5ff" text-anchor="middle">4. LOWER FACE / MOUTH (HEART / EMPATHY)</text>
 
-        <!-- Target Reticle (Animated overlay) -->
-        <g class="gaze-target-reticle" filter="url(#glow-cyan)">
-            <!-- Reticle Crosshair -->
-            <circle cx="0" cy="0" r="10" fill="none" stroke="#22d3ee" stroke-width="2" />
-            <circle cx="0" cy="0" r="2" fill="#22d3ee" />
-            <line x1="-15" y1="0" x2="15" y2="0" stroke="#22d3ee" stroke-width="1.5" />
-            <line x1="0" y1="-15" x2="0" y2="15" stroke="#22d3ee" stroke-width="1.5" />
+        <!-- 5. Lateral Think Quadrant (THINK - Aversion) -->
+        <rect x="280" y="20" width="75" height="58" rx="5" class="cell-5-think" />
+        <text x="317" y="46" class="hud-title" font-size="9" fill="#fef08a" text-anchor="middle">5. THINK</text>
+        <text x="317" y="60" class="hud-mono" font-size="8" fill="#fde047" text-anchor="middle">&gt;15° AVERT</text>
+
+        <!-- Gaze Reticle (Dynamic Animated Crosshair) -->
+        <g class="reticle-group" transform="translate(0, 0)">
+            <circle cx="-380" cy="-55" r="11" fill="none" stroke="#38bdf8" stroke-width="2" filter="url(#glow-cyan)" />
+            <circle cx="-380" cy="-55" r="2.5" fill="#38bdf8" />
+            <line x1="-395" y1="-55" x2="-365" y2="-55" stroke="#38bdf8" stroke-width="1.5" />
+            <line x1="-380" y1="-70" x2="-380" y2="-40" stroke="#38bdf8" stroke-width="1.5" />
         </g>
     </g>
 
-    <!-- 4. Dynamic Analytics Footer (Modes) -->
-    <rect x="30" y="340" width="740" height="90" rx="8" fill="#0b0f19" fill-opacity="0.9" stroke="#1e293b" stroke-width="1.5" />
+    <!-- Bottom: Dynamic 5-Mode Telemetry & AI Response Style Card -->
+    <g transform="translate(30, 350)">
+        <rect width="740" height="85" rx="8" fill="url(#card-grad)" stroke="#334155" stroke-width="1.2" />
 
-    <!-- LOGIC STATE telemetry details -->
-    <g class="info-logic" transform="translate(50, 360)">
-        <text class="hud-header" fill="#3b82f6" font-size="14">ACTIVE MODE: LOGIC</text>
-        <text class="subtitle" x="0" y="22">Gaze localized on Forehead region. Focus: Information integration &amp; problem-solving.</text>
-        <text x="0" y="42" font-family="monospace" font-size="11" fill="#3b82f6">Saccades: Low Frequency (Steady) | Pupil Dilation: +12% | Attention Index: 92.4%</text>
-        <!-- HUD side card -->
-        <rect x="530" y="-8" width="140" height="48" rx="4" fill="#1e3a8a" fill-opacity="0.4" stroke="#3b82f6" stroke-width="1" />
-        <text x="600" y="12" font-family="'Outfit', sans-serif" font-size="10" fill="#93c5fd" font-weight="bold" text-anchor="middle">AI RESPONSE MODULATION</text>
-        <text x="600" y="30" font-family="'Inter', sans-serif" font-size="12" fill="#ffffff" font-weight="bold" text-anchor="middle">FACTUAL &amp; STRUCTURED</text>
-    </g>
+        <!-- 1. LOGIC TELEMETRY -->
+        <g class="info-1-logic" transform="translate(20, 20)">
+            <text class="hud-title" fill="#3b82f6" font-size="13">ACTIVE HCEP MODE: LOGIC (63% CONFIDENCE)</text>
+            <text class="label" x="0" y="20" fill="#cbd5e1">Gaze localized on Forehead plane. High cognitive load &amp; structured information processing.</text>
+            <text x="0" y="40" class="hud-mono" fill="#60a5fa">AU3 Furrow: 0.42 | Saccades: 1.2 Hz (Stable) | Target: Region #1 Forehead</text>
 
-    <!-- SPIRIT STATE telemetry details -->
-    <g class="info-spirit" transform="translate(50, 360)">
-        <text class="hud-header" fill="#10b981" font-size="14">ACTIVE MODE: SPIRIT</text>
-        <text class="subtitle" x="0" y="22">Gaze localized on eyes. Focus: Active mutual rapport and deep interpersonal alignment.</text>
-        <text x="0" y="42" font-family="monospace" font-size="11" fill="#10b981">Saccades: Locked (Zero drift) | Mutual Contact: 98.2% | Alignment Vector: [0.04, -0.02, 1.0]</text>
-        <!-- HUD side card -->
-        <rect x="530" y="-8" width="140" height="48" rx="4" fill="#064e3b" fill-opacity="0.4" stroke="#10b981" stroke-width="1" />
-        <text x="600" y="12" font-family="'Outfit', sans-serif" font-size="10" fill="#a7f3d0" font-weight="bold" text-anchor="middle">AI RESPONSE MODULATION</text>
-        <text x="600" y="30" font-family="'Inter', sans-serif" font-size="12" fill="#ffffff" font-weight="bold" text-anchor="middle">DEEP &amp; AUTHENTIC</text>
-    </g>
+            <rect x="520" y="-8" width="185" height="52" rx="5" fill="#1e3a8a" fill-opacity="0.45" stroke="#3b82f6" stroke-width="1" />
+            <text x="612" y="12" class="hud-title" font-size="9" fill="#93c5fd" text-anchor="middle">LLM RESPONSE HARNESS</text>
+            <text x="612" y="32" class="hud-title" font-size="12" fill="#ffffff" text-anchor="middle">FACTUAL &amp; PRECISE</text>
+        </g>
 
-    <!-- AFFECT STATE telemetry details -->
-    <g class="info-affect" transform="translate(50, 360)">
-        <text class="hud-header" fill="#ec4899" font-size="14">ACTIVE MODE: AFFECT / HEART</text>
-        <text class="subtitle" x="0" y="22">Gaze cycling between eyes and mouth (Social Triangle). Focus: Emotional expression &amp; empathy.</text>
-        <text x="0" y="42" font-family="monospace" font-size="11" fill="#ec4899">Triangular cycling rate: 0.82 Hz | Valence Score: Positive (+0.65) | Empathy Lock: High</text>
-        <!-- HUD side card -->
-        <rect x="530" y="-8" width="140" height="48" rx="4" fill="#701a75" fill-opacity="0.4" stroke="#ec4899" stroke-width="1" />
-        <text x="600" y="12" font-family="'Outfit', sans-serif" font-size="10" fill="#fbcfe8" font-weight="bold" text-anchor="middle">AI RESPONSE MODULATION</text>
-        <text x="600" y="30" font-family="'Inter', sans-serif" font-size="12" fill="#ffffff" font-weight="bold" text-anchor="middle">EMPATHETIC &amp; WARM</text>
-    </g>
+        <!-- 2. SPIRIT TELEMETRY -->
+        <g class="info-2-spirit" transform="translate(20, 20)">
+            <text class="hud-title" fill="#10b981" font-size="13">ACTIVE HCEP MODE: SPIRIT (94% CONFIDENCE)</text>
+            <text class="label" x="0" y="20" fill="#cbd5e1">Direct mutual eye contact lock. High authentic interpersonal rapport &amp; deep engagement.</text>
+            <text x="0" y="40" class="hud-mono" fill="#34d399">Mutual Contact: 98.4% | Alignment Vector: [0.02, -0.01, 1.00] | Target: Region #2 Eyes</text>
 
-    <!-- THINK STATE telemetry details -->
-    <g class="info-think" transform="translate(50, 360)">
-        <text class="hud-header" fill="#eab308" font-size="14">ACTIVE MODE: THINK</text>
-        <text class="subtitle" x="0" y="22">Gaze averted off-center / screen boundaries. Focus: Internal processing and memory retrieval.</text>
-        <text x="0" y="42" font-family="monospace" font-size="11" fill="#eab308">Aversion Angle: 22.4° | Cognitive Load: High (Vocal pause detected) | Processing State: ACTIVE</text>
-        <!-- HUD side card -->
-        <rect x="530" y="-8" width="140" height="48" rx="4" fill="#78350f" fill-opacity="0.4" stroke="#eab308" stroke-width="1" />
-        <text x="600" y="12" font-family="'Outfit', sans-serif" font-size="10" fill="#fef08a" font-weight="bold" text-anchor="middle">AI RESPONSE MODULATION</text>
-        <text x="600" y="30" font-family="'Inter', sans-serif" font-size="12" fill="#ffffff" font-weight="bold" text-anchor="middle">NON-INTRUSIVE / SILENT</text>
+            <rect x="520" y="-8" width="185" height="52" rx="5" fill="#064e3b" fill-opacity="0.45" stroke="#10b981" stroke-width="1" />
+            <text x="612" y="12" class="hud-title" font-size="9" fill="#a7f3d0" text-anchor="middle">LLM RESPONSE HARNESS</text>
+            <text x="612" y="32" class="hud-title" font-size="12" fill="#ffffff" text-anchor="middle">AUTHENTIC &amp; DIRECT</text>
+        </g>
+
+        <!-- 3. AFFECT TELEMETRY -->
+        <g class="info-3-affect" transform="translate(20, 20)">
+            <text class="hud-title" fill="#ec4899" font-size="13">ACTIVE HCEP MODE: AFFECT (88% CONFIDENCE)</text>
+            <text class="label" x="0" y="20" fill="#cbd5e1">Gaze scanning Social Triangle (eyes to mouth). Emotional reciprocity &amp; positive valence.</text>
+            <text x="0" y="40" class="hud-mono" fill="#f472b6">Triangle Rate: 0.85 Hz | Valence: +0.72 | AU12 Smile: 0.65 | Target: Region #5 Nose/Lip</text>
+
+            <rect x="520" y="-8" width="185" height="52" rx="5" fill="#701a75" fill-opacity="0.45" stroke="#ec4899" stroke-width="1" />
+            <text x="612" y="12" class="hud-title" font-size="9" fill="#fbcfe8" text-anchor="middle">LLM RESPONSE HARNESS</text>
+            <text x="612" y="32" class="hud-title" font-size="12" fill="#ffffff" text-anchor="middle">WARM &amp; EMPATHETIC</text>
+        </g>
+
+        <!-- 4. HEART TELEMETRY -->
+        <g class="info-4-heart" transform="translate(20, 20)">
+            <text class="hud-title" fill="#a855f7" font-size="13">ACTIVE HCEP MODE: HEART (82% CONFIDENCE)</text>
+            <text class="label" x="0" y="20" fill="#cbd5e1">Gaze anchored to lower face with empathic markers. Deep supportive and caring resonance.</text>
+            <text x="0" y="40" class="hud-mono" fill="#c084fc">Empathy Index: High | AU4/AU15 Markers | Target: Region #8 Mouth/Chin</text>
+
+            <rect x="520" y="-8" width="185" height="52" rx="5" fill="#581c87" fill-opacity="0.45" stroke="#a855f7" stroke-width="1" />
+            <text x="612" y="12" class="hud-title" font-size="9" fill="#e9d5ff" text-anchor="middle">LLM RESPONSE HARNESS</text>
+            <text x="612" y="32" class="hud-title" font-size="12" fill="#ffffff" text-anchor="middle">VALIDATING &amp; CARING</text>
+        </g>
+
+        <!-- 5. THINK TELEMETRY -->
+        <g class="info-5-think" transform="translate(20, 20)">
+            <text class="hud-title" fill="#f59e0b" font-size="13">ACTIVE HCEP MODE: THINK (91% CONFIDENCE)</text>
+            <text class="label" x="0" y="20" fill="#cbd5e1">Gaze averted &gt;15° off-axis. Internal recall, synthesis &amp; silent cognitive reflection.</text>
+            <text x="0" y="40" class="hud-mono" fill="#fbbf24">Aversion Angle: 22.4° | Silence Protocol: ACTIVE | Target: Region #11 Lateral Quadrant</text>
+
+            <rect x="520" y="-8" width="185" height="52" rx="5" fill="#78350f" fill-opacity="0.45" stroke="#f59e0b" stroke-width="1" />
+            <text x="612" y="12" class="hud-title" font-size="9" fill="#fef08a" text-anchor="middle">LLM RESPONSE HARNESS</text>
+            <text x="612" y="32" class="hud-title" font-size="12" fill="#ffffff" text-anchor="middle">BRIEF / NON-INTRUSIVE</text>
+        </g>
     </g>
 </svg>

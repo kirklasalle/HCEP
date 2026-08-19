@@ -126,4 +126,20 @@ public sealed class HybridLlmEngineCircuitBreakerTests
         Assert.Contains("[No LLM response]", result.Response);
         Assert.Contains("Cloud", result.Response);
     }
+
+    [Fact]
+    public async Task GetAvailableCloudModelsAsync_OpenRouterThrows_ReturnsFallbackCuratedModels()
+    {
+        var engine = BuildEngine(new AlwaysThrowHandler());
+        engine.Configuration.OpenRouter.ApiKey = "fake-openrouter-key";
+        engine.Configuration.OpenRouter.Model = "google/gemini-2.5-flash";
+
+        var models = await engine.GetAvailableCloudModelsAsync(CloudProviderType.OpenRouter);
+
+        Assert.NotNull(models);
+        Assert.NotEmpty(models);
+        Assert.Contains("google/gemini-2.5-flash", models);
+        Assert.Contains("meta-llama/llama-3.3-70b-instruct", models);
+        Assert.Contains("openrouter/auto", models);
+    }
 }

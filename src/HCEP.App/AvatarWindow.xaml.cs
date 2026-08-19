@@ -89,6 +89,7 @@ public partial class AvatarWindow : Window
         PreviewKeyDown += Window_PreviewKeyDown;
         Closed += (_, _) =>
         {
+            _avatarCatalog.CatalogChanged -= OnCatalogChanged;
             _orchestrator.GazeVectorReady -= OnGazeVectorReady;
             _orchestrator.SnapshotReady -= OnSnapshotReady;
             _backchannel.NodRequested -= OnBackchannelNodRequested;
@@ -144,9 +145,29 @@ public partial class AvatarWindow : Window
 
         TrackingModeText.Text = "waiting";
         _activeAvatar = Avatar;
+        _avatarCatalog.CatalogChanged += OnCatalogChanged;
         InitializeAvatarCatalog();
         Avatar3D.IsMirroringEnabled = IsMirroringEnabled;
         AvatarHighPoly.IsMirroringEnabled = IsMirroringEnabled;
+    }
+
+    private void OnCatalogChanged()
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            string currentKey = _activeAvatarKey;
+            InitializeAvatarCatalog();
+            // Try to keep previous selection if still in catalog
+            for (int i = 0; i < AvatarModeCombo.Items.Count; i++)
+            {
+                if (AvatarModeCombo.Items[i] is System.Windows.Controls.ComboBoxItem item
+                    && item.Tag is AvatarDescriptor d && d.Key == currentKey)
+                {
+                    AvatarModeCombo.SelectedIndex = i;
+                    break;
+                }
+            }
+        });
     }
 
     private void InitializeAvatarCatalog()
@@ -309,28 +330,55 @@ public partial class AvatarWindow : Window
         _activeAvatarKey = descriptor.Key;
         _is3DMode = descriptor.Use3DMode;
 
-        Avatar.Visibility = descriptor.Key == "2d-happy" ? Visibility.Visible : Visibility.Collapsed;
-        Avatar3D.Visibility = descriptor.Key == "3d-wireframe" ? Visibility.Visible : Visibility.Collapsed;
-        AvatarHighPoly.Visibility = descriptor.Key == "3d-highpoly-wireframe" ? Visibility.Visible : Visibility.Collapsed;
+        bool isHappy = descriptor.Key == "2d-happy";
+        bool is3DWire = descriptor.Key == "3d-wireframe";
+        bool is3DHighPoly = descriptor.Key == "3d-highpoly-wireframe";
+        bool isCustom = !isHappy && !is3DWire && !is3DHighPoly;
 
-        _activeAvatar = descriptor.Key switch
+        Avatar.Visibility = isHappy ? Visibility.Visible : Visibility.Collapsed;
+        Avatar3D.Visibility = is3DWire ? Visibility.Visible : Visibility.Collapsed;
+        AvatarHighPoly.Visibility = is3DHighPoly ? Visibility.Visible : Visibility.Collapsed;
+        CustomAvatarHost.Visibility = isCustom ? Visibility.Visible : Visibility.Collapsed;
+
+        if (isCustom)
         {
-            "3d-wireframe" => Avatar3D,
-            "3d-highpoly-wireframe" => AvatarHighPoly,
-            _ => Avatar,
-        };
+            var customComponent = _avatarCatalog.CreateAvatarInstance(descriptor.Key);
+            if (customComponent is FrameworkElement elem)
+            {
+                CustomAvatarHost.Content = elem;
+                _activeAvatar = customComponent;
+            }
+            else
+            {
+                _activeAvatar = Avatar;
+            }
+        }
+        else
+        {
+            _activeAvatar = descriptor.Key switch
+            {
+                "3d-wireframe" => Avatar3D,
+                "3d-highpoly-wireframe" => AvatarHighPoly,
+                _ => Avatar,
+            };
+        }
 
         Title = descriptor.Key switch
         {
             "3d-wireframe" => "HCEP — True Gaze Avatar (3D Wireframe)",
             "3d-highpoly-wireframe" => "HCEP — True Gaze Avatar (3D High-Poly Wireframe)",
-            _ => "HCEP — True Gaze Avatar",
+            _ => $"HCEP — {descriptor.DisplayName}",
         };
 
         if (descriptor.Key == "3d-highpoly-wireframe")
         {
             MeshStatusText.Text = $"HP {AvatarHighPoly.MeshVertexCount}V";
             MeshStatusText.Foreground = System.Windows.Media.Brushes.LightGreen;
+        }
+        else if (isCustom)
+        {
+            MeshStatusText.Text = "CUSTOM SVG";
+            MeshStatusText.Foreground = System.Windows.Media.Brushes.Cyan;
         }
 
         // Re-register provider so GazeVectorEngine reads the active control's eye positions.

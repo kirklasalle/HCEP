@@ -202,46 +202,60 @@ public sealed class VisionPipeline : IAsyncDisposable
                         var colorFrame = LatestColor;
                         if (colorFrame?.PixelData is { Length: > 0 })
                         {
-                            var crop = ExtractFaceCrop(colorFrame, face.FaceRect);
-                            if (crop is not null)
+                            float[] embedding;
+                            var landmarks5Pt = face.FivePointLandmarks2D;
+                            if (landmarks5Pt.Length >= 5)
                             {
-                                var (cropData, cropW, cropH) = crop.Value;
-                                var embedding = _faceRecognizer.GenerateEmbedding(cropData, cropW, cropH);
-
-                                if (embedding.Length > 0)
+                                embedding = _faceRecognizer.GenerateAlignedEmbedding(
+                                    colorFrame.PixelData, colorFrame.Width, colorFrame.Height, landmarks5Pt, colorFrame.BytesPerPixel);
+                            }
+                            else
+                            {
+                                var crop = ExtractFaceCrop(colorFrame, face.FaceRect);
+                                if (crop is not null)
                                 {
-                                    // Enrollment request
-                                    if (enrollName is not null)
-                                    {
-                                        _faceRecognizer.Enroll(enrollName, embedding);
-                                        PendingEnrollmentName = null;
-                                        _logger.LogInformation("Enrolled face: {Name} (total enrolled: {Count})",
-                                            enrollName, _faceRecognizer.EnrolledCount);
+                                    var (cropData, cropW, cropH) = crop.Value;
+                                    embedding = _faceRecognizer.GenerateEmbedding(cropData, cropW, cropH);
+                                }
+                                else
+                                {
+                                    embedding = Array.Empty<float>();
+                                }
+                            }
 
-                                        LatestRecognition = new FaceRecognitionResult
-                                        {
-                                            IdentityName = enrollName,
-                                            Similarity = 1.0f,
-                                            Embedding = embedding,
-                                            Timestamp = DateTimeOffset.UtcNow,
-                                        };
-                                    }
-                                    else
-                                    {
-                                        // Match against enrolled faces
-                                        var match = _faceRecognizer.Match(embedding);
-                                        LatestRecognition = new FaceRecognitionResult
-                                        {
-                                            IdentityName = match?.Name,
-                                            Similarity = match?.Similarity ?? 0f,
-                                            Embedding = embedding,
-                                            Timestamp = DateTimeOffset.UtcNow,
-                                        };
+                            if (embedding.Length > 0)
+                            {
+                                // Enrollment request
+                                if (enrollName is not null)
+                                {
+                                    _faceRecognizer.Enroll(enrollName, embedding);
+                                    PendingEnrollmentName = null;
+                                    _logger.LogInformation("Enrolled face: {Name} (total enrolled: {Count})",
+                                        enrollName, _faceRecognizer.EnrolledCount);
 
-                                        if (_frameCount % 150 == 0)
-                                            _logger.LogInformation("  FaceRec: match={Name} sim={Sim:F3} enrolled={Count}",
-                                                match?.Name ?? "unknown", match?.Similarity ?? 0f, _faceRecognizer.EnrolledCount);
-                                    }
+                                    LatestRecognition = new FaceRecognitionResult
+                                    {
+                                        IdentityName = enrollName,
+                                        Similarity = 1.0f,
+                                        Embedding = embedding,
+                                        Timestamp = DateTimeOffset.UtcNow,
+                                    };
+                                }
+                                else
+                                {
+                                    // Match against enrolled faces
+                                    var match = _faceRecognizer.Match(embedding);
+                                    LatestRecognition = new FaceRecognitionResult
+                                    {
+                                        IdentityName = match?.Name,
+                                        Similarity = match?.Similarity ?? 0f,
+                                        Embedding = embedding,
+                                        Timestamp = DateTimeOffset.UtcNow,
+                                    };
+
+                                    if (_frameCount % 150 == 0)
+                                        _logger.LogInformation("  FaceRec: match={Name} sim={Sim:F3} enrolled={Count}",
+                                            match?.Name ?? "unknown", match?.Similarity ?? 0f, _faceRecognizer.EnrolledCount);
                                 }
                             }
                         }

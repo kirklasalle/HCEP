@@ -2,6 +2,11 @@
 // HCEP — Human Communication Eye Protocol
 // Copyright © 2026 Kirk LaSalle. All rights reserved.
 // ──────────────────────────────────────────────────────────────
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace HCEP.App;
 
 /// <summary>
@@ -20,15 +25,19 @@ public interface IAvatarCatalog
 {
     IReadOnlyList<AvatarDescriptor> GetSelectableAvatars();
     IReadOnlyList<AvatarDescriptor> GetPlannedAvatars();
+    void RegisterCustomAvatar(AvatarDescriptor descriptor, Func<IAvatarComponent>? factory = null);
+    IAvatarComponent? CreateAvatarInstance(string key);
+    event Action? CatalogChanged;
 }
 
 /// <summary>
 /// First-stage avatar platform registry. Centralizes what avatar lines exist
 /// today and what future lines are being reserved by the platform design.
+/// Supports dynamic registration from HCEP Avatar Studio.
 /// </summary>
 public sealed class AvatarCatalog : IAvatarCatalog
 {
-    private static readonly AvatarDescriptor[] _all =
+    private static readonly List<AvatarDescriptor> _builtIn =
     [
         new("2d-happy", "2D Happy", false, true,
             Summary: "Shipping vector-based 2D avatar with gaze, blinks, brows, smile, proxemics, viseme lip sync, and reciprocal gestures."),
@@ -44,6 +53,36 @@ public sealed class AvatarCatalog : IAvatarCatalog
             Summary: "Reserved research track for near-real-time cloned video/audio avatar systems under explicit ethics and consent controls.")
     ];
 
-    public IReadOnlyList<AvatarDescriptor> GetSelectableAvatars() => _all.Where(a => a.IsImplemented).ToArray();
-    public IReadOnlyList<AvatarDescriptor> GetPlannedAvatars() => _all.Where(a => !a.IsImplemented).ToArray();
+    private readonly List<AvatarDescriptor> _customAvatars = new();
+    private readonly ConcurrentDictionary<string, Func<IAvatarComponent>> _factories = new();
+
+    public event Action? CatalogChanged;
+
+    public IReadOnlyList<AvatarDescriptor> GetSelectableAvatars() =>
+        _builtIn.Where(a => a.IsImplemented).Concat(_customAvatars).ToArray();
+
+    public IReadOnlyList<AvatarDescriptor> GetPlannedAvatars() =>
+        _builtIn.Where(a => !a.IsImplemented).ToArray();
+
+    public void RegisterCustomAvatar(AvatarDescriptor descriptor, Func<IAvatarComponent>? factory = null)
+    {
+        _customAvatars.RemoveAll(a => a.Key.Equals(descriptor.Key, StringComparison.OrdinalIgnoreCase));
+        _customAvatars.Add(descriptor);
+
+        if (factory is not null)
+        {
+            _factories[descriptor.Key] = factory;
+        }
+
+        CatalogChanged?.Invoke();
+    }
+
+    public IAvatarComponent? CreateAvatarInstance(string key)
+    {
+        if (_factories.TryGetValue(key, out var factory))
+        {
+            return factory();
+        }
+        return null;
+    }
 }
